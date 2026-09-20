@@ -1,8 +1,5 @@
 import pandas as pd
 import numpy as np
-import random
-from load_engine import calculate_load_profile
-from coherence_evaluator import evaluate_coherence
 
 def run_null_model_benchmark():
     print("=== METODO DEMARIA: NULL MODEL & BENCHMARK SUITE ===")
@@ -11,7 +8,7 @@ def run_null_model_benchmark():
     try:
         real_df = pd.read_csv("voynich_batch_measurements.csv")
         real_coherence_avg = real_df["Coherence_C_Star"].mean()
-        print(f"[+] Coherence Vettoriale Media - Voynich Reale (v2.0): {real_coherence_avg:.4f}")
+        print(f"[+] Coerenza Vettoriale Media - Voynich Reale (v2.0): {real_coherence_avg:.4f}")
     except Exception as e:
         print(f"[-] Errore nel caricamento del dataset reale: {e}")
         return
