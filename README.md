@@ -1,3 +1,4 @@
+[![Validation Suite](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
 # METODO DEMARIA (Release v2.0)
 
 **Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
