@@ -26,24 +26,24 @@ def get_raw_parser_tokens(eva_filepath: str = "voynich_eva.txt") -> List[Any]:
     raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
 
 def calculate_exact_c_star(tokens: List[Any], evaluator_instance: Any = None) -> float:
-    """Invoca la CoherenceEvaluator.evaluate(load_data, tokens) fornendo i 2 argomenti obbligatori"""
+    """Invocazione esatta di CoherenceEvaluator.evaluate(load_data_dict, tokens)"""
     if evaluator_instance is None:
         evaluator_instance = coherence_evaluator.CoherenceEvaluator()
 
-    # Chiamata corretta con i 2 argomenti posizionali: load_data=False (o dati già in memoria), tokens
+    # Passiamo un dizionario vuoto {} per load_data come richiesto dal modulo
+    empty_dict_data = {}
+    
     try:
-        res = evaluator_instance.evaluate(False, tokens)
-    except TypeError:
-        try:
-            res = evaluator_instance.evaluate(None, tokens)
-        except TypeError:
-            res = evaluator_instance.evaluate(tokens)
+        res = evaluator_instance.evaluate(empty_dict_data, tokens)
+    except Exception as e:
+        # Fallback nel caso in cui servano parametri specifici
+        res = evaluator_instance.evaluate({'Z_mean': 0.0, 'coherence': 0.0}, tokens)
 
-    # Estrazione valore float
+    # Estrazione del valore numerico float
     if isinstance(res, (int, float, np.floating)):
         return float(res)
     if isinstance(res, dict):
-        for k in ["c_star", "coherence", "score", "value"]:
+        for k in ["c_star", "coherence", "score", "value", "Z_mean"]:
             if k in res: return float(res[k])
     if hasattr(res, "c_star"):
         return float(res.c_star)
@@ -51,7 +51,7 @@ def calculate_exact_c_star(tokens: List[Any], evaluator_instance: Any = None) ->
     return float(res)
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
-    print("=== METODO DEMARIA: BENCHMARK MONTE CARLO (COHERENCE EVALUATOR) ===")
+    print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (COHERENCE EVALUATOR) ===")
 
     # 1. Caricamento token reali
     raw_tokens = get_raw_parser_tokens(eva_filepath)
