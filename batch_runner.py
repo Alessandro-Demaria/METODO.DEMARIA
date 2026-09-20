@@ -5,7 +5,7 @@ from load_engine import LoadEngine
 from coherence_evaluator import CoherenceEvaluator
 
 def run_batch():
-    parser = VoynichParser("voynich_eva.txt.txt")
+    parser = VoynichParser("voynich_eva.txt")
     engine = LoadEngine()
     evaluator = CoherenceEvaluator()
 
@@ -14,14 +14,15 @@ def run_batch():
     try:
         data = parser.parse()
     except Exception as e:
-        print(f"Nota: file voynich_eva in fase di lettura ({e}). Generazione struttura batch...")
-        data = []
+        print(f"Errore nella lettura del corpus: {e}")
+        return
 
     print("=== METODO DEMARIA: Scansione Batch 100% in corso ===")
 
     rows = []
-    # Intestazione delle 12 variabili e metriche cibernetiche
+    # Intestazione con metriche cibernetiche e adimensionali
     header = ["Folio", "Line", "Tokens_Count", "Z_mean_index", "Z_max_index", "Thold_sec", "Clock_Hz", "Coherence_C_Star", "Status"]
+    
     if data:
         for item in data:
             load = engine.compute_line_load(item['tokens'])
@@ -32,10 +33,10 @@ def run_batch():
                 item['folio'],
                 item['line'],
                 len(item['tokens']),
-                load.get('Z_mean', 0.0),
-                load.get('Z_max', 0.0),
-                load.get('Thold_sec', load.get('T_hold', 1.0)),
-                load.get('Clock_Hz', 1.0),
+                load['Z_mean'],
+                load['Z_max'],
+                load['Thold_sec'],
+                load['Clock_Hz'],
                 c_star,
                 status
             ])
@@ -45,7 +46,8 @@ def run_batch():
         writer.writerow(header)
         writer.writerows(rows)
 
-    print(f"Scansione completata. File generato: {output_csv}")
+    print(f"Scansione completata con successo! Processate {len(rows)} righe.")
+    print(f"File generato: {output_csv}")
 
 if __name__ == "__main__":
     run_batch()

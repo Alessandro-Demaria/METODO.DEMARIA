@@ -1,49 +1,45 @@
-import re
 import os
 
 class VoynichParser:
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self, filepath="voynich_eva.txt"):
+        self.filepath = filepath
 
     def parse(self):
         """
-        Legge il file EVA traslitterato (formato IVTFF) e restituisce una struttura dati vettoriale:
-        list di dict: [{'folio': 'f1r', 'line': 1, 'tokens': ['fachys', 'ykal', ...]}, ...]
+        Legge il file del manoscritto e restituisce una lista di dizionari con keys:
+        'folio', 'line', 'tokens'
         """
-        if not os.path.exists(self.file_path):
-            raise FileNotFoundError(f"File non trovato: {self.file_path}")
+        if not os.path.exists(self.filepath):
+            # Fallback se il file ha estensione doppia o diversa
+            if os.path.exists("voynich_eva.txt.txt"):
+                self.filepath = "voynich_eva.txt.txt"
+            else:
+                raise FileNotFoundError(f"File non trovato: {self.filepath}")
 
-        parsed_data = []
-
-        with open(self.file_path, 'r', encoding='utf-8') as f:
-            for line in f:
+        data = []
+        with open(self.filepath, 'r', encoding='utf-8') as f:
+            for line_idx, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
 
-                # Estrazione del tag di riga/folio (es. <f1r.1,+P0>)
-                match = re.match(r'^<([^>]+)>\s*(.*)$', line)
-                if match:
-                    header = match.group(1)
-                    content = match.group(2)
+                # Estrazione folio se presente (es. <f1r.P.1>)
+                folio = "f1r"
+                if line.startswith('<') and '>' in line:
+                    parts = line.split('>', 1)
+                    meta = parts[0].lstrip('<')
+                    line_content = parts[1]
+                    folio = meta.split('.')[0]
+                else:
+                    line_content = line
 
-                    # Estrae il folio (es. f1r)
-                    folio_match = re.search(r'f\d+[rv](\.\d+)?', header)
-                    folio = folio_match.group(0) if folio_match else header
+                # Pulizia e tokenizzazione
+                tokens = [t.strip() for t in line_content.replace('.', ' ').split() if t.strip()]
+                if tokens:
+                    data.append({
+                        'folio': folio,
+                        'line': line_idx,
+                        'tokens': tokens
+                    })
 
-                    # Rimuove i commenti o annotazioni tra parentesi graffe o angolari
-                    content_clean = re.sub(r'\{[^}]*\}', '', content)
-                    content_clean = re.sub(r'<[^>]*>', '', content_clean)
-
-                    # Estrae tutti i token separati da punti o spazi
-                    raw_tokens = re.split(r'[\.\s]+', content_clean)
-                    tokens = [t for t in raw_tokens if t and not t.startswith('!') and not t.startswith('$')]
-
-                    if tokens:
-                        parsed_data.append({
-                            'header': header,
-                            'folio': folio,
-                            'tokens': tokens
-                        })
-
-        return parsed_data
+        return data
