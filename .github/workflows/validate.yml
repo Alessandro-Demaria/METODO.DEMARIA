@@ -27,7 +27,8 @@ jobs:
           python -c "
           import pandas as pd
           df = pd.read_csv('voynich_batch_measurements.csv')
-          assert len(df) == 5613, f'Expected 5613 rows, got {len(df)}'
+          assert len(df) == 5612, f'Expected 5612 data rows, got {len(df)}'
           assert 'UNSTABLE' not in df['Status'].values, 'UNSTABLE status found in dataset!'
-          print('VALIDAZIONE CSV COMPLETATA CON SUCCESSO: 5613 righe integre.')
+          assert 'BELOW_PEAK_THRESHOLD' in df['Status'].values, 'BELOW_PEAK_THRESHOLD missing!'
+          print('VALIDAZIONE CSV COMPLETATA CON SUCCESSO: 5612 record di dati integri + 1 riga intestazione.')
           "
