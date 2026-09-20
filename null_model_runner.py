@@ -4,31 +4,37 @@ import random
 import math
 from typing import List, Tuple
 
-# Import flessibile per gestire la funzione di parsing corretta
 import voynich_parser
-from coherence_evaluator import calculate_vector_coherence
+import coherence_evaluator
 
 def get_tokens_from_parser(eva_filepath: str) -> List[str]:
-    """Tenta l'importazione dinamica della funzione di parsing da voynich_parser.py"""
-    if hasattr(voynich_parser, "parse_voynich_eva"):
-        return voynich_parser.parse_voynich_eva(eva_filepath)
-    elif hasattr(voynich_parser, "parse_eva_tokens"):
-        return voynich_parser.parse_eva_tokens(eva_filepath)
-    elif hasattr(voynich_parser, "parse_eva"):
-        return voynich_parser.parse_eva(eva_filepath)
-    elif hasattr(voynich_parser, "load_tokens"):
-        return voynich_parser.load_tokens(eva_filepath)
-    else:
-        # Cerca la prima funzione disponibile nel modulo
-        functions = [getattr(voynich_parser, func) for func in dir(voynich_parser) if callable(getattr(voynich_parser, func)) and not func.startswith("__")]
-        if functions:
-            return functions[0](eva_filepath)
-        raise AttributeError("Nessuna funzione di parsing valida trovata in voynich_parser.py")
+    """Isola ed esegue la funzione di parsing presente in voynich_parser.py"""
+    for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
+        if hasattr(voynich_parser, attr):
+            return getattr(voynich_parser, attr)(eva_filepath)
+    
+    # Fallback su qualsiasi funzione callable pubblica nel modulo
+    funcs = [getattr(voynich_parser, f) for f in dir(voynich_parser) if callable(getattr(voynich_parser, f)) and not f.startswith("__")]
+    if funcs:
+        return funcs[0](eva_filepath)
+    raise AttributeError("Nessuna funzione di parsing trovata in voynich_parser.py")
+
+def evaluate_c_star(tokens: List[str]) -> float:
+    """Isola ed esegue la funzione di calcolo C* in coherence_evaluator.py"""
+    for attr in ["calculate_vector_coherence", "evaluate_coherence", "calculate_coherence", "get_c_star", "compute_coherence"]:
+        if hasattr(coherence_evaluator, attr):
+            return getattr(coherence_evaluator, attr)(tokens)
+            
+    # Fallback su qualsiasi funzione callable pubblica nel modulo
+    funcs = [getattr(coherence_evaluator, f) for f in dir(coherence_evaluator) if callable(getattr(coherence_evaluator, f)) and not f.startswith("__")]
+    if funcs:
+        return funcs[0](tokens)
+    raise AttributeError("Nessuna funzione di calcolo coerenza trovata in coherence_evaluator.py")
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
     print("=== METODO DEMARIA: TRUE MONTE CARLO NULL MODEL BENCHMARK ===")
     
-    # 1. Caricamento e parsing dei token EVA reali dal file
+    # 1. Parsing dei token EVA reali
     try:
         print(f"[+] Caricamento del corpus da: {eva_filepath}...")
         raw_tokens = get_tokens_from_parser(eva_filepath)
@@ -39,26 +45,23 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
 
     # 2. Calcolo della Coerenza Vettoriale Reale (C*)
     try:
-        real_coherence = calculate_vector_coherence(raw_tokens)
+        real_coherence = evaluate_c_star(raw_tokens)
         print(f"[+] Coerenza Vettoriale Reale (C*): {real_coherence:.4f}")
     except Exception as e:
         print(f"[-] Errore durante il calcolo di C* reale: {e}")
         return
 
-    # 3. Esecuzione della vera permutazione Monte Carlo (True Token Shuffle)
+    # 3. Permutazione Monte Carlo Reale (True Token Shuffle)
     print(f"[+] Avvio di {num_permutations} permutazioni Monte Carlo dei token...")
     null_coherence_scores: List[float] = []
     working_tokens = list(raw_tokens).copy()
 
     for i in range(num_permutations):
-        # Permutazione fisica dei token (mantiene le frequenze, distrugge la sintassi adiacente)
         random.shuffle(working_tokens)
-        
-        # Ricalcolo reale di C* passando attraverso la pipeline
-        c_star_null = calculate_vector_coherence(working_tokens)
+        c_star_null = evaluate_c_star(working_tokens)
         null_coherence_scores.append(c_star_null)
 
-    # 4. Analisi Statistica e Confronto
+    # 4. Statistica
     null_mean = float(np.mean(null_coherence_scores))
     null_std = float(np.std(null_coherence_scores, ddof=1))
     
