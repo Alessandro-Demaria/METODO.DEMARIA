@@ -1,12 +1,13 @@
 import numpy as np
 import random
 import math
-from typing import List, Any
+from typing import List, Any, Dict
 import voynich_parser
 import coherence_evaluator
 
-def get_raw_parser_tokens(eva_filepath: str = "voynich_eva.txt") -> List[Any]:
-    """Estrae la struttura nativa dei token da VoynichParser"""
+def extract_clean_token_strings(eva_filepath: str = "voynich_eva.txt") -> List[str]:
+    """Estrae i token dal parser e garantisce la conversione in stringhe di testo puro per coherence_evaluator"""
+    raw_tokens = []
     if hasattr(voynich_parser, "VoynichParser"):
         p = voynich_parser.VoynichParser()
         if hasattr(p, "parse"):
@@ -14,74 +15,75 @@ def get_raw_parser_tokens(eva_filepath: str = "voynich_eva.txt") -> List[Any]:
                 res = p.parse()
             except TypeError:
                 res = p.parse(eva_filepath)
-            if hasattr(res, "tokens"): return res.tokens
-            if isinstance(res, list): return res
+            if hasattr(res, "tokens"): raw_tokens = res.tokens
+            elif isinstance(res, list): raw_tokens = res
 
-    for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
-        if hasattr(voynich_parser, attr):
-            res = getattr(voynich_parser, attr)(eva_filepath)
-            if isinstance(res, list): return res
-            if hasattr(res, "tokens"): return res.tokens
+    if not raw_tokens:
+        for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
+            if hasattr(voynich_parser, attr):
+                res = getattr(voynich_parser, attr)(eva_filepath)
+                if isinstance(res, list): raw_tokens = res; break
+                if hasattr(res, "tokens"): raw_tokens = res.tokens; break
 
-    raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
+    if not raw_tokens:
+        raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
 
-def calculate_exact_c_star(tokens: List[Any], evaluator_instance: Any = None) -> float:
-    """Invocazione esatta di CoherenceEvaluator.evaluate(load_data_dict, tokens)"""
-    if evaluator_instance is None:
-        evaluator_instance = coherence_evaluator.CoherenceEvaluator()
+    # Converti ogni elemento in stringa pura (estraendo la chiave del testo se è un dizionario)
+    clean_strings = []
+    for t in raw_tokens:
+        if isinstance(t, str):
+            clean_strings.append(t)
+        elif isinstance(t, dict):
+            # Estrai il valore testuale da chiavi comuni come 'text', 'word', 'eva', 'val'
+            val = None
+            for key in ["text", "word", "eva", "token", "val", "raw"]:
+                if key in t:
+                    val = str(t[key])
+                    break
+            if val is None and len(t) > 0:
+                val = str(next(iter(t.values())))
+            if val:
+                clean_strings.append(val)
+        elif hasattr(t, "text"):
+            clean_strings.append(str(t.text))
+        else:
+            clean_strings.append(str(t))
 
-    # Passiamo un dizionario vuoto {} per load_data come richiesto dal modulo
-    empty_dict_data = {}
-    
-    try:
-        res = evaluator_instance.evaluate(empty_dict_data, tokens)
-    except Exception as e:
-        # Fallback nel caso in cui servano parametri specifici
-        res = evaluator_instance.evaluate({'Z_mean': 0.0, 'coherence': 0.0}, tokens)
-
-    # Estrazione del valore numerico float
-    if isinstance(res, (int, float, np.floating)):
-        return float(res)
-    if isinstance(res, dict):
-        for k in ["c_star", "coherence", "score", "value", "Z_mean"]:
-            if k in res: return float(res[k])
-    if hasattr(res, "c_star"):
-        return float(res.c_star)
-
-    return float(res)
+    return clean_strings
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
-    print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (COHERENCE EVALUATOR) ===")
+    print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (PRECISIONE ASSOLUTA) ===")
 
-    # 1. Caricamento token reali
-    raw_tokens = get_raw_parser_tokens(eva_filepath)
-    N = len(raw_tokens)
-    print(f"[+] Token totali estratti dal corpus EVA: {N}")
+    # 1. Caricamento e pulizia stringhe token
+    string_tokens = extract_clean_token_strings(eva_filepath)
+    N = len(string_tokens)
+    print(f"[+] Token totali estratti e convertiti in stringhe pure: {N}")
 
-    # Istanza dell'evaluator
+    # Istanza dell'evaluator e dizionario vuoto per load_data
     evaluator = coherence_evaluator.CoherenceEvaluator()
+    data_dict = {}
 
-    # 2. Calcolo C* Reale
-    real_c_star = calculate_exact_c_star(raw_tokens, evaluator)
+    # 2. Calcolo C* Reale del corpus originale
+    real_c_star = float(evaluator.evaluate(data_dict, string_tokens))
     print(f"[+] Coerenza Vettoriale Reale (C*): {real_c_star:.4f}")
 
-    # 3. Permutazione Monte Carlo Reale
+    # 3. Permutazione Monte Carlo Reale (True Token Shuffle)
     print(f"[+] Esecuzione di {num_permutations} permutazioni Monte Carlo...")
     null_scores = []
-    shuffled_tokens = list(raw_tokens)
+    working_tokens = list(string_tokens)
 
     for _ in range(num_permutations):
-        random.shuffle(shuffled_tokens)
-        c_null = calculate_exact_c_star(shuffled_tokens, evaluator)
+        random.shuffle(working_tokens)
+        c_null = float(evaluator.evaluate(data_dict, working_tokens))
         null_scores.append(c_null)
 
-    # 4. Statistica Finale
+    # 4. Analisi Statistica e Delta
     null_mean = float(np.mean(null_scores))
     null_std = float(np.std(null_scores, ddof=1))
     delta_c = real_c_star - null_mean
     cohens_d = delta_c / null_std if null_std > 0 else 0.0
 
-    print("\n=== RISULTATI DEL MODELLO NULLO ===")
+    print("\n=== RISULTATI DEL MODELLO NULLO REALE ===")
     print(f"C* Reale:                  {real_c_star:.4f}")
     print(f"C* Modello Nullo (Medio): {null_mean:.4f} (+/- {null_std:.4f})")
     print(f"Delta Coerenza (C* - Null):{delta_c:.4f}")
