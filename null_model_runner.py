@@ -19,24 +19,21 @@ def extract_tokens_from_result(res) -> List[str]:
 
 def get_tokens_from_parser(eva_filepath: str) -> List[str]:
     """Isola ed esegue la funzione o la classe di parsing in voynich_parser.py"""
-    # 1. Tenta la chiamata alle funzioni note con argomento
     for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
         if hasattr(voynich_parser, attr):
             res = getattr(voynich_parser, attr)(eva_filepath)
             return extract_tokens_from_result(res)
     
-    # 2. Tenta l'istanziazione di una classe Parser senza argomenti su parse()
     if hasattr(voynich_parser, "VoynichParser"):
         parser_obj = voynich_parser.VoynichParser()
         if hasattr(parser_obj, "parse"):
             try:
-                res = parser_obj.parse() # Chiamata senza parametri
+                res = parser_obj.parse()
             except TypeError:
-                res = parser_obj.parse(eva_filepath) # Chiamata con parametro
+                res = parser_obj.parse(eva_filepath)
             return extract_tokens_from_result(res)
         return extract_tokens_from_result(parser_obj)
 
-    # 3. Fallback su qualsiasi funzione callable
     funcs = [getattr(voynich_parser, f) for f in dir(voynich_parser) if callable(getattr(voynich_parser, f)) and not f.startswith("__")]
     if funcs:
         try:
@@ -47,15 +44,36 @@ def get_tokens_from_parser(eva_filepath: str) -> List[str]:
         
     raise AttributeError("Nessuna funzione o classe di parsing valida trovata in voynich_parser.py")
 
+def extract_float_score(res, tokens: List[str]) -> float:
+    """Estrae il valore numerico float da qualsiasi oggetto restituito da coherence_evaluator"""
+    if isinstance(res, (int, float, np.floating)):
+        return float(res)
+    if hasattr(res, "calculate_coherence") and callable(res.calculate_coherence):
+        return float(res.calculate_coherence(tokens))
+    if hasattr(res, "evaluate") and callable(res.evaluate):
+        return float(res.evaluate(tokens))
+    if hasattr(res, "c_star"):
+        return float(res.c_star)
+    if hasattr(res, "score"):
+        return float(res.score)
+    raise ValueError(f"Impossibile estrarre lo score numerico dall'oggetto di tipo: {type(res)}")
+
 def evaluate_c_star(tokens: List[str]) -> float:
-    """Isola ed esegue la funzione di calcolo C* in coherence_evaluator.py"""
+    """Isola ed esegue la funzione di calcolo C* convertendo il risultato in float"""
     for attr in ["calculate_vector_coherence", "evaluate_coherence", "calculate_coherence", "get_c_star", "compute_coherence"]:
         if hasattr(coherence_evaluator, attr):
-            return getattr(coherence_evaluator, attr)(tokens)
+            res = getattr(coherence_evaluator, attr)(tokens)
+            return extract_float_score(res, tokens)
             
+    if hasattr(coherence_evaluator, "CoherenceEvaluator"):
+        eval_obj = coherence_evaluator.CoherenceEvaluator()
+        return extract_float_score(eval_obj, tokens)
+
     funcs = [getattr(coherence_evaluator, f) for f in dir(coherence_evaluator) if callable(getattr(coherence_evaluator, f)) and not f.startswith("__")]
     if funcs:
-        return funcs[0](tokens)
+        res = funcs[0](tokens)
+        return extract_float_score(res, tokens)
+        
     raise AttributeError("Nessuna funzione di calcolo coerenza trovata in coherence_evaluator.py")
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
