@@ -1,68 +1,52 @@
 # METODO DEMARIA (Release v2.0)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22856418.svg)](https://doi.org/10.5281/zenodo.22856418)
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Status](https://img.shields.io/badge/Status-Published-green.svg)](https://doi.org/10.5281/zenodo.22856418)
 
-**MANOSCRITTO VOYNICH - METODO DEMARIA: Architettura Cibernetica, Automi Temporizzati ad Anello Chiuso e Invarianza Vettoriale nei Corpora Simbolici Non-Fonetici**
-
----
-
-## 📌 Informazioni Generali / General Information
-
-* **Autore e Inventore / Author & Creator:** Avv. Alessandro Demaria
-* **DOI Ufficiale / Official DOI:** [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)
-* **DOI Concept (Tutte le versioni / All versions):** [10.5281/zenodo.22856417](https://doi.org/10.5281/zenodo.22856417)
-* **Data di Pubblicazione / Publication Date:** 20 Settembre 2026
-* **Versione / Version:** v2.0
-* **Licenza / License:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
-* **Contatti / Official Contacts:** `metodo.demaria@gmail.com` | `avv.alessandrodemaria@pec.it`
+**Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)  
+**Author**: Alessandro De Maria  
+**Zenodo DOI**: [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)  
+**License**: MIT License  
 
 ---
 
-## 📖 Descrizione del Progetto / Project Description
+## 1. Model Description
+The **Metodo De Maria** implements a closed-loop cybernetic architecture for the modeling and analysis of non-phonetic symbolic corpora.
 
-### 🇮🇹 Italiano
-Il **Metodo Demaria** formalizza un cambio di paradigma nello studio dei corpora simbolici storici non decifrati, con applicazione primaria al Manoscritto Voynich (*Beinecke MS 408*). Superando le tradizionali ipotesi fonetico-alfabetiche (*Symbol-to-Sound*), il metodo modella il corpus grafico come un **Instruction Set** deterministico e calcolabile, progettato per regolare e monitorare un **Automa Temporizzato ad Anello Chiuso** (*Symbol-to-Vector*) definito dalla quintupla algebrica $\mathcal{A} = (S, \Sigma, X, f, \text{Inv})$.
+### Nominal Input Operating Parameters
+- **Nominal Clock Frequency ($\omega_0$)**: $0.0416 \text{ Hz}$
+- **Nominal Dwell Time ($T_0$)**: $\approx 24.0 \text{ seconds}$
 
-Attraverso una pipeline di scansione computazionale batch al 100%, l'opera dimostra l'esistenza di un *Master Clock* sincronizzato (0,0416 Hz / $T_0 = 24\text{ s}$) e di un profilo di carico dinamico $Z(t)$ che mantiene un Indice di Coerenza Vettoriale $\mathcal{C}^* \ge 0,94$ sull'intero manoscritto (f1r-f116v). Il trattato include un protocollo di benchmarking comparativo su 10 corpora (inclusi Göbekli Tepe e modelli nulli), la riproducibilità computazionale tramite codebase Python open-source (`.csv`) e una riflessione epistemologica sulla Matrice Cognitiva Umana Comune e sul Principio dell'Armonia.
-
-### 🇬🇧 English
-The **Demaria Method** formalizes a paradigm shift in the study of historically undeciphered non-phonetic symbolic corpora, with primary application to the Voynich Manuscript (*Beinecke MS 408*). Moving beyond traditional phonetic-alphabetic assumptions (*Symbol-to-Sound*), the method models the graphic corpus as a deterministic, calculable **Instruction Set** designed to regulate and monitor a **Closed-Loop Timed Automaton** (*Symbol-to-Vector*) defined by the algebraic quintuple $\mathcal{A} = (S, \Sigma, X, f, \text{Inv})$.
-
-Through a 100% batch computational scanning pipeline, the work proves the existence of a synchronized *Master Clock* (0.0416 Hz / $T_0 = 24\text{ s}$) and dynamic load profile $Z(t)$ maintaining a Vector Coherence Index $\mathcal{C}^* \ge 0.94$ across the entire manuscript (f1r-f116v). The treatise includes a 10-corpus cross-benchmarking protocol (including Göbekli Tepe and null-model validation), computational reproducibility via open Python codebase (`.csv` datasets), and an epistemological exploration of the Common Human Cognitive Matrix and the Principle of Harmony.
+*Note*: The clock and dwell time values represent input operating parameters of the `LoadEngine` cybernetic engine and do not represent empirically extracted measurements or frequencies from the text.
 
 ---
 
-## ⚖️ Menzione Legale e Tutela della Proprietà Intellettuale / Legal Notice
+## 2. Coherence Metric $C^*$
+The cybernetic stability of each line-loop is evaluated using the **Weighted Composite Index of Load Stability and Topological Compliance ($C^*$)**:
 
-L'opera, il modello cibernetico, la notazione formale e la denominazione **"Metodo Demaria"** costituiscono creazione intellettuale originale dell'Avv. Alessandro Demaria, tutelata ai sensi della Legge 22 aprile 1941 n. 633 e delle convenzioni internazionali sul Diritto d'Autore (Convenzione di Berna). L'uso, la citazione e la riproduzione sono consentiti nei limiti della licenza Creative Commons Attribuzione 4.0 Internazionale (CC BY 4.0), con obbligo tassativo di menzione della paternità dell'Autore e della fonte.
+$$C^* = 0.6 \cdot \left(\frac{Z_{\text{mean}}}{Z_{\text{max}}}\right) + 0.4 \cdot T_{\text{weight}}$$
 
-*The work, cybernetic model, formal notation, and the designation "Demaria Method" constitute an original intellectual creation of Alessandro Demaria, Esq., protected under international copyright conventions (Bern Convention). Citation, distribution, and adaptation are authorized under the Creative Commons Attribution 4.0 International License (CC BY 4.0), subject to mandatory attribution of authorship and source.*
+Where:
+- $Z_{\text{mean}}$ and $Z_{\text{max}}$ represent dimensionless dynamic load indices.
+- $T_{\text{weight}}$ evaluates the presence of topological markers for Trigger (Header) and Closure (Reset).
 
 ---
 
-## 📑 Come Citare il Trattato / How to Cite
+## 3. Contextualization of Empirical Results (100% Batch)
+Automated analysis conducted on **5,612 lines** of the corpus (`voynich_batch_measurements.csv` dataset) demonstrates the following stability profile:
 
-Per citare ufficialmente questo lavoro in pubblicazioni accademiche o scientifiche, si prega di utilizzare uno dei seguenti formati:
+- **Corpus Baseline Mean Coherence**: $C^*_{\text{mean}} \approx 0.6451$
+- **Load Distribution**: Minimum $\approx 0.2612$, Maximum $1.0000$.
+- **Strict Peak Threshold ($C^* \ge 0.94$)**: 16 lines ($0.38\%$).
 
-### Formato APA (7th ed.)
-> Demaria, A. (2026). *MANOSCRITTO VOYNICH - METODO DEMARIA: Architettura Cibernetica, Automi Temporizzati ad Anello Chiuso e Invarianza Vettoriale nei Corpora Simbolici Non-Fonetici* (Release v2.0). Zenodo. https://doi.org/10.5281/zenodo.22856418
+### Academic & Scientific Interpretation
+The acceptance threshold $C^* \ge 0.94$ identifies segments of **maximum cybernetic constraint and peak coherence**. The composite index $C^*$, devoid of artificial offsets, serves as a falsifiable metric documenting the true structural and topological variability across the entire Voynich manuscript.
 
-### Formato IEEE
-> A. Demaria, "MANOSCRITTO VOYNICH - METODO DEMARIA: Architettura Cibernetica, Automi Temporizzati ad Anello Chiuso e Invarianza Vettoriale nei Corpora Simbolici Non-Fonetici," Release v2.0, Zenodo, Sep. 20, 2026. doi: 10.5281/zenodo.22856418.
+---
 
-### Formato BibTeX
-```bibtex
-@misc{demaria_2026_zenodo_v2,
-  author       = {Demaria, Alessandro},
-  title        = {{MANOSCRITTO VOYNICH - METODO DEMARIA: Architettura 
-                   Cibernetica, Automi Temporizzati ad Anello Chiuso 
-                   e Invarianza Vettoriale nei Corpora Simbolici 
-                   Non-Fonetici}},
-  month        = sep,
-  year         = 2026,
-  publisher    = {Zenodo},
-  version      = {v2.0},
-  doi          = {10.5281/zenodo.22856418},
-  url          = {[https://doi.org/10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)}
-}
+## 4. Repository Structure & Reproducibility
+Executing `python batch_runner.py` completely regenerates the output dataset from the source artifacts.
+
+- `voynich_eva.txt`: Transcribed corpus of the Voynich Manuscript.
+- `voynich_parser.py`: Token extraction and processing module per folio/line.
+- `load_engine.py`: Calculation engine for the dimensionless load profile $Z$.
+- `coherence_evaluator.py`: Evaluator for the composite index $C^*$.
+- `batch_runner.py`: Full batch scanning orchestrator.
+- `voynich_batch_measurements.csv`: Generated measurement dataset.
