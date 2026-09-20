@@ -8,7 +8,7 @@
 ---
 
 ## 1. Model Description
-The **Metodo De Maria** implements a closed-loop cybernetic architecture for the modeling and analysis of non-phonetic symbolic corpora.
+The **Metodo Demaria** implements a closed-loop cybernetic architecture for the modeling and analysis of non-phonetic symbolic corpora.
 
 ### Nominal Input Operating Parameters
 - **Nominal Clock Frequency ($\omega_0$)**: $0.0416 \text{ Hz}$
