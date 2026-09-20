@@ -5,7 +5,7 @@ from load_engine import LoadEngine
 from coherence_evaluator import CoherenceEvaluator
 
 def run_batch():
-    parser = VoynichParser("voynich_eva")
+    parser = VoynichParser("voynich_eva.txt")
     engine = LoadEngine()
     evaluator = CoherenceEvaluator()
 
