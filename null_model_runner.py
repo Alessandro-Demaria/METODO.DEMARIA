@@ -1,11 +1,27 @@
 import numpy as np
 import random
 import math
-from typing import List, Dict, Tuple
+from typing import List, Dict, Any
 import voynich_parser
 
+def sanitize_to_string(token: Any) -> str:
+    """Proietta qualsiasi oggetto token (dict, object, str) nella sua rappresentazione stringa pura"""
+    if isinstance(token, str):
+        return token
+    if isinstance(token, dict):
+        for key in ["text", "val", "token", "word", "eva"]:
+            if key in token:
+                return str(token[key])
+        return str(next(iter(token.values()))) if token else ""
+    if hasattr(token, "text"):
+        return str(token.text)
+    if hasattr(token, "val"):
+        return str(token.val)
+    return str(token)
+
 def extract_tokens_from_parser(eva_filepath: str = "voynich_eva.txt") -> List[str]:
-    """Estrae i token EVA direttamente dal parser del repository"""
+    """Estrae i token EVA e li sanifica in stringhe algebriche per la matrice di transizione"""
+    raw_list = []
     if hasattr(voynich_parser, "VoynichParser"):
         p = voynich_parser.VoynichParser()
         if hasattr(p, "parse"):
@@ -13,28 +29,32 @@ def extract_tokens_from_parser(eva_filepath: str = "voynich_eva.txt") -> List[st
                 res = p.parse()
             except TypeError:
                 res = p.parse(eva_filepath)
-            if hasattr(res, "tokens"): return res.tokens
-            if isinstance(res, list): return res
+            if hasattr(res, "tokens"): raw_list = res.tokens
+            elif isinstance(res, list): raw_list = res
     
-    for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
-        if hasattr(voynich_parser, attr):
-            res = getattr(voynich_parser, attr)(eva_filepath)
-            if isinstance(res, list): return res
-            if hasattr(res, "tokens"): return res.tokens
-            
-    raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
+    if not raw_list:
+        for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
+            if hasattr(voynich_parser, attr):
+                res = getattr(voynich_parser, attr)(eva_filepath)
+                if isinstance(res, list): raw_list = res; break
+                if hasattr(res, "tokens"): raw_list = res.tokens; break
+                
+    if not raw_list:
+        raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
+
+    # Sanitizzazione: conversione da dict/object a stringhe hashable
+    return [sanitize_to_string(t) for t in raw_list if sanitize_to_string(t)]
 
 def compute_direct_c_star(tokens: List[str]) -> float:
     """
-    Calcolo diretto di Coerenza Vettoriale (C*) basato sulla matrice 
+    Calcolo analitico di Coerenza Vettoriale C* basato sulla matrice 
     di transizione Markoviana tra token adiacenti (Formulazione Tesi v2.0).
     """
     if not tokens or len(tokens) < 2:
         return 0.0
     
-    # 1. Costruzione del vocabolario e frequenze di transizione
-    bigrams = {}
-    unigrams = {}
+    bigrams: Dict[Tuple[str, str], int] = {}
+    unigrams: Dict[str, int] = {}
     
     for i in range(len(tokens) - 1):
         t1, t2 = tokens[i], tokens[i+1]
@@ -42,27 +62,25 @@ def compute_direct_c_star(tokens: List[str]) -> float:
         bigrams[(t1, t2)] = bigrams.get((t1, t2), 0) + 1
     unigrams[tokens[-1]] = unigrams.get(tokens[-1], 0) + 1
     
-    # 2. Calcolo della Coerenza Vettoriale C* (Coerenza di transizione di sequenza)
-    total_transitions = sum(bigrams.values())
     coherence_sum = 0.0
+    total_tokens = len(tokens)
     
     for (t1, t2), count in bigrams.items():
         p_trans = count / unigrams[t1]
-        p_global = unigrams[t2] / len(tokens)
+        p_global = unigrams[t2] / total_tokens
         if p_global > 0:
             coherence_sum += p_trans * math.log2(p_trans / p_global + 1e-12)
             
-    # Normalizzazione dello score vettoriale C*
     c_star = max(0.0, min(1.0, coherence_sum / (math.log2(len(unigrams) + 1))))
     return float(c_star)
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
     print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (TESI v2.0) ===")
     
-    # 1. Caricamento token reali
+    # 1. Caricamento token reali sanificati
     raw_tokens = extract_tokens_from_parser(eva_filepath)
     N = len(raw_tokens)
-    print(f"[+] Token totali estratti dal corpus EVA: {N}")
+    print(f"[+] Token totali estratti e sanificati dal corpus EVA: {N}")
 
     # 2. Calcolo C* Reale del corpus
     real_c_star = compute_direct_c_star(raw_tokens)
