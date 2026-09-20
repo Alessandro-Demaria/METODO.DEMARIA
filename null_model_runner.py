@@ -5,10 +5,10 @@ import math
 from typing import List, Tuple
 
 import voynich_parser
-import coherence_evaluator
+from coherence_evaluator import CoherenceEvaluator
 
 def extract_tokens_from_result(res) -> List[str]:
-    """Estrae la lista di token da qualsiasi tipo di dato restituito dal parser"""
+    """Estrae la lista di token dal parser"""
     if isinstance(res, list):
         return res
     if hasattr(res, "tokens"):
@@ -44,37 +44,21 @@ def get_tokens_from_parser(eva_filepath: str) -> List[str]:
         
     raise AttributeError("Nessuna funzione o classe di parsing valida trovata in voynich_parser.py")
 
-def extract_float_score(res, tokens: List[str]) -> float:
-    """Estrae il valore numerico float da qualsiasi oggetto restituito da coherence_evaluator"""
+def evaluate_c_star(tokens: List[str]) -> float:
+    """Esegue la chiamata corretta a CoherenceEvaluator().evaluate(tokens)"""
+    evaluator = CoherenceEvaluator()
+    res = evaluator.evaluate(tokens)
+    
     if isinstance(res, (int, float, np.floating)):
         return float(res)
-    if hasattr(res, "calculate_coherence") and callable(res.calculate_coherence):
-        return float(res.calculate_coherence(tokens))
-    if hasattr(res, "evaluate") and callable(res.evaluate):
-        return float(res.evaluate(tokens))
     if hasattr(res, "c_star"):
         return float(res.c_star)
     if hasattr(res, "score"):
         return float(res.score)
-    raise ValueError(f"Impossibile estrarre lo score numerico dall'oggetto di tipo: {type(res)}")
-
-def evaluate_c_star(tokens: List[str]) -> float:
-    """Isola ed esegue la funzione di calcolo C* convertendo il risultato in float"""
-    for attr in ["calculate_vector_coherence", "evaluate_coherence", "calculate_coherence", "get_c_star", "compute_coherence"]:
-        if hasattr(coherence_evaluator, attr):
-            res = getattr(coherence_evaluator, attr)(tokens)
-            return extract_float_score(res, tokens)
-            
-    if hasattr(coherence_evaluator, "CoherenceEvaluator"):
-        eval_obj = coherence_evaluator.CoherenceEvaluator()
-        return extract_float_score(eval_obj, tokens)
-
-    funcs = [getattr(coherence_evaluator, f) for f in dir(coherence_evaluator) if callable(getattr(coherence_evaluator, f)) and not f.startswith("__")]
-    if funcs:
-        res = funcs[0](tokens)
-        return extract_float_score(res, tokens)
-        
-    raise AttributeError("Nessuna funzione di calcolo coerenza trovata in coherence_evaluator.py")
+    if isinstance(res, dict) and "c_star" in res:
+        return float(res["c_star"])
+    
+    return float(res)
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
     print("=== METODO DEMARIA: TRUE MONTE CARLO NULL MODEL BENCHMARK ===")
