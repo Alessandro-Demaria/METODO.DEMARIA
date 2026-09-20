@@ -1,0 +1,33 @@
+name: Validation Suite - Metodo Demaria
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy
+
+      - name: Run Integrity Test on CSV
+        run: |
+          python -c "
+          import pandas as pd
+          df = pd.read_csv('voynich_batch_measurements.csv')
+          assert len(df) == 5613, f'Expected 5613 rows, got {len(df)}'
+          assert 'UNSTABLE' not in df['Status'].values, 'UNSTABLE status found in dataset!'
+          print('VALIDAZIONE CSV COMPLETATA CON SUCCESSO: 5613 righe integre.')
+          "
