@@ -18,36 +18,40 @@ def run_batch():
         return
 
     print("=== METODO DEMARIA: Scansione Batch 100% in corso ===")
-
-    rows = []
-    # Intestazione con metriche cibernetiche e adimensionali
-    header = ["Folio", "Line", "Tokens_Count", "Z_mean_index", "Z_max_index", "Thold_sec", "Clock_Hz", "Coherence_C_Star", "Status"]
     
-    if data:
-        for item in data:
-            load = engine.compute_line_load(item['tokens'])
-            c_star = evaluator.evaluate(load, item['tokens'])
-            status = "STABLE (PASS)" if c_star >= 0.94 else "UNSTABLE"
+    fieldnames = [
+        "folio", "line_num", "tokens_count", 
+        "Z_mean", "Z_max", "C_star", "status"
+    ]
 
-            rows.append([
-                item['folio'],
-                item['line'],
-                len(item['tokens']),
-                load['Z_mean'],
-                load['Z_max'],
-                load['Thold_sec'],
-                load['Clock_Hz'],
-                c_star,
-                status
-            ])
+    records = []
+    
+    for entry in data:
+        folio = entry["folio"]
+        line_num = entry["line_num"]
+        tokens = entry["tokens"]
+        
+        load_data = engine.calculate_line_load(tokens)
+        c_star = evaluator.evaluate(load_data, tokens)
+        status = evaluator.get_status(c_star)
+        
+        records.append({
+            "folio": folio,
+            "line_num": line_num,
+            "tokens_count": len(tokens),
+            "Z_mean": load_data["Z_mean"],
+            "Z_max": load_data["Z_max"],
+            "C_star": c_star,
+            "status": status
+        })
 
-    with open(output_csv, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(rows)
+    with open(output_csv, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
 
-    print(f"Scansione completata con successo! Processate {len(rows)} righe.")
-    print(f"File generato: {output_csv}")
+    print(f"Completato! Elaborate {len(records)} righe testuali reali.")
+    print(f"Dataset salvato in {output_csv}")
 
 if __name__ == "__main__":
     run_batch()
