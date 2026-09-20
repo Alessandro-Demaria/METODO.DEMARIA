@@ -30,5 +30,15 @@ jobs:
           assert len(df) == 5612, f'Expected 5612 data rows, got {len(df)}'
           assert 'UNSTABLE' not in df['Status'].values, 'UNSTABLE status found in dataset!'
           assert 'BELOW_PEAK_THRESHOLD' in df['Status'].values, 'BELOW_PEAK_THRESHOLD missing!'
-          print('VALIDAZIONE CSV COMPLETATA CON SUCCESSO: 5612 record di dati integri + 1 riga intestazione.')
+          print('VALIDAZIONE CSV COMPLETATA CON SUCCESSO.')
+          "
+
+      - name: Validate Python Modules Import
+        run: |
+          python -c "
+          import batch_runner
+          import coherence_evaluator
+          import load_engine
+          import voynich_parser
+          print('TUTTI I MODULI PYTHON SONO STATI CARICATI SENZA ERRORI DI SINTASSI.')
           "
