@@ -1,52 +1,45 @@
 # METODO DEMARIA (Release v2.0)
 
-**Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)  
-**Author**: Alessandro Demaria  
-**Zenodo DOI**: [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)  
-**License**: MIT License  
+**Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
+**Author**: Alessandro Demaria
+**Zenodo DOI**: 10.5281/zenodo.22856418
+**License**: MIT License (Code) / CC BY 4.0 (Documentation & Data)
 
 ---
 
 ## 1. Model Description
-The **Metodo Demaria** implements a closed-loop cybernetic architecture for the modeling and analysis of non-phonetic symbolic corpora.
 
-### Nominal Input Operating Parameters
-- **Nominal Clock Frequency ($\omega_0$)**: $0.0416 \text{ Hz}$
-- **Nominal Dwell Time ($T_0$)**: $\approx 24.0 \text{ seconds}$
+The **Metodo Demaria** implements an exploratory closed-loop cybernetic architecture for the quantitative modeling and structural analysis of non-phonetic symbolic corpora.
 
-*Note*: The clock and dwell time values represent input operating parameters of the `LoadEngine` cybernetic engine and do not represent empirically extracted measurements or frequencies from the text.
+### Operating Model Parameters
+* **Nominal Clock Frequency ($\omega_0$)**: $0.0416 \text{ Hz}$ (Input parameter)
+* **Nominal Dwell Time ($T_0$)**: $\approx 24.0 \text{ seconds}$ (Derived model scale)
+* **Coherence Threshold ($C^*$ Peak)**: $\ge 0.94$
+
+> **Note on Methodology**: The nominal clock frequency ($\omega_0 = 0.0416 \text{ Hz}$) and dynamic load parameters ($Z$) are operational input values defined within the computational model to simulate topological constraint stability. They represent exploratory parameters rather than empirically extracted physical frequencies.
 
 ---
 
-## 2. Coherence Metric $C^*$
-The cybernetic stability of each line-loop is evaluated using the **Weighted Composite Index of Load Stability and Topological Compliance ($C^*$)**:
+## 2. Mathematical Formulation
+
+### Dynamic Load Index ($Z$)
+The symbolic load index $Z$ evaluates positional, length, and prefix/suffix topological markers (such as `qo`, `qok`, `in`, `edy`) modulated across token sequences:
+
+$$Z_i = f(\text{length}, \text{position}, \text{affixes}) \cdot \left[1.0 + 0.2 \cdot \sin(\omega_0 \cdot t_i)\right]$$
+
+### Composite Coherence Metric ($C^*$)
+Line-loop structural stability is quantified via the weighted composite coherence index:
 
 $$C^* = 0.6 \cdot \left(\frac{Z_{\text{mean}}}{Z_{\text{max}}}\right) + 0.4 \cdot T_{\text{weight}}$$
 
-Where:
-- $Z_{\text{mean}}$ and $Z_{\text{max}}$ represent dimensionless dynamic load indices.
-- $T_{\text{weight}}$ evaluates the presence of topological markers for Trigger (Header) and Closure (Reset).
+Where $T_{\text{weight}}$ evaluates trigger-header compliance and closure-reset topology.
 
 ---
 
-## 3. Contextualization of Empirical Results (100% Batch)
-Automated analysis conducted on **5,612 lines** of the corpus (`voynich_batch_measurements.csv` dataset) demonstrates the following stability profile:
+## 3. Pipeline & Reproducibility
 
-- **Corpus Baseline Mean Coherence**: $C^*_{\text{mean}} \approx 0.6451$
-- **Load Distribution**: Minimum $\approx 0.2612$, Maximum $1.0000$.
-- **Strict Peak Threshold ($C^* \ge 0.94$)**: 16 lines ($0.38\%$).
+The entire pipeline is open-source and fully automated.
 
-### Academic & Scientific Interpretation
-The acceptance threshold $C^* \ge 0.94$ identifies segments of **maximum cybernetic constraint and peak coherence**. The composite index $C^*$, devoid of artificial offsets, serves as a falsifiable metric documenting the true structural and topological variability across the entire Voynich manuscript.
-
----
-
-## 4. Repository Structure & Reproducibility
-Executing `python batch_runner.py` completely regenerates the output dataset from the source artifacts.
-
-- `voynich_eva.txt`: Transcribed corpus of the Voynich Manuscript.
-- `voynich_parser.py`: Token extraction and processing module per folio/line.
-- `load_engine.py`: Calculation engine for the dimensionless load profile $Z$.
-- `coherence_evaluator.py`: Evaluator for the composite index $C^*$.
-- `batch_runner.py`: Full batch scanning orchestrator.
-- `voynich_batch_measurements.csv`: Generated measurement dataset.
+### Environment Setup
+```bash
+python batch_runner.py
