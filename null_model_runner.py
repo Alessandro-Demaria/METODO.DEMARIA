@@ -6,7 +6,7 @@ import voynich_parser
 import coherence_evaluator
 
 def extract_clean_token_strings(eva_filepath: str = "voynich_eva.txt") -> List[str]:
-    """Estrae i token dal parser e garantisce la conversione in stringhe di testo puro per coherence_evaluator"""
+    """Estrae esattamente il campo di testo EVA dai token del VoynichParser"""
     raw_tokens = []
     if hasattr(voynich_parser, "VoynichParser"):
         p = voynich_parser.VoynichParser()
@@ -28,22 +28,33 @@ def extract_clean_token_strings(eva_filepath: str = "voynich_eva.txt") -> List[s
     if not raw_tokens:
         raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
 
-    # Converti ogni elemento in stringa pura (estraendo la chiave del testo se è un dizionario)
+    # Diagnostica della struttura del primo token
+    first_token = raw_tokens[0]
+    print(f"[DEBUG] Tipo primo token: {type(first_token)}")
+    if isinstance(first_token, dict):
+        print(f"[DEBUG] Chiavi primo token: {list(first_token.keys())}")
+        print(f"[DEBUG] Contenuto primo token: {first_token}")
+
     clean_strings = []
     for t in raw_tokens:
         if isinstance(t, str):
             clean_strings.append(t)
         elif isinstance(t, dict):
-            # Estrai il valore testuale da chiavi comuni come 'text', 'word', 'eva', 'val'
-            val = None
-            for key in ["text", "word", "eva", "token", "val", "raw"]:
-                if key in t:
-                    val = str(t[key])
+            # Cerca prioritariamente i campi specifici del formato EVA/Voynich
+            token_str = None
+            for key in ["eva", "text", "word", "token", "raw", "val", "transcription", "content"]:
+                if key in t and isinstance(t[key], str) and t[key].strip():
+                    token_str = t[key]
                     break
-            if val is None and len(t) > 0:
-                val = str(next(iter(t.values())))
-            if val:
-                clean_strings.append(val)
+            if not token_str:
+                # Se non trova le chiavi note, cerca qualsiasi stringa che non sia un metadato di folio/linea
+                for k, v in t.items():
+                    if isinstance(v, str) and not k.startswith("f") and not k in ["folio", "line", "section"]:
+                        token_str = v
+                        break
+            clean_strings.append(token_str if token_str else str(t))
+        elif hasattr(t, "eva"):
+            clean_strings.append(str(t.eva))
         elif hasattr(t, "text"):
             clean_strings.append(str(t.text))
         else:
@@ -58,6 +69,7 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
     string_tokens = extract_clean_token_strings(eva_filepath)
     N = len(string_tokens)
     print(f"[+] Token totali estratti e convertiti in stringhe pure: {N}")
+    print(f"[+] Esempio primi 5 token estratti: {string_tokens[:5]}")
 
     # Istanza dell'evaluator e dizionario vuoto per load_data
     evaluator = coherence_evaluator.CoherenceEvaluator()
