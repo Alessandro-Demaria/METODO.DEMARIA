@@ -1,4 +1,4 @@
-Folio,Line,Tokens_Count,Z_mean_index,Z_max_index,Thold_sec,Clock_Hz,Coherence_C_Star,Status
+folio,line_num,tokens_count,Z_mean,Z_max,C_star,status
 f1r,5,10,5.9019,7.1922,2.9294,0.0416,0.4924,UNSTABLE
 f1r,24,10,7.9533,20.0696,6.0659,0.0416,0.6378,UNSTABLE
 f1r,25,9,6.8903,11.0728,3.863,0.0416,0.5734,UNSTABLE
