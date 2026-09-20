@@ -3,8 +3,27 @@ import numpy as np
 import random
 import math
 from typing import List, Tuple
-from voynich_parser import parse_voynich_eva
+
+# Import flessibile per gestire la funzione di parsing corretta
+import voynich_parser
 from coherence_evaluator import calculate_vector_coherence
+
+def get_tokens_from_parser(eva_filepath: str) -> List[str]:
+    """Tenta l'importazione dinamica della funzione di parsing da voynich_parser.py"""
+    if hasattr(voynich_parser, "parse_voynich_eva"):
+        return voynich_parser.parse_voynich_eva(eva_filepath)
+    elif hasattr(voynich_parser, "parse_eva_tokens"):
+        return voynich_parser.parse_eva_tokens(eva_filepath)
+    elif hasattr(voynich_parser, "parse_eva"):
+        return voynich_parser.parse_eva(eva_filepath)
+    elif hasattr(voynich_parser, "load_tokens"):
+        return voynich_parser.load_tokens(eva_filepath)
+    else:
+        # Cerca la prima funzione disponibile nel modulo
+        functions = [getattr(voynich_parser, func) for func in dir(voynich_parser) if callable(getattr(voynich_parser, func)) and not func.startswith("__")]
+        if functions:
+            return functions[0](eva_filepath)
+        raise AttributeError("Nessuna funzione di parsing valida trovata in voynich_parser.py")
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
     print("=== METODO DEMARIA: TRUE MONTE CARLO NULL MODEL BENCHMARK ===")
@@ -12,7 +31,7 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
     # 1. Caricamento e parsing dei token EVA reali dal file
     try:
         print(f"[+] Caricamento del corpus da: {eva_filepath}...")
-        raw_tokens = parse_voynich_eva(eva_filepath)
+        raw_tokens = get_tokens_from_parser(eva_filepath)
         print(f"[+] Token totali estratti: {len(raw_tokens)}")
     except Exception as e:
         print(f"[-] Errore durante il caricamento del corpus EVA: {e}")
@@ -29,7 +48,7 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
     # 3. Esecuzione della vera permutazione Monte Carlo (True Token Shuffle)
     print(f"[+] Avvio di {num_permutations} permutazioni Monte Carlo dei token...")
     null_coherence_scores: List[float] = []
-    working_tokens = raw_tokens.copy()
+    working_tokens = list(raw_tokens).copy()
 
     for i in range(num_permutations):
         # Permutazione fisica dei token (mantiene le frequenze, distrugge la sintassi adiacente)
@@ -38,17 +57,12 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
         # Ricalcolo reale di C* passando attraverso la pipeline
         c_star_null = calculate_vector_coherence(working_tokens)
         null_coherence_scores.append(c_star_null)
-        
-        if (i + 1) % 20 == 0 or (i + 1) == num_permutations:
-            print(f"    -> Iterazione {i + 1}/{num_permutations} completata...")
 
     # 4. Analisi Statistica e Confronto
     null_mean = float(np.mean(null_coherence_scores))
     null_std = float(np.std(null_coherence_scores, ddof=1))
     
     delta_c = real_coherence - null_mean
-    
-    # Calcolo di Cohen's d (dimensione dell'effetto)
     cohens_d = delta_c / null_std if null_std > 0 else 0.0
 
     print("\n=== RISULTATI DEL MODELLO NULLO REALE ===")
