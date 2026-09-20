@@ -15,29 +15,35 @@ def extract_tokens_from_result(res) -> List[str]:
         return res.tokens
     if hasattr(res, "get_tokens") and callable(res.get_tokens):
         return res.get_tokens()
-    if hasattr(res, "parse") and callable(res.parse):
-        return extract_tokens_from_result(res.parse())
     raise ValueError(f"Impossibile estrarre token dall'oggetto di tipo: {type(res)}")
 
 def get_tokens_from_parser(eva_filepath: str) -> List[str]:
     """Isola ed esegue la funzione o la classe di parsing in voynich_parser.py"""
-    # 1. Tenta la chiamata alle funzioni note
+    # 1. Tenta la chiamata alle funzioni note con argomento
     for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
         if hasattr(voynich_parser, attr):
             res = getattr(voynich_parser, attr)(eva_filepath)
             return extract_tokens_from_result(res)
     
-    # 2. Tenta l'istanziazione di una classe Parser se presente
+    # 2. Tenta l'istanziazione di una classe Parser senza argomenti su parse()
     if hasattr(voynich_parser, "VoynichParser"):
         parser_obj = voynich_parser.VoynichParser()
         if hasattr(parser_obj, "parse"):
-            return extract_tokens_from_result(parser_obj.parse(eva_filepath))
+            try:
+                res = parser_obj.parse() # Chiamata senza parametri
+            except TypeError:
+                res = parser_obj.parse(eva_filepath) # Chiamata con parametro
+            return extract_tokens_from_result(res)
         return extract_tokens_from_result(parser_obj)
 
     # 3. Fallback su qualsiasi funzione callable
     funcs = [getattr(voynich_parser, f) for f in dir(voynich_parser) if callable(getattr(voynich_parser, f)) and not f.startswith("__")]
     if funcs:
-        return extract_tokens_from_result(funcs[0](eva_filepath))
+        try:
+            res = funcs[0](eva_filepath)
+        except TypeError:
+            res = funcs[0]()
+        return extract_tokens_from_result(res)
         
     raise AttributeError("Nessuna funzione o classe di parsing valida trovata in voynich_parser.py")
 
