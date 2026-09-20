@@ -25,21 +25,21 @@ def get_raw_parser_tokens(eva_filepath: str = "voynich_eva.txt") -> List[Any]:
 
     raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
 
-def calculate_exact_c_star(tokens: List[Any]) -> float:
-    """Invoca la Coerenza Vettoriale dal modulo coherence_evaluator del repository"""
-    evaluator = coherence_evaluator.CoherenceEvaluator(tokens)
-    
-    # Prova i metodi standard definiti nel modulo coherence_evaluator
-    if hasattr(evaluator, "evaluate") and callable(evaluator.evaluate):
-        res = evaluator.evaluate()
-    elif hasattr(evaluator, "calculate_coherence") and callable(evaluator.calculate_coherence):
-        res = evaluator.calculate_coherence()
-    elif hasattr(evaluator, "get_c_star") and callable(evaluator.get_c_star):
-        res = evaluator.get_c_star()
-    else:
-        res = getattr(evaluator, "c_star", 0.0)
+def calculate_exact_c_star(tokens: List[Any], evaluator_instance: Any = None) -> float:
+    """Invoca la CoherenceEvaluator.evaluate(load_data, tokens) fornendo i 2 argomenti obbligatori"""
+    if evaluator_instance is None:
+        evaluator_instance = coherence_evaluator.CoherenceEvaluator()
 
-    # Estrazione del valore float dal risultato
+    # Chiamata corretta con i 2 argomenti posizionali: load_data=False (o dati già in memoria), tokens
+    try:
+        res = evaluator_instance.evaluate(False, tokens)
+    except TypeError:
+        try:
+            res = evaluator_instance.evaluate(None, tokens)
+        except TypeError:
+            res = evaluator_instance.evaluate(tokens)
+
+    # Estrazione valore float
     if isinstance(res, (int, float, np.floating)):
         return float(res)
     if isinstance(res, dict):
@@ -58,8 +58,11 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
     N = len(raw_tokens)
     print(f"[+] Token totali estratti dal corpus EVA: {N}")
 
+    # Istanza dell'evaluator
+    evaluator = coherence_evaluator.CoherenceEvaluator()
+
     # 2. Calcolo C* Reale
-    real_c_star = calculate_exact_c_star(raw_tokens)
+    real_c_star = calculate_exact_c_star(raw_tokens, evaluator)
     print(f"[+] Coerenza Vettoriale Reale (C*): {real_c_star:.4f}")
 
     # 3. Permutazione Monte Carlo Reale
@@ -69,7 +72,7 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
 
     for _ in range(num_permutations):
         random.shuffle(shuffled_tokens)
-        c_null = calculate_exact_c_star(shuffled_tokens)
+        c_null = calculate_exact_c_star(shuffled_tokens, evaluator)
         null_scores.append(c_null)
 
     # 4. Statistica Finale
