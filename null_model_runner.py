@@ -5,9 +5,9 @@ from typing import List, Any, Dict
 import voynich_parser
 import coherence_evaluator
 
-def extract_clean_token_strings(eva_filepath: str = "voynich_eva.txt") -> List[str]:
-    """Estrae esattamente il campo di testo EVA dai token del VoynichParser"""
-    raw_tokens = []
+def extract_flat_eva_tokens(eva_filepath: str = "voynich_eva.txt") -> List[str]:
+    """Estrae e appiattisce tutte le liste di token EVA reali da ogni riga del parser"""
+    raw_lines = []
     if hasattr(voynich_parser, "VoynichParser"):
         p = voynich_parser.VoynichParser()
         if hasattr(p, "parse"):
@@ -15,63 +15,39 @@ def extract_clean_token_strings(eva_filepath: str = "voynich_eva.txt") -> List[s
                 res = p.parse()
             except TypeError:
                 res = p.parse(eva_filepath)
-            if hasattr(res, "tokens"): raw_tokens = res.tokens
-            elif isinstance(res, list): raw_tokens = res
+            if hasattr(res, "tokens"): raw_lines = res.tokens
+            elif isinstance(res, list): raw_lines = res
 
-    if not raw_tokens:
+    if not raw_lines:
         for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
             if hasattr(voynich_parser, attr):
                 res = getattr(voynich_parser, attr)(eva_filepath)
-                if isinstance(res, list): raw_tokens = res; break
-                if hasattr(res, "tokens"): raw_tokens = res.tokens; break
+                if isinstance(res, list): raw_lines = res; break
+                if hasattr(res, "tokens"): raw_lines = res.tokens; break
 
-    if not raw_tokens:
-        raise RuntimeError("Impossibile estrarre i token dal parser EVA.")
+    all_tokens: List[str] = []
+    
+    for item in raw_lines:
+        # Se l'elemento è la riga e contiene la lista 'tokens'
+        if isinstance(item, dict) and "tokens" in item and isinstance(item["tokens"], list):
+            all_tokens.extend([str(t) for t in item["tokens"]])
+        elif isinstance(item, list):
+            all_tokens.extend([str(t) for t in item])
+        elif isinstance(item, str):
+            all_tokens.append(item)
 
-    # Diagnostica della struttura del primo token
-    first_token = raw_tokens[0]
-    print(f"[DEBUG] Tipo primo token: {type(first_token)}")
-    if isinstance(first_token, dict):
-        print(f"[DEBUG] Chiavi primo token: {list(first_token.keys())}")
-        print(f"[DEBUG] Contenuto primo token: {first_token}")
-
-    clean_strings = []
-    for t in raw_tokens:
-        if isinstance(t, str):
-            clean_strings.append(t)
-        elif isinstance(t, dict):
-            # Cerca prioritariamente i campi specifici del formato EVA/Voynich
-            token_str = None
-            for key in ["eva", "text", "word", "token", "raw", "val", "transcription", "content"]:
-                if key in t and isinstance(t[key], str) and t[key].strip():
-                    token_str = t[key]
-                    break
-            if not token_str:
-                # Se non trova le chiavi note, cerca qualsiasi stringa che non sia un metadato di folio/linea
-                for k, v in t.items():
-                    if isinstance(v, str) and not k.startswith("f") and not k in ["folio", "line", "section"]:
-                        token_str = v
-                        break
-            clean_strings.append(token_str if token_str else str(t))
-        elif hasattr(t, "eva"):
-            clean_strings.append(str(t.eva))
-        elif hasattr(t, "text"):
-            clean_strings.append(str(t.text))
-        else:
-            clean_strings.append(str(t))
-
-    return clean_strings
+    return all_tokens
 
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
-    print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (PRECISIONE ASSOLUTA) ===")
+    print("=== METODO DEMARIA: VERO BENCHMARK MONTE CARLO (ESTRAZIONE EVA CORRETTA) ===")
 
-    # 1. Caricamento e pulizia stringhe token
-    string_tokens = extract_clean_token_strings(eva_filepath)
+    # 1. Caricamento e appiattimento token reali
+    string_tokens = extract_flat_eva_tokens(eva_filepath)
     N = len(string_tokens)
-    print(f"[+] Token totali estratti e convertiti in stringhe pure: {N}")
-    print(f"[+] Esempio primi 5 token estratti: {string_tokens[:5]}")
+    print(f"[+] Token EVA totali estratti con successo dal corpus: {N}")
+    print(f"[+] Esempio primi 10 token EVA reali: {string_tokens[:10]}")
 
-    # Istanza dell'evaluator e dizionario vuoto per load_data
+    # Istanza dell'evaluator e data_dict vuoto
     evaluator = coherence_evaluator.CoherenceEvaluator()
     data_dict = {}
 
@@ -80,7 +56,7 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
     print(f"[+] Coerenza Vettoriale Reale (C*): {real_c_star:.4f}")
 
     # 3. Permutazione Monte Carlo Reale (True Token Shuffle)
-    print(f"[+] Esecuzione di {num_permutations} permutazioni Monte Carlo...")
+    print(f"[+] Esecuzione di {num_permutations} permutazioni Monte Carlo dei token...")
     null_scores = []
     working_tokens = list(string_tokens)
 
