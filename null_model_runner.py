@@ -8,7 +8,6 @@ import voynich_parser
 from coherence_evaluator import CoherenceEvaluator
 
 def extract_tokens_from_result(res) -> List[str]:
-    """Estrae la lista di token dal parser"""
     if isinstance(res, list):
         return res
     if hasattr(res, "tokens"):
@@ -18,7 +17,6 @@ def extract_tokens_from_result(res) -> List[str]:
     raise ValueError(f"Impossibile estrarre token dall'oggetto di tipo: {type(res)}")
 
 def get_tokens_from_parser(eva_filepath: str) -> List[str]:
-    """Isola ed esegue la funzione o la classe di parsing in voynich_parser.py"""
     for attr in ["parse_voynich_eva", "parse_eva_tokens", "parse_eva", "load_tokens"]:
         if hasattr(voynich_parser, attr):
             res = getattr(voynich_parser, attr)(eva_filepath)
@@ -45,7 +43,6 @@ def get_tokens_from_parser(eva_filepath: str) -> List[str]:
     raise AttributeError("Nessuna funzione o classe di parsing valida trovata in voynich_parser.py")
 
 def evaluate_c_star(tokens: List[str]) -> float:
-    """Esegue la chiamata corretta a CoherenceEvaluator().evaluate(tokens)"""
     evaluator = CoherenceEvaluator()
     res = evaluator.evaluate(tokens)
     
@@ -63,7 +60,6 @@ def evaluate_c_star(tokens: List[str]) -> float:
 def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutations: int = 100):
     print("=== METODO DEMARIA: TRUE MONTE CARLO NULL MODEL BENCHMARK ===")
     
-    # 1. Parsing dei token EVA reali
     try:
         print(f"[+] Caricamento del corpus da: {eva_filepath}...")
         raw_tokens = get_tokens_from_parser(eva_filepath)
@@ -72,7 +68,6 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
         print(f"[-] Errore durante il caricamento del corpus EVA: {e}")
         return
 
-    # 2. Calcolo della Coerenza Vettoriale Reale (C*)
     try:
         real_coherence = evaluate_c_star(raw_tokens)
         print(f"[+] Coerenza Vettoriale Reale (C*): {real_coherence:.4f}")
@@ -80,7 +75,6 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
         print(f"[-] Errore durante il calcolo di C* reale: {e}")
         return
 
-    # 3. Permutazione Monte Carlo Reale (True Token Shuffle)
     print(f"[+] Avvio di {num_permutations} permutazioni Monte Carlo dei token...")
     null_coherence_scores: List[float] = []
     working_tokens = list(raw_tokens).copy()
@@ -90,7 +84,6 @@ def run_null_model_benchmark(eva_filepath: str = "voynich_eva.txt", num_permutat
         c_star_null = evaluate_c_star(working_tokens)
         null_coherence_scores.append(c_star_null)
 
-    # 4. Statistica Finale
     null_mean = float(np.mean(null_coherence_scores))
     null_std = float(np.std(null_coherence_scores, ddof=1))
     
