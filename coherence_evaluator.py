@@ -1,36 +1,33 @@
 import numpy as np
 
 class CoherenceEvaluator:
-    def __init__(self, target_coherence=0.9621, min_threshold=0.94):
-        self.target_c = target_coherence
+    def __init__(self, min_threshold=0.94):
         self.min_threshold = min_threshold
 
     def evaluate(self, load_data, tokens):
-        """
-        Calcola l'Indice di Coerenza Vettoriale C* per il rigo.
-        Verifica il rispetto della soglia di stabilità C* >= 0.94.
-        """
         if not tokens:
             return 0.0
 
-        z_mean = load_data['Z_mean']
-        z_max = load_data['Z_max']
-
-        # Rapporto di stabilità del ciclo ad anello chiuso
-        stability_ratio = z_mean / (z_max + 1e-5)
+        # 1. Componente Vettoriale di Carico (Ratio Stabilità Dinamica)
+        z_mean = load_data.get('Z_mean', 0.0)
+        z_max = load_data.get('Z_max', 1e-5)
         
-        # Fluttuazione deterministica determinata dalla presenza di marcatori d'Header e Reset
-        has_header = any(t.startswith(('fachys', 'qok', 'otol', 'saiin')) for t in tokens)
-        has_reset = any(t.endswith(('soor', 'iiin', 'edy')) for t in tokens)
+        if z_max == 0:
+            stability_ratio = 0.0
+        else:
+            stability_ratio = min(1.0, z_mean / z_max)
 
-        coherence = 0.90 + 0.08 * stability_ratio
-        if has_header and has_reset:
-            coherence += 0.02
+        # 2. Verifica della Tripartizione Topologica (Header / Innesco e Reset / Chiusura)
+        has_header = any(t.startswith(('fachys', 'qok', 'otol', 'saiin', 'pacho', 'ykal', 'ar', 'qof', 'okaiin', 'shol', 'shedy', 'daiin')) for t in tokens)
+        has_reset = any(t.endswith(('soor', 'iiin', 'edy', 'l', 'r', 's', 'm', 'n')) for t in tokens)
 
-        # Bounding nei limiti di Invarianza
-        coherence = min(0.99, max(0.85, coherence))
+        # 3. Calcolo Vettoriale Puro C* (Ponderazione Topologica + Stabilità Carico)
+        topology_weight = 0.5 * float(has_header) + 0.5 * float(has_reset)
+        
+        # Punteggio di Coerenza C* basato puramente sui dati
+        coherence = 0.6 * stability_ratio + 0.4 * topology_weight
+
         return round(float(coherence), 4)
 
 if __name__ == "__main__":
     evaluator = CoherenceEvaluator()
-    print("coherence_evaluator.py pronto.")
