@@ -1,0 +1,9 @@
+[
+    {
+        "folio": "f1r",
+        "token_count": 260551,
+        "p_delta_given_gamma": 0.011720581340834505,
+        "invariante_valida": true,
+        "predizione_layout": "STRUTTURA LINEARE"
+    }
+]
