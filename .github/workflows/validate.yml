@@ -42,3 +42,6 @@ jobs:
           import voynich_parser
           print('TUTTI I MODULI PYTHON SONO STATI CARICATI SENZA ERRORI DI SINTASSI.')
           "
+
+      - name: Run Null Model Benchmark
+        run: python null_model_runner.py
