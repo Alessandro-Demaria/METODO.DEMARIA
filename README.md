@@ -1,7 +1,7 @@
 # METODO DEMARIA (Release v2.0)
 
 **Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)  
-**Author**: Alessandro De Maria  
+**Author**: Alessandro Demaria  
 **Zenodo DOI**: [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)  
 **License**: MIT License  
 
