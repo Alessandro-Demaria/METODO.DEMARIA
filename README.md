@@ -1,4 +1,4 @@
-# METODO DEMARIA (Release v2.0)
+# METODO DEMARIA (Release v2.0.1)
 
 [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
 
