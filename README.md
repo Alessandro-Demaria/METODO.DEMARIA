@@ -39,3 +39,9 @@ Rather than relying on speculative semantic interpretations, the framework evalu
 ## 4. Academic Position & Reproducibility
 
 This repository provides a reproducible, open-science methodology for testing whether observed patterns in unmapped symbolic systems represent genuine sequential constraints or statistical artifacts. High-level interpretative models remain working hypotheses subject to external validation.
+
+---
+
+## Trademark Notice
+
+`METODO DEMARIA™` è un marchio depositato. Tutti i diritti relativi al nome, al brand, ai software e alle metodologie associate sono riservati.
