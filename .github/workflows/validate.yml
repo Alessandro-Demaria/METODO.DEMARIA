@@ -22,15 +22,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy
 
-      - name: Run Integrity Test on CSV
-        run: |
-          python -c "
-          import pandas as pd
-          df = pd.read_csv('voynich_batch_measurements.csv')
-          assert len(df) > 0, 'CSV vuoto!'
-          print(f'OK: {len(df)} righe caricate.')
-          "
-
       - name: Validate Python Modules Import
         run: |
           python -c "
@@ -38,6 +29,18 @@ jobs:
           import load_engine
           import voynich_parser
           print('OK: Tutti i moduli si importano senza errori.')
+          "
+
+      - name: Run Batch Runner Pipeline
+        run: python batch_runner.py
+
+      - name: Run Integrity Test on CSV
+        run: |
+          python -c "
+          import pandas as pd
+          df = pd.read_csv('voynich_batch_measurements.csv')
+          assert len(df) > 0, 'CSV vuoto!'
+          print(f'OK: {len(df)} righe caricate correttamente.')
           "
 
       - name: Run Null Model Benchmark
