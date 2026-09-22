@@ -26,7 +26,7 @@ class BatchRunner:
         self.output_csv = output_csv
         self.parser = VoynichParser()
 
-    def process_batch((self) -> List[Dict[str, Any]]:
+    def process_batch(self) -> List[Dict[str, Any]]:
         """
         Esegue il parsing e calcola le metriche di base per ciascuna riga.
         """
