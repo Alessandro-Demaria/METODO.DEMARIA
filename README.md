@@ -5,7 +5,7 @@
 **Corpus:** Voynich Manuscript (EVA Transcription in IVTFF format)  
 **Author:** Alessandro Demaria  
 **Standard:** Standard Demaria v2.0.1.1 (21/09/2026)  
-**Source Document:** `Demaria_2026_Metodo_Demaria_v2.01.pdf`  
+**Source Document:** Demaria_2026_Metodo_Demaria_v2.01.pdf  
 **Zenodo DOI:** 10.5281/zenodo.22856418  
 **License:** MIT License (Code) / CC BY 4.0 (Documentation & Data)
 ---
