@@ -1,27 +1,15 @@
-METODO DEMARIA (Release v2.0.1.1)
-Corpus: Voynich Manuscript (EVA Transcription in IVTFF format)
+# METODO DEMARIA (Release v2.0.1.1)
 
-Author: Alessandro Demaria
+[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
 
-Standard: Standard Demaria v2.0.1.1 (21/09/2026)
+**Corpus:** Voynich Manuscript (EVA Transcription in IVTFF format)
 
-Source Document: Demaria_2026_Metodo_Demaria_v2.01.pdf (Fonte Suprema)
+**Author:** Alessandro Demaria
 
-Zenodo DOI: 10.5281/zenodo.22856418
+**Standard:** Standard Demaria v2.0.1.1 (21/09/2026)
 
-License: MIT License (Code) / CC BY 4.0 (Documentation & Data)
+**Source Document:** `Demaria_2026_Metodo_Demaria_v2.01.pdf` (Fonte Suprema)
 
-Architettura a 6 Moduli Core
-L'architettura software del Metodo Demaria si compone di 6 moduli interconnessi e completamente testati tramite suite di validazione automatizzata su GitHub Actions:
+**Zenodo DOI:** 10.5281/zenodo.22856418
 
-voynich_parser.py: Parsing, filtraggio e normalizzazione del testo cifrato in formato EVA/IVTFF.
-
-batch_runner.py: Gestione dell'infrastruttura di esecuzione batch per il calcolo sistematico delle metriche su larga scala.
-
-coherence_evaluator.py: Valutazione euristica e quantitativa della coerenza statistico-linguistica del modello.
-
-null_model_runner.py: Generazione di testi casuali di controllo e confronto con i moduli nulli (benchmark).
-
-verify_markov.py: Verifica empirica della stazionarità e transizione di stato della matrice della catena di Markov.
-
-load_engine.py: Motore di caricamento ad alte prestazioni per la preparazione dei dati nell'ambiente di analisi.
+**License:** MIT License (Code) / CC BY 4.0 (Documentation & Data)
