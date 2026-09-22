@@ -1,8 +1,4 @@
-import subprocess
-import sys
-
-# 1. Definizione esatta del contenuto Markdown formattato
-README_CONTENT = """# METODO DEMARIA (Release v2.0.1.1)
+# METODO DEMARIA (Release v2.0.1.1)
 
 [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
 
