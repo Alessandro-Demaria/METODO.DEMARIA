@@ -119,6 +119,21 @@ class VoynichParser:
         return {k: round(v / total_ops, 4) for k, v in counts.items()}
 
 
+def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
+    """
+    Funzione wrapper globale richiesta dal pipeline batch per leggere e analizzare
+    un file di testo in formato EVA/IVTFF.
+    """
+    parser = VoynichParser()
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        with open(file_path, 'r', encoding='latin-1') as f:
+            content = f.read()
+    return parser.parse_corpus(content)
+
+
 # =============================================================================
 # SUITE DI TEST E VERIFICA LOCALE (VERIFICATION TEST STEP 1)
 # =============================================================================
