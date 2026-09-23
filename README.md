@@ -2,12 +2,12 @@
 
 [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions)
 
-**Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
-**Author**: Alessandro Demaria
-**Standard**: Standard Demaria v2.02 (2026)
-**Source Document**: Demaria_2026_Metodo_Demaria_v2.02.pdf
-**Zenodo DOI**: 10.5281/zenodo.22856418
-**License**: MIT License (Code) / CC BY 4.0 (Documentation & Data)
+* **Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
+* **Author**: Alessandro Demaria
+* **Standard**: Standard Demaria v2.02 (2026)
+* **Source Document**: [`Demaria_2026_Metodo_Demaria_v2.02.pdf`](Demaria_2026_Metodo_Demaria_v2.02.pdf)
+* **Zenodo DOI**: [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)
+* **License**: MIT License (Code) / CC BY 4.0 (Documentation & Data)
 
 ### Architettura a 6 Moduli Core
 
