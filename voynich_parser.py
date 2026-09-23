@@ -99,6 +99,18 @@ class VoynichParser:
             })
         return parsed_results
 
+    def parse_file(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        Metodo d'istanza per leggere e analizzare un file di testo EVA/IVTFF.
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception:
+            with open(file_path, 'r', encoding='latin-1') as f:
+                content = f.read()
+        return self.parse_corpus(content)
+
     def get_state_distribution(self, raw_text: str) -> Dict[str, float]:
         """
         Calcola la distribuzione percentuale degli operatori nel testo fornito.
@@ -121,17 +133,10 @@ class VoynichParser:
 
 def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
     """
-    Funzione wrapper globale richiesta dal pipeline batch per leggere e analizzare
-    un file di testo in formato EVA/IVTFF.
+    Funzione wrapper globale per compatibilità con moduli legacy.
     """
     parser = VoynichParser()
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except Exception:
-        with open(file_path, 'r', encoding='latin-1') as f:
-            content = f.read()
-    return parser.parse_corpus(content)
+    return parser.parse_file(file_path)
 
 
 # =============================================================================
