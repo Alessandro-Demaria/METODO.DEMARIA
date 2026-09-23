@@ -37,7 +37,7 @@ class BatchRunner:
         self.null_runner = NullModelRunner(seed=42)
         self.markov_verifier = MarkovVerifier()
 
-    def process_batch((self) -> List[Dict[str, Any]]:
+    def process_batch(self) -> List[Dict[str, Any]]:
         """
         Legge il file di input ed estrae i record trasformati in vettori topologici.
         """
