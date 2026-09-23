@@ -82,23 +82,29 @@ class VoynichParser:
         """
         return [self.char_to_operator(ch) for ch in token]
 
+    def _build_record(self, idx: int, line_id: int, token: str) -> Dict[str, Any]:
+        """
+        Genera la struttura record completa con tutte le chiavi attese dai runner di test.
+        """
+        vector_seq = self.parse_token(token)
+        return {
+            'index': idx,
+            'line_id': line_id,
+            'line_num': line_id,
+            'token': token,
+            'word': token,
+            'token_eva': token,
+            'vector_sequence': vector_seq,
+            'primary_state': vector_seq[0] if vector_seq else self.DEFAULT_OPERATOR,
+            'length': len(token)
+        }
+
     def parse_corpus(self, raw_text: str) -> List[Dict[str, Any]]:
         """
         Esegue l'analisi completa del testo fornendo la scomposizione vettoriale.
         """
         tokens = self.tokenize(raw_text)
-        parsed_results = []
-        for idx, token in enumerate(tokens):
-            vector_seq = self.parse_token(token)
-            parsed_results.append({
-                'index': idx,
-                'line_num': 1,
-                'token_eva': token,
-                'vector_sequence': vector_seq,
-                'primary_state': vector_seq[0] if vector_seq else 'beta',
-                'length': len(token)
-            })
-        return parsed_results
+        return [self._build_record(idx, 1, token) for idx, token in enumerate(tokens)]
 
     def parse_file(self, file_path: str) -> List[Dict[str, Any]]:
         """
@@ -119,15 +125,7 @@ class VoynichParser:
                 continue
             tokens = self.tokenize(cleaned_line)
             for token in tokens:
-                vector_seq = self.parse_token(token)
-                parsed_results.append({
-                    'index': global_idx,
-                    'line_num': line_idx,
-                    'token_eva': token,
-                    'vector_sequence': vector_seq,
-                    'primary_state': vector_seq[0] if vector_seq else 'beta',
-                    'length': len(token)
-                })
+                parsed_results.append(self._build_record(global_idx, line_idx, token))
                 global_idx += 1
 
         if not parsed_results:
