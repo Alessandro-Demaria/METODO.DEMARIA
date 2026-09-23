@@ -92,6 +92,7 @@ class VoynichParser:
             vector_seq = self.parse_token(token)
             parsed_results.append({
                 'index': idx,
+                'line_num': 1,
                 'token_eva': token,
                 'vector_sequence': vector_seq,
                 'primary_state': vector_seq[0] if vector_seq else 'beta',
@@ -105,11 +106,34 @@ class VoynichParser:
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+                lines = f.readlines()
         except Exception:
             with open(file_path, 'r', encoding='latin-1') as f:
-                content = f.read()
-        return self.parse_corpus(content)
+                lines = f.readlines()
+
+        parsed_results = []
+        global_idx = 0
+        for line_idx, line in enumerate(lines, start=1):
+            cleaned_line = self.clean_text(line)
+            if not cleaned_line:
+                continue
+            tokens = self.tokenize(cleaned_line)
+            for token in tokens:
+                vector_seq = self.parse_token(token)
+                parsed_results.append({
+                    'index': global_idx,
+                    'line_num': line_idx,
+                    'token_eva': token,
+                    'vector_sequence': vector_seq,
+                    'primary_state': vector_seq[0] if vector_seq else 'beta',
+                    'length': len(token)
+                })
+                global_idx += 1
+
+        if not parsed_results:
+            return self.parse_corpus("".join(lines))
+
+        return parsed_results
 
     def get_state_distribution(self, raw_text: str) -> Dict[str, float]:
         """
