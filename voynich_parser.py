@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: voynich_parser.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
+Modulo: voynich_parser_24.09.2026.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Parser ad alta precisione per trascrizioni in formato EVA/IVTFF.
-  Esegue la pulizia dei metadati ed applica la mappatura deterministica univoca
-  dai grafemi EVA ai 4 operatori topologici dello spazio degli stati:
+  Esegue la pulizia dei metadati, la SANIFICAZIONE DAI COMMENTI DI TESTO (#)
+  ed applica la mappatura deterministica univoca dai grafemi EVA ai 4 operatori
+  topologici dello spazio degli stati:
     - ANCHOR (alpha): Inizializzazione e ancoraggio di stato
     - ACTION (beta): Esecuzione del carico e attrattore di scorrimento
     - DIFFERENTIAL (delta): Retroazione differenziale e correzione di flusso
@@ -26,6 +27,7 @@ from typing import List, Dict, Any
 class VoynichParser:
     """
     Parser ad alta precisione e vettore di tokenizzazione per il Metodo Demaria.
+    Versione Bonificata - Sanificazione Righe Commentate (#)
     """
 
     # Tabella di Mapping Deterministica Univoca EVA -> Operatore Topologico
@@ -102,13 +104,19 @@ class VoynichParser:
     def parse_corpus(self, raw_text: str) -> List[Dict[str, Any]]:
         """
         Esegue l'analisi completa del testo fornendo la scomposizione vettoriale.
+        Filtra le righe di commento che iniziano con '#'.
         """
-        tokens = self.tokenize(raw_text)
+        valid_lines = [
+            line for line in raw_text.splitlines() 
+            if line.strip() and not line.strip().startswith('#')
+        ]
+        tokens = self.tokenize("\n".join(valid_lines))
         return [self._build_record(idx, 1, token) for idx, token in enumerate(tokens)]
 
     def parse_file(self, file_path: str) -> List[Dict[str, Any]]:
         """
         Metodo d'istanza per leggere e analizzare un file di testo EVA/IVTFF.
+        Sanificato per scartare all'origine righe vuote e commenti (#).
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -120,9 +128,15 @@ class VoynichParser:
         parsed_results = []
         global_idx = 0
         for line_idx, line in enumerate(lines, start=1):
-            cleaned_line = self.clean_text(line)
+            raw_line = line.strip()
+            # GUARDIA SANIFICAZIONE: Scarta commenti ed intestazioni (#)
+            if not raw_line or raw_line.startswith('#'):
+                continue
+
+            cleaned_line = self.clean_text(raw_line)
             if not cleaned_line:
                 continue
+
             tokens = self.tokenize(cleaned_line)
             for token in tokens:
                 parsed_results.append(self._build_record(global_idx, line_idx, token))
@@ -166,13 +180,13 @@ def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ PARSER (voynich_parser.py)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ PARSER SANIFICATO")
     print("=" * 75)
 
     parser = VoynichParser()
 
-    # Test A: Ingestion e Pulizia Metadati IVTFF
-    raw_sample = " fachys.ykal! {commento} ar [faiin] soor-"
+    # Test A: Ingestion e Pulizia Metadati IVTFF con Commenti (#)
+    raw_sample = "# Commento editoriale da scartare\n fachys.ykal! {commento} ar [faiin] soor-"
     cleaned_tokens = parser.tokenize(raw_sample)
     print(f"\n[TEST A] Tokenizzazione e Pulizia Metadati:")
     print(f"  Input Grezzo : {raw_sample}")
@@ -195,5 +209,5 @@ if __name__ == '__main__':
     # Esito di controllo
     assert len(cleaned_tokens) > 0, "Errore: Nessun token estratto."
     assert dist['beta'] > 0, "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: voynich_parser.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: voynich_parser_24.09.2026.py SANIFICATO E VALIDO AL 100%.")
     print("=" * 75)
