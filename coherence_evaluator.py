@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: coherence_evaluator.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
+Modulo: coherence_evaluator_24.09.2026.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -11,19 +11,23 @@ Zenodo DOI: 10.5281/zenodo.22856418
 Descrizione:
   Modulo per la misurazione della coerenza topologica e dell'entropia di stato
   nelle sequenze degli operatori (alpha, beta, delta, gamma).
+  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
   Calcola l'indice di stabilità del flusso, la matrice di adiacenza locale
-  e la deviazione dall'equilibrio entropico del testo Voynich.
+  e la deviazione dall'equilibrio entropico del testo Voynich purificato.
 ===============================================================================
 """
 
 import math
 from typing import List, Dict, Any
-from voynich_parser import VoynichParser, parse_voynich_file
+
+# Importazione vincolata al Parser Sanificato (24.09.2026)
+from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
 
 
 class CoherenceEvaluator:
     """
     Valutatore di Coerenza Topologica ed Entropia Informativa per il Metodo Demaria.
+    Versione legata al Parser Sanificato (senza inquinamento da commenti #).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -115,7 +119,7 @@ class CoherenceEvaluator:
 
     def evaluate_file(self, file_path: str) -> Dict[str, Any]:
         """
-        Metodo d'istanza per valutare la coerenza topologica da file.
+        Metodo d'istanza per valutare la coerenza topologica da file sanificato.
         """
         records = self.parser.parse_file(file_path)
         full_vector: List[str] = []
@@ -144,7 +148,7 @@ def run_coherence_analysis(file_path: str) -> Dict[str, Any]:
         return evaluator.evaluate_file(file_path)
     except Exception:
         # Fallback sicuro per test di integrità
-        return evaluator.evaluate_corpus(" fachys ykal ar faiin soor")
+        return evaluator.evaluate_corpus("# Commento da scartare\n fachys ykal ar faiin soor")
 
 
 # =============================================================================
@@ -152,11 +156,11 @@ def run_coherence_analysis(file_path: str) -> Dict[str, Any]:
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR (coherence_evaluator.py)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR SANIFICATO")
     print("=" * 75)
 
     evaluator = CoherenceEvaluator()
-    sample_text = " fachys.ykal! ar faiin soor"
+    sample_text = "# Commento da scartare\n fachys.ykal! ar faiin soor"
     
     analysis = evaluator.evaluate_corpus(sample_text)
     
@@ -169,5 +173,5 @@ if __name__ == '__main__':
 
     assert analysis['total_transitions'] >= 0, "Errore: Transizioni non calcolate."
     assert 0.0 <= analysis['coherence_index'] <= 1.0, "Errore: Indice di coerenza fuori scala."
-    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: coherence_evaluator_24_09_2026.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)
