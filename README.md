@@ -1,6 +1,6 @@
 # METODO DEMARIA (Release v2.02)
 
-[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
+[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validation.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validation.yml)
 
 * **Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
 * **Author**: Alessandro Demaria
