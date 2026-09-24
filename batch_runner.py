@@ -2,30 +2,33 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: batch_runner.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
+Modulo: batch_runner_24_09_2026.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Orchestratore principale per l'esecuzione in batch del Metodo Demaria.
-  Integrazione end-to-end dei moduli di parsing, analisi di coerenza,
-  simulazioni di modelli nulli Monte Carlo e stima stocastica delle catene di Markov.
+  Integrazione end-to-end con l'intera suite sanificata (24_09_2026):
+  voynich_parser, coherence_evaluator, null_model_runner e verify_markov.
 ===============================================================================
 """
 
 import os
 from typing import List, Dict, Any, Optional
-from voynich_parser import VoynichParser, parse_voynich_file
-from coherence_evaluator import CoherenceEvaluator
-from null_model_runner import NullModelRunner
-from verify_markov import MarkovVerifier
+
+# Connettività vincolata ed esplicita a tutti i moduli datati e sanificati
+from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
+from coherence_evaluator_24_09_2026 import CoherenceEvaluator
+from null_model_runner_24_09_2026 import NullModelRunner
+from verify_markov_24_09_2026 import MarkovVerifier
 
 
 class BatchRunner:
     """
     Orchestratore dell'esecuzione in batch e della sintesi analitica del Metodo Demaria.
+    Versione totalmente vincolata alla suite sanificata (assenza di rumore #).
     """
 
     DEFAULT_INPUT_FILE: str = "voynich_eva.txt"
@@ -39,13 +42,14 @@ class BatchRunner:
 
     def process_batch(self) -> List[Dict[str, Any]]:
         """
-        Legge il file di input ed estrae i record trasformati in vettori topologici.
+        Legge il file di input ed estrae i record trasformati in vettori topologici
+        utilizzando il filtro di sanificazione dai commenti (#).
         """
         if os.path.exists(self.input_file):
             return self.parser.parse_file(self.input_file)
         else:
-            # Fallback per l'ambiente di test automatizzato
-            dummy_sample = " fachys.ykal! {commento} ar [faiin] soor-"
+            # Fallback per l'ambiente di test automatizzato con sanificazione attiva
+            dummy_sample = "# Commento da scartare\n fachys.ykal! {commento} ar [faiin] soor-"
             return self.parser.parse_corpus(dummy_sample)
 
     def run(self) -> Dict[str, Any]:
@@ -93,7 +97,7 @@ def run_batch_processing(input_file: Optional[str] = None) -> Dict[str, Any]:
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ BATCH RUNNER (batch_runner.py)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ BATCH RUNNER SANIFICATO")
     print("=" * 75)
 
     runner = BatchRunner()
@@ -107,5 +111,5 @@ if __name__ == '__main__':
 
     assert summary['total_records'] > 0, "Errore: Nessun record elaborato."
     assert summary['status'] == 'SUCCESS', "Errore: Pipeline fallita."
-    print("\n[✓] ESITO VERIFICA: batch_runner.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: batch_runner_24_09_2026.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)
