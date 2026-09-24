@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: null_model_runner.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
+Modulo: null_model_runner_24.09.2026.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -11,21 +11,25 @@ Zenodo DOI: 10.5281/zenodo.22856418
 Descrizione:
   Modulo per la generazione e la valutazione dei Modelli Nulli (Null Models)
   applicati alle sequenze degli operatori topologici (alpha, beta, delta, gamma).
+  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
   Consente di verificare la significatività statistica delle transizioni di stato
-  rispetto ad ipotesi nulle di casualità pura (Shuffled / Uniform Null Models).
+  rispetto ad ipotesi nulle di casualità pura su dati purificati (#).
 ===============================================================================
 """
 
 import random
 import math
 from typing import List, Dict, Any, Tuple
-from voynich_parser import VoynichParser, parse_voynich_file
+
+# Importazione vincolata al Parser Sanificato (24.09.2026)
+from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
 
 
 class NullModelRunner:
     """
-    Esecutore di Modelli Nulli per l'analisi della significatività statistica
+    Esecutore di Modelli Nulli Monte Carlo per l'analisi della significatività statistica
     della dinamica degli stati topologici nel testo Voynich.
+    Versione legata al Parser Sanificato (senza inquinamento da commenti #).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -56,6 +60,7 @@ class NullModelRunner:
         """
         Esegue la simulazione di Monte Carlo confrontando la distribuzione reale
         degli operatori con il modello nullo rimescolato su N iterazioni.
+        Filtra le righe di commento (#) all'origine via VoynichParser.
         """
         parsed_records = self.parser.parse_corpus(raw_text)
         
@@ -74,7 +79,7 @@ class NullModelRunner:
                 'p_values': {op: 1.0 for op in self.OPERATORS}
             }
 
-        # Calcolo distribuzione reale
+        # Calcolo distribuzione reale sanificata
         real_dist = self.parser.get_state_distribution(raw_text)
 
         # Accumulatori per Monte Carlo
@@ -112,7 +117,7 @@ class NullModelRunner:
 
     def process_file_null_model(self, file_path: str, iterations: int = 100) -> Dict[str, Any]:
         """
-        Legge un file, estrae i record tramite voynich_parser ed esegue il modello nullo.
+        Legge un file, estrae i record tramite voynich_parser sanificato ed esegue il modello nullo.
         """
         records = self.parser.parse_file(file_path)
         
@@ -130,7 +135,7 @@ def run_null_benchmark(file_path: str) -> Dict[str, Any]:
         return runner.process_file_null_model(file_path)
     except Exception:
         # Fallback sicuro per test di integrità
-        return runner.run_null_simulation(" fachys ykal ar faiin soor")
+        return runner.run_null_simulation("# Commento da scartare\n fachys ykal ar faiin soor")
 
 
 # =============================================================================
@@ -138,11 +143,11 @@ def run_null_benchmark(file_path: str) -> Dict[str, Any]:
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL (null_model_runner.py)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL SANIFICATO")
     print("=" * 75)
 
     runner = NullModelRunner(seed=42)
-    sample_text = " fachys.ykal! ar faiin soor"
+    sample_text = "# Commento editoriale da scartare\n fachys.ykal! ar faiin soor"
     
     results = runner.run_null_simulation(sample_text, iterations=500)
     
@@ -156,5 +161,5 @@ if __name__ == '__main__':
 
     assert results['total_operators'] > 0, "Errore: Nessun operatore elaborato."
     assert 'beta' in results['real_distribution'], "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: null_model_runner.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: null_model_runner_24_09_2026.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)
