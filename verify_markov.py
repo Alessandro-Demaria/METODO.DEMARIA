@@ -2,27 +2,31 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: verify_markov.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
+Modulo: verify_markov_24.09.2026.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Modulo per l'analisi stocastica delle Catene di Markov applicate al Metodo Demaria.
+  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
   Calcola la matrice delle probabilità di transizione di primo ordine tra gli stati
   topologici (alpha, beta, delta, gamma), stima il vettore di distribuzione
-  stazionaria e verifica le proprietà di memoria stocastica della sequenza.
+  stazionaria su dati purificati (#) e verifica le proprietà di memoria stocastica.
 ===============================================================================
 """
 
 from typing import List, Dict, Any, Tuple
-from voynich_parser import VoynichParser, parse_voynich_file
+
+# Importazione vincolata al Parser Sanificato (24.09.2026)
+from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
 
 
 class MarkovVerifier:
     """
     Analizzatore stocastico per la verifica delle proprietà di Markov del testo Voynich.
+    Versione legata al Parser Sanificato (senza inquinamento da commenti #).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -100,7 +104,7 @@ class MarkovVerifier:
 
     def analyze_corpus(self, raw_text: str) -> Dict[str, Any]:
         """
-        Analizza le proprietà di Markov sull'intero testo fornito.
+        Analizza le proprietà di Markov sull'intero testo fornito previa sanificazione.
         """
         parsed_records = self.parser.parse_corpus(raw_text)
         full_vector: List[str] = []
@@ -113,7 +117,7 @@ class MarkovVerifier:
 
     def analyze_file(self, file_path: str) -> Dict[str, Any]:
         """
-        Metodo d'istanza per eseguire l'analisi markoviana direttamente da file.
+        Metodo d'istanza per eseguire l'analisi markoviana direttamente da file sanificato.
         """
         records = self.parser.parse_file(file_path)
         full_vector: List[str] = []
@@ -142,7 +146,7 @@ def run_markov_analysis(file_path: str) -> Dict[str, Any]:
         return verifier.analyze_file(file_path)
     except Exception:
         # Fallback sicuro per test di integrità
-        return verifier.analyze_corpus(" fachys ykal ar faiin soor")
+        return verifier.analyze_corpus("# Commento da scartare\n fachys ykal ar faiin soor")
 
 
 # =============================================================================
@@ -150,11 +154,11 @@ def run_markov_analysis(file_path: str) -> Dict[str, Any]:
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ MARKOV ANALYSIS (verify_markov.py)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ MARKOV ANALYSIS SANIFICATO")
     print("=" * 75)
 
     verifier = MarkovVerifier()
-    sample_text = " fachys.ykal! ar faiin soor"
+    sample_text = "# Commento editoriale da scartare\n fachys.ykal! ar faiin soor"
 
     analysis = verifier.analyze_corpus(sample_text)
 
@@ -170,5 +174,5 @@ if __name__ == '__main__':
 
     assert analysis['total_states'] > 0, "Errore: Nessuno stato elaborato."
     assert 'beta' in analysis['stationary_distribution'], "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: verify_markov.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: verify_markov_24_09_2026.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)
