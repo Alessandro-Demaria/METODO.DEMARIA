@@ -3,7 +3,7 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: voynich_parser_24.09.2026.py
+Modulo: voynich_parser.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -209,5 +209,5 @@ if __name__ == '__main__':
     # Esito di controllo
     assert len(cleaned_tokens) > 0, "Errore: Nessun token estratto."
     assert dist['beta'] > 0, "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: voynich_parser_24.09.2026.py SANIFICATO E VALIDO AL 100%.")
+    print("\n[✓] ESITO VERIFICA: voynich_parser.py SANIFICATO E VALIDO AL 100%.")
     print("=" * 75)

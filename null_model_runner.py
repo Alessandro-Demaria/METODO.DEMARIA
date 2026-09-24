@@ -3,7 +3,7 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: null_model_runner_24.09.2026.py
+Modulo: null_model_runner.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -11,7 +11,7 @@ Zenodo DOI: 10.5281/zenodo.22856418
 Descrizione:
   Modulo per la generazione e la valutazione dei Modelli Nulli (Null Models)
   applicati alle sequenze degli operatori topologici (alpha, beta, delta, gamma).
-  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
+  Integrazione vincolata al parser sanificato (voynich_parser.py).
   Consente di verificare la significatività statistica delle transizioni di stato
   rispetto ad ipotesi nulle di casualità pura su dati purificati (#).
 ===============================================================================
@@ -21,8 +21,8 @@ import random
 import math
 from typing import List, Dict, Any, Tuple
 
-# Importazione vincolata al Parser Sanificato (24.09.2026)
-from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
+# Importazione vincolata al Parser Sanificato (nome standard pulito)
+from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class NullModelRunner:
@@ -155,11 +155,11 @@ if __name__ == '__main__':
     print(f"  Operatori Totali : {results['total_operators']}")
     print(f"  Iterazioni       : {results['iterations']}")
     print("\n[VERIFICA DISTRIBUZIONI]")
-    print(f"  Reale      : {results['real_distribution']}")
+    print(f"  Reale        : {results['real_distribution']}")
     print(f"  Modello Nullo: {results['null_mean_distribution']}")
-    print(f"  Valori p   : {results['p_values']}")
+    print(f"  Valori p     : {results['p_values']}")
 
     assert results['total_operators'] > 0, "Errore: Nessun operatore elaborato."
     assert 'beta' in results['real_distribution'], "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: null_model_runner_24_09_2026.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: null_model_runner.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)

@@ -3,7 +3,7 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: coherence_evaluator_24.09.2026.py
+Modulo: coherence_evaluator.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -11,7 +11,7 @@ Zenodo DOI: 10.5281/zenodo.22856418
 Descrizione:
   Modulo per la misurazione della coerenza topologica e dell'entropia di stato
   nelle sequenze degli operatori (alpha, beta, delta, gamma).
-  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
+  Integrazione vincolata al parser sanificato (voynich_parser.py).
   Calcola l'indice di stabilità del flusso, la matrice di adiacenza locale
   e la deviazione dall'equilibrio entropico del testo Voynich purificato.
 ===============================================================================
@@ -20,8 +20,8 @@ Descrizione:
 import math
 from typing import List, Dict, Any
 
-# Importazione vincolata al Parser Sanificato (24.09.2026)
-from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
+# Importazione vincolata al Parser Sanificato (nome standard pulito)
+from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class CoherenceEvaluator:
@@ -173,5 +173,5 @@ if __name__ == '__main__':
 
     assert analysis['total_transitions'] >= 0, "Errore: Transizioni non calcolate."
     assert 0.0 <= analysis['coherence_index'] <= 1.0, "Errore: Indice di coerenza fuori scala."
-    print("\n[✓] ESITO VERIFICA: coherence_evaluator_24_09_2026.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)

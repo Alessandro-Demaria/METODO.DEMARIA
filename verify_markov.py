@@ -3,14 +3,14 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: verify_markov_24.09.2026.py
+Modulo: verify_markov.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Modulo per l'analisi stocastica delle Catene di Markov applicate al Metodo Demaria.
-  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
+  Integrazione vincolata al parser sanificato (voynich_parser.py).
   Calcola la matrice delle probabilità di transizione di primo ordine tra gli stati
   topologici (alpha, beta, delta, gamma), stima il vettore di distribuzione
   stazionaria su dati purificati (#) e verifica le proprietà di memoria stocastica.
@@ -19,8 +19,8 @@ Descrizione:
 
 from typing import List, Dict, Any, Tuple
 
-# Importazione vincolata al Parser Sanificato (24.09.2026)
-from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
+# Importazione vincolata al Parser Sanificato (nome standard pulito)
+from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class MarkovVerifier:
@@ -174,5 +174,5 @@ if __name__ == '__main__':
 
     assert analysis['total_states'] > 0, "Errore: Nessuno stato elaborato."
     assert 'beta' in analysis['stationary_distribution'], "Errore: Attrattore beta assente."
-    print("\n[✓] ESITO VERIFICA: verify_markov_24_09_2026.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: verify_markov.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)

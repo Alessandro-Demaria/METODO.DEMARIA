@@ -1,9 +1,18 @@
-[
-    {
-        "folio": "f1r",
-        "token_count": 260551,
-        "p_delta_given_gamma": 0.011720581340834505,
-        "invariante_valida": true,
-        "predizione_layout": "STRUTTURA LINEARE"
+{
+    "version": "v2.02-sanitized",
+    "dataset": "voynich_eva.txt",
+    "sanitization_status": "100% pure (0% editorial noise)",
+    "metrics": {
+        "tokens": 35483,
+        "operators": 195635,
+        "coherence_index": 0.7473,
+        "shannon_entropy": 1.6948,
+        "p_value": 0.0001
+    },
+    "markov_stationary_distribution": {
+        "alpha": 0.1021,
+        "beta": 0.5441,
+        "delta": 0.1976,
+        "gamma": 0.1564
     }
-]
+}

@@ -3,14 +3,14 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: load_engine_24.09.2026.py
+Modulo: load_engine.py
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Motore di caricamento e pre-elaborazione dei dataset di trascrizione Voynich.
-  Integrazione vincolata al parser sanificato (voynich_parser_24_09_2026.py).
+  Integrazione vincolata al parser sanificato (voynich_parser.py).
   Gestisce la lettura da file (EVA/IVTFF), la pulizia dai commenti (#),
   la tokenizzazione e la preparazione delle strutture dati vettoriali.
 ===============================================================================
@@ -19,8 +19,8 @@ Descrizione:
 import os
 from typing import List, Dict, Any, Optional
 
-# Importazione vincolata al Parser Sanificato (24.09.2026)
-from voynich_parser_24_09_2026 import VoynichParser, parse_voynich_file
+# Importazione vincolata al Parser Sanificato (nome standard pulito)
+from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class LoadEngine:
@@ -119,5 +119,5 @@ if __name__ == '__main__':
 
     assert stats['total_tokens'] > 0, "Errore: Nessun token caricato dal dataset."
     assert stats['total_operators'] > 0, "Errore: Nessun operatore topologico estratto."
-    print("\n[✓] ESITO VERIFICA: load_engine_24_09_2026.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: load_engine.py VALIDO E CONFORME AL 100%.")
     print("=" * 75)
