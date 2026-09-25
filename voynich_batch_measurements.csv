@@ -1,6 +1,8 @@
 metric,value
+total_records,35483
 total_tokens,35483
 total_operators,195635
-topological_coherence,0.7473
-shannon_entropy,1.6948
+topological_coherence_filtered,0.7854
+topological_coherence_raw,0.7473
+shannon_entropy,1.6947
 monte_carlo_avg_p_value,0.0001

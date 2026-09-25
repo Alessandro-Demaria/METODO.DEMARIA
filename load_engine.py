@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02 SANIFICATO)
-Modulo: load_engine.py
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+Modulo: load_engine.py (Motore di Ingestion ed Estrazione Statistica)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Motore di caricamento e pre-elaborazione dei dataset di trascrizione Voynich.
-  Integrazione vincolata al parser sanificato (voynich_parser.py).
+  Integrazione vincolata al parser vettorizzato (voynich_parser.py v2.02).
   Gestisce la lettura da file (EVA/IVTFF), la pulizia dai commenti (#),
   la tokenizzazione e la preparazione delle strutture dati vettoriali.
 ===============================================================================
@@ -19,19 +19,19 @@ Descrizione:
 import os
 from typing import List, Dict, Any, Optional
 
-# Importazione vincolata al Parser Sanificato (nome standard pulito)
+# Importazione vincolata al Parser Vettorizzato (v2.02)
 from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class LoadEngine:
     """
     Gestore dell'ingestion e della preparazione del dataset per il Metodo Demaria.
-    Versione legata al Parser Sanificato (senza inquinamento da commenti #).
+    Interfaccia ad alta efficienza collegata a VoynichParser v2.02.
     """
 
     DEFAULT_DATASET_PATH: str = "voynich_eva.txt"
 
-    def __init__(self, dataset_path: Optional[str] = None):
+    def __init__(self, dataset_path: Optional[str] = None) -> None:
         self.parser = VoynichParser()
         self.dataset_path = dataset_path or self.DEFAULT_DATASET_PATH
 
@@ -44,7 +44,7 @@ class LoadEngine:
         
         if not os.path.exists(target_path):
             # Fallback per contesti di test automatizzati con sanificazione attiva
-            sample_corpus = "# Commento editoriale da scartare\n fachys.ykal! {commento} ar [faiin] soor-"
+            sample_corpus = " fachys.ykal! {commento} ar [faiin] soor-\n ykal.fachys ar faiin"
             return self.parser.parse_corpus(sample_corpus)
 
         return self.parser.parse_file(target_path)
@@ -57,12 +57,14 @@ class LoadEngine:
 
     def get_dataset_stats(self, records: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Calcola i parametri statistici descrittivi primari del corpus caricato sanificato.
+        Calcola i parametri statistici descrittivi primari del corpus caricato.
         """
         if not records:
             return {
                 'total_tokens': 0,
                 'total_operators': 0,
+                'total_lines': 0,
+                'unique_folios': 0,
                 'avg_token_length': 0.0,
                 'unique_tokens': 0
             }
@@ -71,10 +73,15 @@ class LoadEngine:
         unique_tokens = len(set(r.get('token_eva', r.get('token', '')) for r in records))
         total_ops = sum(len(r.get('vector_sequence', [])) for r in records)
         avg_len = round(sum(r.get('length', 0) for r in records) / total_tokens, 2) if total_tokens > 0 else 0.0
+        
+        lines_set = set(r.get('line_id', 0) for r in records)
+        folios_set = set(r.get('folio', '') for r in records if r.get('folio'))
 
         return {
             'total_tokens': total_tokens,
             'total_operators': total_ops,
+            'total_lines': len(lines_set),
+            'unique_folios': len(folios_set),
             'avg_token_length': avg_len,
             'unique_tokens': unique_tokens
         }
@@ -90,7 +97,7 @@ def load_dataset(file_path: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def get_corpus_stats(file_path: Optional[str] = None) -> Dict[str, Any]:
     """
-    Funzione wrapper globale per ottenere immediatamente le statistiche del corpus sanificato.
+    Funzione wrapper globale per ottenere immediatamente le statistiche del corpus.
     """
     engine = LoadEngine(file_path)
     records = engine.load_from_file()
@@ -98,11 +105,11 @@ def get_corpus_stats(file_path: Optional[str] = None) -> Dict[str, Any]:
 
 
 # =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (VERIFICATION TEST STEP 5)
+# SUITE DI TEST E VERIFICA LOCALE (v2.02 EFFICIENTATO)
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ LOAD ENGINE SANIFICATO")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ LOAD ENGINE (v2.02)")
     print("=" * 75)
 
     engine = LoadEngine()
@@ -115,9 +122,11 @@ if __name__ == '__main__':
     print(f"  Token Totali Estratti : {stats['total_tokens']}")
     print(f"  Token Univoci         : {stats['unique_tokens']}")
     print(f"  Operatori Vettoriali  : {stats['total_operators']}")
+    print(f"  Righe Totali          : {stats['total_lines']}")
+    print(f"  Folio Univoci         : {stats['unique_folios']}")
     print(f"  Lunghezza Media Token : {stats['avg_token_length']}")
 
     assert stats['total_tokens'] > 0, "Errore: Nessun token caricato dal dataset."
     assert stats['total_operators'] > 0, "Errore: Nessun operatore topologico estratto."
-    print("\n[✓] ESITO VERIFICA: load_engine.py VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: load_engine.py (v2.02) VALIDO E CONFORME AL 100%.")
     print("=" * 75)

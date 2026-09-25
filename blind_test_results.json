@@ -3,16 +3,18 @@
     "dataset": "voynich_eva.txt",
     "sanitization_status": "100% pure (0% editorial noise)",
     "metrics": {
+        "records": 35483,
         "tokens": 35483,
         "operators": 195635,
-        "coherence_index": 0.7473,
-        "shannon_entropy": 1.6948,
+        "coherence_index_filtered": 0.7854,
+        "coherence_index_raw": 0.7473,
+        "shannon_entropy": 1.6947,
         "p_value": 0.0001
     },
     "markov_stationary_distribution": {
-        "alpha": 0.1021,
-        "beta": 0.5441,
-        "delta": 0.1976,
-        "gamma": 0.1564
+        "alpha": 0.1127,
+        "beta": 0.5792,
+        "delta": 0.1698,
+        "gamma": 0.1383
     }
 }
