@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
-Modulo: batch_runner.py (Orchestratore e Generatore Line-by-Line CR-02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
+Modulo: batch_runner.py (Orchestratore e Generatore Token/Line CR-02)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
@@ -12,7 +12,8 @@ Descrizione:
   Orchestratore BATCH principale della suite Metodo Demaria.
   Esegue l'elaborazione end-to-end sul dataset sanificato, sincronizza i
   calcoli di coerenza (C* raw e filtered), ed esporta l'artefatto esteso
-  Line-by-Line a 5.612 righe (voynich_line_by_line_measurements.csv).
+  Token-by-Record (voynich_line_by_line_measurements.csv) indicizzando i
+  35.483 record/token aggregati sulle linee fisiche del manoscritto.
 ===============================================================================
 """
 
@@ -32,8 +33,8 @@ from verify_markov import MarkovVerifier, run_markov_analysis
 
 def process_batch() -> None:
     """
-    Orchestratore principale del Metodo Demaria (Release v2.02).
-    Genera sia i report di sintesi sia l'artefatto esteso Line-by-Line a 5.612 righe.
+    Orchestratore principale del Metodo Demaria (Release v2.03).
+    Genera sia i report di sintesi sia l'artefatto esteso Token-by-Record.
     """
     input_file = "voynich_eva.txt"
     batch_csv = "voynich_batch_measurements.csv"
@@ -42,7 +43,7 @@ def process_batch() -> None:
     json_output = "blind_test_results.json"
 
     print("==================================================")
-    print("  METODO DEMARIA v2.02 - RUNNER BATCH SANIFICATO  ")
+    print("  METODO DEMARIA v2.03 - RUNNER BATCH SANIFICATO  ")
     print("==================================================")
 
     if not os.path.exists(input_file):
@@ -54,7 +55,7 @@ def process_batch() -> None:
     records = engine.load_from_file()
     stats = engine.get_dataset_stats(records)
     total_records = len(records)
-    print(f" -> Record/Righe Totali : {total_records}")
+    print(f" -> Record/Token Totali   : {total_records} (granulometria record-by-token)")
     print(f" -> Token Totali Estratti : {stats['total_tokens']}")
     print(f" -> Operatori Vettoriali  : {stats['total_operators']}")
 
@@ -82,21 +83,21 @@ def process_batch() -> None:
     stationary_dist = markov_res.get('stationary_distribution', {})
     print(" -> Matrice di transizione calcolata con successo.")
 
-    # 5. Scrittura Output e Generazione Artefatto Line-by-Line (CR-02)
+    # 5. Scrittura Output e Generazione Artefatto Token-by-Record (CR-02)
     print("\n[5/5] Sovrascrittura file di output CSV e JSON (incluso dataset esteso CR-02)...")
 
-    # A. Scrittura voynich_line_by_line_measurements.csv (5.612 righe)
+    # A. Scrittura voynich_line_by_line_measurements.csv (35.483 record token-level)
     evaluator = CoherenceEvaluator()
     cumulative_z = 0
     
     with open(line_by_line_csv, mode="w", newline="", encoding="utf-8") as f_line:
         writer = csv.writer(f_line)
-        writer.writerow(["Line_ID", "Folio", "Token_Count", "Operator_Count", "Z_t", "Clock_Phase", "C_star_t"])
+        writer.writerow(["Record_ID", "Folio", "Token_Count", "Operator_Count", "Z_t", "Clock_Phase", "C_star_t"])
         
         for t, record in enumerate(records):
             folio = record.get('folio', f"f_line_{t+1}")
             
-            # CORREZIONE BUG SVIZZERO: Estrazione token robusta con fallback multilivello
+            # Estrazione token robusta con fallback multilivello
             tokens = record.get('token_eva', record.get('token', record.get('tokens', record.get('word', []))))
             if isinstance(tokens, str):
                 tokens = tokens.split()
@@ -112,13 +113,13 @@ def process_batch() -> None:
             cumulative_z += operator_count
             clock_phase = round((2.0 * math.pi * t) / max(1, total_records), 4)
             
-            # Coerenza locale per la singola linea t
+            # Coerenza locale per il singolo record t
             line_eval = evaluator.evaluate_sequence_coherence(seq)
             c_star_t = line_eval.get('coherence_index', 0.0)
             
             writer.writerow([t, folio, token_count, operator_count, cumulative_z, clock_phase, c_star_t])
 
-    print(f" -> Artefatto Line-by-Line esportato con successo ({total_records} righe): {line_by_line_csv}")
+    print(f" -> Artefatto Token-by-Record esportato con successo ({total_records} record): {line_by_line_csv}")
 
     # B. Scrittura voynich_batch_measurements.csv (Sintetico)
     with open(batch_csv, mode="w", newline="", encoding="utf-8") as f:
@@ -146,7 +147,7 @@ def process_batch() -> None:
 
     # D. Scrittura blind_test_results.json
     results_json = {
-        "version": "v2.02-sanitized",
+        "version": "v2.03-sanitized",
         "dataset": input_file,
         "sanitization_status": "100% pure (0% editorial noise)",
         "metrics": {
@@ -165,7 +166,7 @@ def process_batch() -> None:
     print(f" -> Aggiornato con successo: {json_output}")
 
     print("\n==================================================")
-    print("  PIPELINE BATCH E LINE-BY-LINE COMPLETATA!      ")
+    print("  PIPELINE BATCH E TOKEN-BY-RECORD COMPLETATA!    ")
     print("==================================================")
 
 
