@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03 RECONCILED)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
 Modulo: coherence_evaluator.py
 Autore: Alessandro Demaria (Riconciliazione Scientifica e Vettorizzazione)
 Repository: GitHub - METODO.DEMARIA
@@ -26,8 +26,8 @@ from voynich_parser import VoynichParser, parse_voynich_file
 
 class CoherenceEvaluator:
     """
-    Valutatore Vettorizzato di Coerenza Topologica ed Entropia Informativa.
-    Utilizza strutture dati NumPy per garantire l'ottimizzazione \(O(N)\)
+    Valutatore Vettorizzato di Coerenza Topologica ed Entropia Informativa (v2.02).
+    Utilizza strutture dati NumPy per garantire l'ottimizzazione O(N)
     e l'assoluta riproducibilita computazionale.
     """
 
@@ -35,7 +35,7 @@ class CoherenceEvaluator:
     OP_TO_INT: Dict[str, int] = {'alpha': 0, 'beta': 1, 'delta': 2, 'gamma': 3}
     INT_TO_OP: Dict[int, str] = {0: 'alpha', 1: 'beta', 2: 'delta', 3: 'gamma'}
 
-    # Matrice booleana \(4 \times 4\) delle transizioni valide definite dal Metodo Demaria:
+    # Matrice booleana 4x4 delle transizioni valide definite dal Metodo Demaria:
     # (alpha,beta), (beta,beta), (beta,delta), (delta,beta), (delta,gamma), (gamma,alpha), (gamma,beta)
     VALID_TRANSITIONS_MASK: np.ndarray = np.array([
         [0, 1, 0, 0],  # alpha (0) -> beta (1)
@@ -45,15 +45,13 @@ class CoherenceEvaluator:
     ], dtype=bool)
 
     def __init__(self) -> None:
+        self.version = "v2.02"
         self.parser = VoynichParser()
 
     @staticmethod
     def calculate_entropy_fast(probabilities: np.ndarray) -> float:
         """
         Calcola l'entropia di Shannon (in bit) vettorizzata.
-        
-        :param probabilities: Array NumPy 1D di probabilita.
-        :return: Entropia in bit arrotondata a 4 cifre decimali.
         """
         nonzero_p = probabilities[probabilities > 0.0]
         if nonzero_p.size == 0:
@@ -64,10 +62,6 @@ class CoherenceEvaluator:
     def evaluate_vector_array(self, state_array: np.ndarray, line_boundaries: Optional[np.ndarray] = None) -> Dict[str, Any]:
         """
         Calcola la coerenza topologica vettorizzata su array numerici.
-        
-        :param state_array: Array 1D di interi [0..3] corrispondenti agli stati.
-        :param line_boundaries: Array 1D di booleani/int indicanti i salti di linea.
-        :return: Dizionario contenente C*_raw, C*_filtered, ed entropia.
         """
         n_tokens = len(state_array)
         if n_tokens < 2:
@@ -94,7 +88,6 @@ class CoherenceEvaluator:
 
         # 2. Filtraggio confini di linea (C*_filtered)
         if line_boundaries is not None and len(line_boundaries) == n_tokens:
-            # Una transizione e valida intra-linea solo se i due token appartengono allo stesso Line_ID
             intra_line_mask = (line_boundaries[:-1] == line_boundaries[1:])
             total_transitions_filtered = int(np.sum(intra_line_mask))
             coherent_count_filtered = int(np.sum(valid_transitions_mask & intra_line_mask))
@@ -128,7 +121,6 @@ class CoherenceEvaluator:
         if not vector_sequence:
             return self.evaluate_vector_array(np.array([], dtype=int))
 
-        # Filtra ed elide eventuali token non mappati
         valid_indices = [self.OP_TO_INT[op] for op in vector_sequence if op in self.OP_TO_INT]
         state_array = np.array(valid_indices, dtype=np.int32)
 
@@ -136,8 +128,7 @@ class CoherenceEvaluator:
 
     def evaluate_corpus(self, raw_text: str) -> Dict[str, Any]:
         """
-        Valuta la coerenza globale dell'intero corpus mantenendo il tracciamento
-        delle righe per calcolare correttamente sia C*_raw che C*_filtered.
+        Valuta la coerenza globale dell'intero corpus mantenendo il tracciamento delle righe.
         """
         parsed_records = self.parser.parse_corpus(raw_text)
         
@@ -182,17 +173,11 @@ class CoherenceEvaluator:
 
 
 def evaluate_coherence(raw_text: str) -> Dict[str, Any]:
-    """
-    Wrapper globale per l'analisi immediata della coerenza su testo.
-    """
     evaluator = CoherenceEvaluator()
     return evaluator.evaluate_corpus(raw_text)
 
 
 def run_coherence_analysis(file_path: str) -> Dict[str, Any]:
-    """
-    Wrapper globale per il pipeline di test automatizzato.
-    """
     evaluator = CoherenceEvaluator()
     try:
         return evaluator.evaluate_file(file_path)
@@ -200,12 +185,9 @@ def run_coherence_analysis(file_path: str) -> Dict[str, Any]:
         return evaluator.evaluate_corpus("# Commento da scartare\n fachys.ykal ar faiin soor")
 
 
-# =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (VERIFICATION TEST STEP 1 - CR-01)
-# =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR (v2.03)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR (v2.02)")
     print("=" * 75)
 
     evaluator = CoherenceEvaluator()
@@ -223,5 +205,5 @@ if __name__ == '__main__':
 
     assert analysis['total_transitions'] >= 0, "Errore: Transizioni non calcolate."
     assert 0.0 <= analysis['coherence_index'] <= 1.0, "Errore: Indice di coerenza fuori scala."
-    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py OTTIMIZZATO E RICONCILIATO AL 100%.")
+    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py OTTIMIZZATO E ALLINEATO A v2.02.")
     print("=" * 75)

@@ -95,8 +95,15 @@ def process_batch() -> None:
         
         for t, record in enumerate(records):
             folio = record.get('folio', f"f_line_{t+1}")
-            tokens = record.get('tokens', [])
+            
+            # CORREZIONE BUG SVIZZERO: Estrazione token robusta con fallback multilivello
+            tokens = record.get('token_eva', record.get('token', record.get('tokens', record.get('word', []))))
+            if isinstance(tokens, str):
+                tokens = tokens.split()
+                
             seq = record.get('vector_sequence', [])
+            if isinstance(seq, str):
+                seq = [c for c in seq]
             
             token_count = len(tokens)
             operator_count = len(seq)
