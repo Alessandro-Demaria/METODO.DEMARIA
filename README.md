@@ -6,7 +6,7 @@
 * **Author**: Alessandro Demaria
 * **Standard**: Standard Demaria v2.03 (Settembre 2026)
 * **Source Document**: [Demaria_2026_Metodo_Demaria_v2.03.pdf](./Demaria_2026_Metodo_Demaria_v2.03.pdf)
-* **Zenodo DOI**: [10.5281/zenodo.22972891](https://doi.org/10.5281/zenodo.22972891)
+* **Zenodo DOI**: [10.5281/zenodo.22975532](https://doi.org/10.5281/zenodo.22975532)
 * **License**: MIT License (Code) / CC BY 4.0 (Documentation & Data)
 
 ### Release v2.03 Updates
@@ -16,7 +16,7 @@
 ### Architettura a 7 Moduli Core
 
 1. **voynich_parser.py**: Parsing, filtraggio e normalizzazione del testo EVA/IVTFF con tracciamento `line_id`.
-2. **batch_runner.py**: Esecuzione batch per il calcolo e la misurazione delle metriche con esportazione `voynich_line_by_line_measurements.csv`.
+2. **batch_runner.py**: Esecuzione batch per il calcolo e la misurazione delle metriche con esportazione `voynich_token_by_token_measurements.csv`.
 3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (\(C^*\) raw e filtered).
 4. **null_model_runner.py**: Generazione dei modelli nulli di controllo Monte Carlo per il confronto benchmark (\(p\)-value).
 5. **verify_markov.py**: Verifica della stazionarietà e delle transizioni della catena di Markov (matrice \(4 \times 4\)).
