@@ -2,11 +2,11 @@
     "version": "v2.03-adversarial",
     "test_name": "Adversarial Mapping Test (CR-04)",
     "n_permutations": 10000,
-    "demaria_coherence_filtered": 0.7854,
+    "demaria_coherence_filtered": 0.7542,
     "random_coherence_mean": 0.4244,
     "random_coherence_std": 0.1244,
     "random_coherence_max": 0.8747,
-    "percentile_rank": 99.61,
-    "p_value": 0.004,
+    "percentile_rank": 98.85,
+    "p_value": 0.0115,
     "status": "PASSED - Statistically Dominant"
 }
