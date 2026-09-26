@@ -20,7 +20,7 @@
 3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (\(C^*\) raw e filtered).
 4. **null_model_runner.py**: Generazione dei modelli nulli di controllo Monte Carlo per il confronto benchmark (\(p\)-value).
 5. **verify_markov.py**: Verifica della stazionarietà e delle transizioni della catena di Markov (matrice \(4 \times 4\)).
-6. **adversarial_mapping_test.py**: Test cieco adversarial su $10.000$ mappature casuali per la misura della selettività (CR-04).
+6. **adversarial_mapping_test.py**: Test cieco adversarial su 10.000 mappature casuali per la misura della selettività (CR-04).
 7. **load_engine.py**: Motore di caricamento rapido e preparazione dei dati.
 
 © METODO DEMARIA DEPOSITATO - Tutti i diritti riservati.
