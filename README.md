@@ -6,7 +6,7 @@
 * **Author**: Alessandro Demaria
 * **Standard**: Standard Demaria v2.03 (Settembre 2026)
 * **Source Document**: [Demaria_2026_Metodo_Demaria_v2.03.pdf](./Demaria_2026_Metodo_Demaria_v2.03.pdf)
-* **Zenodo DOI**: [10.5281/zenodo.22856418](https://doi.org/10.5281/zenodo.22856418)
+* **Zenodo DOI**: [10.5281/zenodo.22972891](https://doi.org/10.5281/zenodo.22972891)
 * **License**: MIT License (Code) / CC BY 4.0 (Documentation & Data)
 
 ### Release v2.03 Updates
