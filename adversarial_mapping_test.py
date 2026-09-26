@@ -2,23 +2,24 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
 Modulo: adversarial_mapping_test.py (Test Cieco Adversarial per CR-04)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
-  Script ad alta efficienza per il Test Cieco Adversarial (Falsificabilita CR-04).
+  Script ad alta efficienza per il Test Cieco Adversarial (Falsificabilità CR-04).
   Genera N = 10.000 mappature casuali dei caratteri EVA verso i 4 stati
-  topologici {alpha, beta, gamma, delta} e dimostra la selettivita
-  della mappatura del Metodo Demaria (> 99.9th percentile).
+  topologici {alpha, beta, gamma, delta} e dimostra la selettività
+  della mappatura del Metodo Demaria (> 99.9th percentile) mantenendo il
+  tracciamento rigoroso dei confini di linea reali (line_id).
 ===============================================================================
 """
 
 import sys
 import numpy as np
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 from voynich_parser import VoynichParser
 from coherence_evaluator import CoherenceEvaluator
@@ -26,7 +27,7 @@ from coherence_evaluator import CoherenceEvaluator
 
 class AdversarialMappingTester:
     """
-    Tester Vettorizzato per l'Analisi Adversarial di Mappatura dei Grafemi EVA.
+    Tester Vettorizzato per l'Analisi Adversarial di Mappatura dei Grafemi EVA (v2.03).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -38,6 +39,7 @@ class AdversarialMappingTester:
     ]
 
     def __init__(self, seed: int = 42) -> None:
+        self.version = "v2.03"
         self.parser = VoynichParser()
         self.evaluator = CoherenceEvaluator()
         self.seed = seed
@@ -45,19 +47,20 @@ class AdversarialMappingTester:
 
     def run_adversarial_test(self, file_path: str, iterations: int = 10000) -> Dict[str, Any]:
         """
-        Esegue 10.000 mappature casuali dell'alfabeto EVA sui 4 stati e calcola C*.
+        Esegue 10.000 mappature casuali dell'alfabeto EVA sui 4 stati e calcola C* basato su line_id reali.
         """
         records = self.parser.parse_file(file_path)
         if not records:
             return {'error': 'Impossibile leggere il file specificato.'}
 
-        # 1. Estrazione di tutti i caratteri del corpus conservando le linee
-        raw_char_lines: List[List[str]] = []
-        for line_id, record in enumerate(records):
+        # 1. Estrazione dei caratteri del corpus e dei relativi line_id reali
+        raw_char_lines: List[Tuple[int, List[str]]] = []
+        for record in records:
+            real_line_id = record.get('line_id', 0)
             word = record.get('token_eva', '').lower()
             chars = [ch for ch in word if ch in self.EVA_ALPHABET]
             if chars:
-                raw_char_lines.append(chars)
+                raw_char_lines.append((real_line_id, chars))
 
         # 2. Calcolo C* con la Mappatura Reale Demaria (Baseline)
         real_eval = self.evaluator.evaluate_file(file_path)
@@ -72,11 +75,11 @@ class AdversarialMappingTester:
             random_map_indices = self.rng.integers(0, 4, size=n_alphabet)
             char_to_state_map = {self.EVA_ALPHABET[i]: random_map_indices[i] for i in range(n_alphabet)}
 
-            # Conversione corpus in vettori numerici con la mappatura casuale
+            # Conversione corpus in vettori numerici con la mappatura casuale e line_id reale
             full_vector: List[int] = []
             line_indices: List[int] = []
 
-            for line_id, chars in enumerate(raw_char_lines):
+            for line_id, chars in raw_char_lines:
                 for ch in chars:
                     full_vector.append(char_to_state_map[ch])
                     line_indices.append(line_id)
@@ -104,7 +107,7 @@ class AdversarialMappingTester:
 
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — TEST CIECO ADVERSARIAL DI MAPPING (CR-04)")
+    print("METODO DEMARIA — TEST CIECO ADVERSARIAL DI MAPPING (CR-04 v2.03)")
     print("=" * 75)
 
     tester = AdversarialMappingTester(seed=42)

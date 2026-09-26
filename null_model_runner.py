@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
 Modulo: null_model_runner.py (Monte Carlo Permutation Test CR-03)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
@@ -12,7 +12,8 @@ Descrizione:
   Esecutore ad alta efficienza per Modelli Nulli Monte Carlo (Surrogate Testing).
   Calcola il p-value empirico non-parametrico sulla Coerenza Topologica (C*)
   confrontando il valore osservato con N = 10.000 permutazioni casuali
-  mantenendo le frequenze marginali degli stati (PCG64 deterministico).
+  mantenendo le frequenze marginali degli stati (PCG64 deterministico) e
+  rispettando i confini di linea reali (line_id).
 ===============================================================================
 """
 
@@ -27,14 +28,14 @@ from coherence_evaluator import CoherenceEvaluator
 
 class NullModelRunner:
     """
-    Esecutore Vettorizzato di Modelli Nulli Monte Carlo per il Test di Significativita Statistica.
-    Utilizza NumPy per l'ottimizzazione vettoriale e il test empirico su \(C^*\).
+    Esecutore Vettorizzato di Modelli Nulli Monte Carlo per il Test di Significatività Statistica (v2.03).
+    Utilizza NumPy per l'ottimizzazione vettoriale e il test empirico su C*.
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
     OP_TO_INT: Dict[str, int] = {'alpha': 0, 'beta': 1, 'delta': 2, 'gamma': 3}
 
-    # Matrice booleana \(4 \times 4\) delle transizioni valide del Metodo Demaria
+    # Matrice booleana 4 x 4 delle transizioni valide del Metodo Demaria
     VALID_TRANSITIONS_MASK: np.ndarray = np.array([
         [0, 1, 0, 0],  # alpha (0) -> beta (1)
         [0, 1, 1, 0],  # beta  (1) -> beta (1), delta (2)
@@ -43,6 +44,7 @@ class NullModelRunner:
     ], dtype=bool)
 
     def __init__(self, seed: int = 42) -> None:
+        self.version = "v2.03"
         self.parser = VoynichParser()
         self.evaluator = CoherenceEvaluator()
         self.seed = seed
@@ -100,11 +102,11 @@ class NullModelRunner:
         null_mean_c_star = float(np.mean(null_c_stars))
         null_std_c_star = float(np.std(null_c_stars))
 
-        # Distribuzioni marginali per compatibilita
+        # Distribuzioni marginali per compatibilità
         counts = np.bincount(state_array, minlength=4)
         real_dist = {self.OPERATORS[i]: float(counts[i] / n_tokens) for i in range(4)}
 
-        # Dizionario di p-values per stato (retrocompatibilita con runner batch)
+        # Dizionario di p-values per stato (retrocompatibilità con runner batch)
         p_values_dict = {op: p_value_empirical for op in self.OPERATORS}
 
         return {
@@ -120,19 +122,20 @@ class NullModelRunner:
 
     def run_null_simulation(self, raw_text: str, iterations: int = 10000) -> Dict[str, Any]:
         """
-        Valuta la significativita del corpus reale tramite Monte Carlo su testo grezzo.
+        Valuta la significatività del corpus reale tramite Monte Carlo usando il reale line_id.
         """
         parsed_records = self.parser.parse_corpus(raw_text)
         
         full_vector: List[int] = []
         line_indices: List[int] = []
 
-        for line_id, record in enumerate(parsed_records):
+        for record in parsed_records:
+            real_line_id = record.get('line_id', 0)
             seq = record.get('vector_sequence', [])
             for op in seq:
                 if op in self.OP_TO_INT:
                     full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(line_id)
+                    line_indices.append(real_line_id)
 
         state_array = np.array(full_vector, dtype=np.int32)
         line_array = np.array(line_indices, dtype=np.int32)
@@ -141,19 +144,20 @@ class NullModelRunner:
 
     def process_file_null_model(self, file_path: str, iterations: int = 10000) -> Dict[str, Any]:
         """
-        Legge un file ed esegue il test Monte Carlo a permutazione vettorizzato.
+        Legge un file ed esegue il test Monte Carlo a permutazione vettorizzato usando il reale line_id.
         """
         records = self.parser.parse_file(file_path)
         
         full_vector: List[int] = []
         line_indices: List[int] = []
 
-        for line_id, record in enumerate(records):
+        for record in records:
+            real_line_id = record.get('line_id', 0)
             seq = record.get('vector_sequence', [])
             for op in seq:
                 if op in self.OP_TO_INT:
                     full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(line_id)
+                    line_indices.append(real_line_id)
 
         state_array = np.array(full_vector, dtype=np.int32)
         line_array = np.array(line_indices, dtype=np.int32)
@@ -163,7 +167,7 @@ class NullModelRunner:
 
 def run_null_benchmark(file_path: str) -> Dict[str, Any]:
     """
-    Wrapper globale per il pipeline di test automatizzato con N=10.000 iterazioni.
+    Wrapper globale per la pipeline di test automatizzato con N=10.000 iterazioni.
     """
     runner = NullModelRunner(seed=42)
     try:
@@ -173,11 +177,11 @@ def run_null_benchmark(file_path: str) -> Dict[str, Any]:
 
 
 # =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (VERIFICATION TEST STEP 3 - CR-03)
+# SUITE DI TEST E VERIFICA LOCALE (v2.03 ALLINEATO)
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL MONTE CARLO (v2.02)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL MONTE CARLO (v2.03)")
     print("=" * 75)
 
     runner = NullModelRunner(seed=42)
@@ -193,5 +197,5 @@ if __name__ == '__main__':
 
     assert results['total_operators'] > 0, "Errore: Nessun operatore elaborato."
     assert 0.0 <= results['p_value_empirical'] <= 1.0, "Errore: p-value fuori scala."
-    print("\n[✓] ESITO VERIFICA: null_model_runner.py OTTIMIZZATO E RICONCILIATO AL 100%.")
+    print("\n[✓] ESITO VERIFICA: null_model_runner.py OTTIMIZZATO E ALLINEATO A v2.03.")
     print("=" * 75)

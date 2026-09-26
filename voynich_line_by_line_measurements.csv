@@ -1,4 +1,4 @@
-Line_ID,Folio,Token_Count,Operator_Count,Z_t,Clock_Phase,C_star_t
+Record_ID,Folio,Token_Count,Operator_Count,Z_t,Clock_Phase,C_star_t
 0,"f1r.1,@P0",1,6,6,0.0,0.6
 1,"f1r.1,@P0",1,4,10,0.0002,1.0
 2,"f1r.1,@P0",1,2,12,0.0004,1.0

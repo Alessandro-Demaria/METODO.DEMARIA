@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
 Modulo: load_engine.py (Motore di Ingestion ed Estrazione Statistica)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
@@ -10,7 +10,7 @@ Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
   Motore di caricamento e pre-elaborazione dei dataset di trascrizione Voynich.
-  Integrazione vincolata al parser vettorizzato (voynich_parser.py v2.02).
+  Integrazione vincolata al parser vettorizzato (voynich_parser.py v2.03).
   Gestisce la lettura da file (EVA/IVTFF), la pulizia dai commenti (#),
   la tokenizzazione e la preparazione delle strutture dati vettoriali.
 ===============================================================================
@@ -19,19 +19,20 @@ Descrizione:
 import os
 from typing import List, Dict, Any, Optional
 
-# Importazione vincolata al Parser Vettorizzato (v2.02)
+# Importazione vincolata al Parser Vettorizzato (v2.03)
 from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class LoadEngine:
     """
-    Gestore dell'ingestion e della preparazione del dataset per il Metodo Demaria.
-    Interfaccia ad alta efficienza collegata a VoynichParser v2.02.
+    Gestore dell'ingestion e della preparazione del dataset per il Metodo Demaria (v2.03).
+    Interfaccia ad alta efficienza collegata a VoynichParser v2.03.
     """
 
     DEFAULT_DATASET_PATH: str = "voynich_eva.txt"
 
     def __init__(self, dataset_path: Optional[str] = None) -> None:
+        self.version = "v2.03"
         self.parser = VoynichParser()
         self.dataset_path = dataset_path or self.DEFAULT_DATASET_PATH
 
@@ -105,11 +106,11 @@ def get_corpus_stats(file_path: Optional[str] = None) -> Dict[str, Any]:
 
 
 # =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (v2.02 EFFICIENTATO)
+# SUITE DI TEST E VERIFICA LOCALE (v2.03 ALLINEATO)
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ LOAD ENGINE (v2.02)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ LOAD ENGINE (v2.03)")
     print("=" * 75)
 
     engine = LoadEngine()
@@ -128,5 +129,5 @@ if __name__ == '__main__':
 
     assert stats['total_tokens'] > 0, "Errore: Nessun token caricato dal dataset."
     assert stats['total_operators'] > 0, "Errore: Nessun operatore topologico estratto."
-    print("\n[✓] ESITO VERIFICA: load_engine.py (v2.02) VALIDO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: load_engine.py (v2.03) OTTIMIZZATO E ALLINEATO AL 100%.")
     print("=" * 75)

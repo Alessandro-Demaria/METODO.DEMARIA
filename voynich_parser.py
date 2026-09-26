@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
 Modulo: voynich_parser.py (Efficientato e Vettorizzato)
 Autore: Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
@@ -12,7 +12,8 @@ Descrizione:
   Parser ad alta precisione ed efficienza per trascrizioni in formato EVA/IVTFF.
   Esegue la pulizia vettoriale dei metadati, la sanificazione dai commenti (#)
   ed applica la mappatura deterministica univoca dai grafemi EVA ai 4 operatori
-  topologici con ottimizzazione O(N) basata su tabelle di lookup C-level.
+  topologici con ottimizzazione O(N) basata su tabelle di lookup C-level
+  e tracciamento rigoroso del line_id reale codicologico.
 ===============================================================================
 """
 
@@ -22,9 +23,9 @@ from typing import List, Dict, Any, Tuple
 
 class VoynichParser:
     """
-    Parser ad alta precisione e vettorizzato per il Metodo Demaria (Release v2.02).
+    Parser ad alta precisione e vettorizzato per il Metodo Demaria (Release v2.03).
     Garantisce la totale rimozione dei metadati ed un'estrazione O(N)
-    degli operatori topologici.
+    degli operatori topologici tracciando i confini di riga reali (line_id).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -44,6 +45,7 @@ class VoynichParser:
     DEFAULT_OPERATOR: str = 'beta'
 
     def __init__(self) -> None:
+        self.version = "v2.03"
         # Pre-compilazione dinamica delle Regex con costruttori espliciti per prevenire qualsiasi errore di sintassi
         self.META_PATTERN = re.compile("<[^>]+>")
         self.COMMENT_PATTERN = re.compile("\\{[^}]+\\}")
@@ -103,7 +105,7 @@ class VoynichParser:
 
     def parse_corpus(self, raw_text: str) -> List[Dict[str, Any]]:
         """
-        Esegue il parsing completo del testo con tracciamento rigoroso delle linee.
+        Esegue il parsing completo del testo con tracciamento rigoroso delle linee reali.
         """
         records: List[Dict[str, Any]] = []
         global_idx = 0
@@ -162,18 +164,18 @@ class VoynichParser:
 
 def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
     """
-    Wrapper globale per compatibilita.
+    Wrapper globale per compatibilità.
     """
     parser = VoynichParser()
     return parser.parse_file(file_path)
 
 
 # =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (v2.02 EFFICIENTATO)
+# SUITE DI TEST E VERIFICA LOCALE (v2.03 ALLINEATO)
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ PARSER EFFICIENTATO (v2.02)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ PARSER EFFICIENTATO (v2.03)")
     print("=" * 75)
 
     parser = VoynichParser()
@@ -183,8 +185,9 @@ if __name__ == '__main__':
     print(f"\n[TEST] Record Estratti e Mappati:")
     print(f"  Totale Token Estratti : {len(records)}")
     print(f"  Folio Primo Token     : {records[0]['folio']}")
+    print(f"  Line ID Primo Token   : {records[0]['line_id']}")
     print(f"  Sequenza Primo Token  : {records[0]['vector_sequence']}")
 
     assert len(records) > 0, "Errore: Nessun record estratto."
-    print("\n[✓] ESITO VERIFICA: voynich_parser.py EFFICIENTATO E CONFORME AL 100%.")
+    print("\n[✓] ESITO VERIFICA: voynich_parser.py (v2.03) EFFICIENTATO E CONFORME AL 100%.")
     print("=" * 75)

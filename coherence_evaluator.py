@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.02)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
 Modulo: coherence_evaluator.py
 Autore: Alessandro Demaria (Riconciliazione Scientifica e Vettorizzazione)
 Repository: GitHub - METODO.DEMARIA
@@ -12,7 +12,7 @@ Descrizione:
   Modulo ad alta efficienza per la misurazione della coerenza topologica (C*)
   e dell'entropia di Shannon nelle sequenze degli operatori topologici.
   Risolve l'anomalia CR-01 calcolando sia il valore grezzo (C*_raw) che il valore
-  filtrato per continuita intra-linea (C*_filtered).
+  filtrato per continuità intra-linea (C*_filtered) basato sul reale line_id.
 ===============================================================================
 """
 
@@ -26,9 +26,9 @@ from voynich_parser import VoynichParser, parse_voynich_file
 
 class CoherenceEvaluator:
     """
-    Valutatore Vettorizzato di Coerenza Topologica ed Entropia Informativa (v2.02).
+    Valutatore Vettorizzato di Coerenza Topologica ed Entropia Informativa (v2.03).
     Utilizza strutture dati NumPy per garantire l'ottimizzazione O(N)
-    e l'assoluta riproducibilita computazionale.
+    e l'assoluta riproducibilità computazionale.
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -45,7 +45,7 @@ class CoherenceEvaluator:
     ], dtype=bool)
 
     def __init__(self) -> None:
-        self.version = "v2.02"
+        self.version = "v2.03"
         self.parser = VoynichParser()
 
     @staticmethod
@@ -128,19 +128,20 @@ class CoherenceEvaluator:
 
     def evaluate_corpus(self, raw_text: str) -> Dict[str, Any]:
         """
-        Valuta la coerenza globale dell'intero corpus mantenendo il tracciamento delle righe.
+        Valuta la coerenza globale dell'intero corpus mantenendo il tracciamento delle righe reali (line_id).
         """
         parsed_records = self.parser.parse_corpus(raw_text)
         
         full_vector: List[int] = []
         line_indices: List[int] = []
 
-        for line_id, record in enumerate(parsed_records):
+        for record in parsed_records:
+            real_line_id = record.get('line_id', 0)
             seq = record.get('vector_sequence', [])
             for op in seq:
                 if op in self.OP_TO_INT:
                     full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(line_id)
+                    line_indices.append(real_line_id)
 
         state_array = np.array(full_vector, dtype=np.int32)
         line_array = np.array(line_indices, dtype=np.int32)
@@ -151,18 +152,19 @@ class CoherenceEvaluator:
 
     def evaluate_file(self, file_path: str) -> Dict[str, Any]:
         """
-        Metodo d'istanza per valutare la coerenza topologica da file sanificato.
+        Metodo d'istanza per valutare la coerenza topologica da file sanificato usando il reale line_id.
         """
         records = self.parser.parse_file(file_path)
         full_vector: List[int] = []
         line_indices: List[int] = []
 
-        for line_id, record in enumerate(records):
+        for record in records:
+            real_line_id = record.get('line_id', 0)
             seq = record.get('vector_sequence', [])
             for op in seq:
                 if op in self.OP_TO_INT:
                     full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(line_id)
+                    line_indices.append(real_line_id)
 
         state_array = np.array(full_vector, dtype=np.int32)
         line_array = np.array(line_indices, dtype=np.int32)
@@ -187,7 +189,7 @@ def run_coherence_analysis(file_path: str) -> Dict[str, Any]:
 
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR (v2.02)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ COHERENCE EVALUATOR (v2.03)")
     print("=" * 75)
 
     evaluator = CoherenceEvaluator()
@@ -205,5 +207,5 @@ if __name__ == '__main__':
 
     assert analysis['total_transitions'] >= 0, "Errore: Transizioni non calcolate."
     assert 0.0 <= analysis['coherence_index'] <= 1.0, "Errore: Indice di coerenza fuori scala."
-    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py OTTIMIZZATO E ALLINEATO A v2.02.")
+    print("\n[✓] ESITO VERIFICA: coherence_evaluator.py OTTIMIZZATO E ALLINEATO A v2.03.")
     print("=" * 75)

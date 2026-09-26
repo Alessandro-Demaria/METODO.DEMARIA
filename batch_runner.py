@@ -9,7 +9,7 @@ Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22856418
 ===============================================================================
 Descrizione:
-  Orchestratore BATCH principale della suite Metodo Demaria.
+  Orchestratore BATCH principale della suite Metodo Demaria (v2.03).
   Esegue l'elaborazione end-to-end sul dataset sanificato, sincronizza i
   calcoli di coerenza (C* raw e filtered), ed esporta l'artefatto esteso
   Token-by-Record (voynich_line_by_line_measurements.csv) indicizzando i
@@ -147,7 +147,7 @@ def process_batch() -> None:
 
     # D. Scrittura blind_test_results.json
     results_json = {
-        "version": "v2.03-sanitized",
+        "version": "v2.03",
         "dataset": input_file,
         "sanitization_status": "100% pure (0% editorial noise)",
         "metrics": {
