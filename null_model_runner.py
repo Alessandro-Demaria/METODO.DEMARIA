@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
 Modulo: null_model_runner.py (Monte Carlo Permutation Test CR-03)
-Autore: Alessandro Demaria
+Autore: Avv. Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22856418
+Zenodo DOI: 10.5281/zenodo.22999135
 ===============================================================================
 Descrizione:
   Esecutore ad alta efficienza per Modelli Nulli Monte Carlo (Surrogate Testing).
@@ -28,7 +28,7 @@ from coherence_evaluator import CoherenceEvaluator
 
 class NullModelRunner:
     """
-    Esecutore Vettorizzato di Modelli Nulli Monte Carlo per il Test di Significatività Statistica (v2.03).
+    Esecutore Vettorizzato di Modelli Nulli Monte Carlo per il Test di Significatività Statistica (Release v3.0).
     Utilizza NumPy per l'ottimizzazione vettoriale e il test empirico su C*.
     """
 
@@ -44,7 +44,7 @@ class NullModelRunner:
     ], dtype=bool)
 
     def __init__(self, seed: int = 42) -> None:
-        self.version = "v2.03"
+        self.version = "v3.0"
         self.parser = VoynichParser()
         self.evaluator = CoherenceEvaluator()
         self.seed = seed
@@ -177,11 +177,11 @@ def run_null_benchmark(file_path: str) -> Dict[str, Any]:
 
 
 # =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (v2.03 ALLINEATO)
+# SUITE DI TEST E VERIFICA LOCALE (Release v3.0 ALLINEATO)
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL MONTE CARLO (v2.03)")
+    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL MONTE CARLO (Release v3.0)")
     print("=" * 75)
 
     runner = NullModelRunner(seed=42)
@@ -197,5 +197,5 @@ if __name__ == '__main__':
 
     assert results['total_operators'] > 0, "Errore: Nessun operatore elaborato."
     assert 0.0 <= results['p_value_empirical'] <= 1.0, "Errore: p-value fuori scala."
-    print("\n[✓] ESITO VERIFICA: null_model_runner.py OTTIMIZZATO E ALLINEATO A v2.03.")
+    print("\n[✓] ESITO VERIFICA: null_model_runner.py OTTIMIZZATO E ALLINEATO A Release v3.0.")
     print("=" * 75)

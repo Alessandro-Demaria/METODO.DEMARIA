@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
+METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
 Modulo: adversarial_mapping_test.py (Test Cieco Adversarial per CR-04)
-Autore: Alessandro Demaria
+Autore: Avv. Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22856418
+Zenodo DOI: 10.5281/zenodo.22999135
 ===============================================================================
 Descrizione:
   Script ad alta efficienza per il Test Cieco Adversarial (Falsificabilità CR-04).
@@ -27,7 +27,7 @@ from coherence_evaluator import CoherenceEvaluator
 
 class AdversarialMappingTester:
     """
-    Tester Vettorizzato per l'Analisi Adversarial di Mappatura dei Grafemi EVA (v2.03).
+    Tester Vettorizzato per l'Analisi Adversarial di Mappatura dei Grafemi EVA (Release v3.0).
     """
 
     OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
@@ -39,7 +39,7 @@ class AdversarialMappingTester:
     ]
 
     def __init__(self, seed: int = 42) -> None:
-        self.version = "v2.03"
+        self.version = "v3.0"
         self.parser = VoynichParser()
         self.evaluator = CoherenceEvaluator()
         self.seed = seed
@@ -107,7 +107,7 @@ class AdversarialMappingTester:
 
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — TEST CIECO ADVERSARIAL DI MAPPING (CR-04 v2.03)")
+    print("METODO DEMARIA — TEST CIECO ADVERSARIAL DI MAPPING (CR-04 Release v3.0)")
     print("=" * 75)
 
     tester = AdversarialMappingTester(seed=42)
