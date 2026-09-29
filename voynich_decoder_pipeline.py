@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
-Modulo: voynich_decoder_pipeline.py (Pipeline di Decodifica Inversa)
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0 Refresh)
+Modulo: voynich_decoder_pipeline.py (Pipeline di Decodifica Strutturale)
 Autore: Avv. Alessandro Demaria
 Repository: GitHub - METODO.DEMARIA
 Zenodo DOI: 10.5281/zenodo.22999135
 ===============================================================================
 Descrizione:
-  PIPELINE DI DECODIFICA INVERSA (METODO DEMARIA™ Release v3.0 - Fase 4).
-  Scompone i token del Voynich, rimuove la ridondanza dell'automa e isola il nucleo semantico.
+  PIPELINE DI DECODIFICA STRUTTURALE (METODO DEMARIA™ Release v3.0 Refresh).
+  Scompone i token del Voynich, rimuove la ridondanza dell'automa e isola
+  il nucleo morfologico residuo (structural_core) senza assumere un'interpretazione
+  semantica diretta, garantendo il rigore epistemologico del Tier A/B/C.
 ===============================================================================
 """
 
@@ -20,8 +22,8 @@ import os
 
 class VoynichDecoderPipeline:
     """
-    PIPELINE DI DECODIFICA INVERSA (Release v3.0 - Fase 4)
-    Scompone i token del Voynich, rimuove la ridondanza dell'automa e isola il nucleo semantico.
+    PIPELINE DI DECODIFICA STRUTTURALE (Release v3.0 Refresh - Fase 4)
+    Scompone i token del Voynich, rimuove la ridondanza dell'automa e isola il nucleo strutturale.
     """
     def __init__(self):
         self.C_BASE = 0.7542
@@ -36,10 +38,10 @@ class VoynichDecoderPipeline:
         delta = 4.50 / (102 * 200)
         return token_index * delta
 
-    def extract_semantic_core(self, token):
+    def extract_structural_core(self, token):
         """
         Inverte la griglia combinatoria: rimuove i componenti di ridondanza sintattica
-        e isola la radice informativa (il dato grezzo).
+        e isola il nucleo strutturale residuo (il dato grezzo).
         """
         cleaned_token = token.lower().strip()
         prefix_found = ""
@@ -64,10 +66,10 @@ class VoynichDecoderPipeline:
 
     def decode_token(self, token, token_idx, total_tokens, module_type="BOTANICA"):
         """
-        Esegue la decodifica completa del token.
+        Esegue la scomposizione strutturale completa del token.
         """
         phase_offset = self.invert_clock_phase(token_idx, total_tokens)
-        pfx, root, sfx = self.extract_semantic_core(token)
+        pfx, root, sfx = self.extract_structural_core(token)
         
         # Flag per identificare se il token conteneva ridondanza generata dall'automa
         is_synthetic_padding = True if (pfx and sfx) else False
@@ -76,7 +78,7 @@ class VoynichDecoderPipeline:
             'original_token': token,
             'phase_offset': phase_offset,
             'prefix_grid': pfx if pfx else '[NONE]',
-            'semantic_root': root,
+            'structural_core': root,
             'suffix_grid': sfx if sfx else '[NONE]',
             'is_padding': is_synthetic_padding
         }
@@ -95,9 +97,9 @@ def run_decryption_demo():
     ]
     
     print("=" * 85)
-    print("      PIPELINE AUTOMATIZZATA DI DECODIFICA INVERSA (Release v3.0)      ")
+    print("      PIPELINE AUTOMATIZZATA DI DECODIFICA STRUTTURALE (Release v3.0 Refresh)      ")
     print("=" * 85)
-    print(f"{'FOLIO':<8} | {'TOKEN REALE':<12} | {'PREFISSO':<10} | {'RADICE LIBERA':<14} | {'SUFFISSO':<10} | {'STATO'}")
+    print(f"{'FOLIO':<8} | {'TOKEN REALE':<12} | {'PREFISSO':<10} | {'STRUCTURAL CORE':<16} | {'SUFFISSO':<10} | {'STATO'}")
     print("-" * 85)
     
     for i, (folio, token, module) in enumerate(sample_tokens):
@@ -107,10 +109,10 @@ def run_decryption_demo():
             status = "RESET ROUTER"
             
         print(f"{folio:<8} | {result['original_token']:<12} | {result['prefix_grid']:<10} | "
-              f"{result['semantic_root']:<14} | {result['suffix_grid']:<10} | {status}")
+              f"{result['structural_core']:<16} | {result['suffix_grid']:<10} | {status}")
 
     print("=" * 85)
-    print("Decodifica di prova completata: il nucleo informativo è depurato dalla griglia.")
+    print("Scomposizione strutturale completata: il nucleo morfologico è isolato dalla griglia.")
 
 if __name__ == "__main__":
     run_decryption_demo()
