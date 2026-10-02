@@ -9,6 +9,7 @@ Autore: Avv. Alessandro Demaria
 """
 
 import re
+import csv
 from typing import List, Dict, Any, Tuple
 
 class VoynichParserV3:
@@ -55,6 +56,16 @@ class VoynichParserV3:
                 })
         return parsed_records
 
+    def parse_csv_dataset(self, csv_path: str) -> List[Dict[str, Any]]:
+        """Legge e parsed un dataset EVA in formato CSV o testo puro."""
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return self.parse_corpus(content)
+        except Exception as e:
+            print(f"[ERROR] Impossibile leggere {csv_path}: {e}")
+            return []
+
 # Alias di compatibilità universale
 VoynichParser = VoynichParserV3
 
@@ -64,6 +75,11 @@ def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     return parser.parse_corpus(content)
+
+def parse_csv_dataset(csv_path: str) -> List[Dict[str, Any]]:
+    """Funzione standalone di compatibilita per dataset CSV."""
+    parser = VoynichParserV3()
+    return parser.parse_csv_dataset(csv_path)
 
 if __name__ == "__main__":
     print("=" * 80)
