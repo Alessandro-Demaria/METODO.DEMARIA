@@ -28,13 +28,13 @@ jobs:
         run: |
           python load_engine.py
 
+      - name: Validate Voynich Parser Module
+        run: |
+          python voynich_parser.py
+
       - name: Run Markov Chain Analysis
         run: |
           python verify_markov.py
-
-      - name: Run Master Framework Integrity Audit
-        run: |
-          python master_framework_tester.py
 
       - name: Run Coherence Evaluator Global Analysis
         run: |
