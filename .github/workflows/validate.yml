@@ -27,6 +27,11 @@ jobs:
       - name: Validate Engine Environment Load
         run: |
           python load_engine.py
+          - name: Run Master Framework Integrity Audit
+      run: python master_framework_tester.py
+
+    - name: Run Coherence Evaluator Global Analysis
+      run: python coherence_evaluator.py
 
       - name: Validate Python Modules Import
         run: |
