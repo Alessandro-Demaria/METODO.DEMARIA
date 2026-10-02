@@ -2,173 +2,84 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
-Modulo: batch_runner.py (Orchestratore e Generatore Token/Line CR-02)
-Autore: Alessandro Demaria
-Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22856418
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: batch_runner.py (Orchestratore di Esecuzione Batch)
+Autore: Avv. Alessandro Demaria
 ===============================================================================
 Descrizione:
-  Orchestratore BATCH principale della suite Metodo Demaria (v2.03).
-  Esegue l'elaborazione end-to-end sul dataset sanificato, sincronizza i
-  calcoli di coerenza (C* raw e filtered), ed esporta l'artefatto esteso
-  Token-by-Record (voynich_line_by_line_measurements.csv) indicizzando i
-  35.483 record/token aggregati sulle linee fisiche del manoscritto.
+  Orchestratore principale che esegue in sequenza la pipeline completa:
+  Parsing -> Core Algorithm -> Null Model Monte Carlo -> Structural Decoder
+  leggendo unicamente il dataset unificato voynich_eva_tokens_extended.csv.
 ===============================================================================
 """
 
-import os
-import json
-import csv
-import math
-import numpy as np
+import time
+import pandas as pd
+from typing import Dict, Any
 
-# Importazioni trasversali della suite sanificata
-from voynich_parser import VoynichParser, parse_voynich_file
-from load_engine import LoadEngine, load_dataset, get_corpus_stats
-from coherence_evaluator import CoherenceEvaluator, run_coherence_analysis
-from null_model_runner import NullModelRunner, run_null_benchmark
-from verify_markov import MarkovVerifier, run_markov_analysis
+from voynich_parser import VoynichParserV3
+from voynich_core_algorithm import run_canonical_evaluation
+from null_model_runner import DemariaNullModelSuite
+from voynich_decoder_pipeline import VoynichDecoderPipeline
 
 
-def process_batch() -> None:
+class DemariaBatchRunner:
     """
-    Orchestratore principale del Metodo Demaria (Release v2.03).
-    Genera sia i report di sintesi sia l'artefatto esteso Token-by-Record.
+    Orchestrator per l'esecuzione batch e la reportistica integrata.
     """
-    input_file = "voynich_eva.txt"
-    batch_csv = "voynich_batch_measurements.csv"
-    line_by_line_csv = "voynich_line_by_line_measurements.csv"
-    markov_csv = "matrix_markov_voynich.csv"
-    json_output = "blind_test_results.json"
+    def __init__(self, csv_path: str = 'voynich_eva_tokens_extended.csv'):
+        self.csv_path = csv_path
 
-    print("==================================================")
-    print("  METODO DEMARIA v2.03 - RUNNER BATCH SANIFICATO  ")
-    print("==================================================")
-
-    if not os.path.exists(input_file):
-        print(f"\n[AVVISO] File '{input_file}' non trovato in locale. Uso dataset di test/fallback.")
-
-    # 1. Parsing e Ingestion tramite LoadEngine
-    print(f"\n[1/5] Ingestion e Parsing di {input_file} (Filtro rumore '#' attivo)...")
-    engine = LoadEngine(input_file)
-    records = engine.load_from_file()
-    stats = engine.get_dataset_stats(records)
-    total_records = len(records)
-    print(f" -> Record/Token Totali   : {total_records} (granulometria record-by-token)")
-    print(f" -> Token Totali Estratti : {stats['total_tokens']}")
-    print(f" -> Operatori Vettoriali  : {stats['total_operators']}")
-
-    # 2. Valutazione Coerenza Topologica ed Entropia
-    print("\n[2/5] Calcolo Entropia H(X) e Coerenza Topologica (C* Raw e Filtered)...")
-    coherence_res = run_coherence_analysis(input_file)
-    c_star_filtered = coherence_res.get('coherence_index_filtered', coherence_res.get('coherence_index', 0.0))
-    c_star_raw = coherence_res.get('coherence_index_raw', c_star_filtered)
-    shannon_entropy = coherence_res.get('entropy', 0.0)
-    print(f" -> Coerenza Filtered (Intra-linea) : {c_star_filtered * 100:.2f}%")
-    print(f" -> Coerenza Raw (Grezza Corpus)    : {c_star_raw * 100:.2f}%")
-    print(f" -> Entropia di Shannon             : {shannon_entropy} bit")
-
-    # 3. Modello Nullo Monte Carlo e Test di Permutazione
-    print("\n[3/5] Esecuzione Modello Nullo Monte Carlo (seed=42)...")
-    null_res = run_null_benchmark(input_file)
-    p_values = null_res.get('p_values', {})
-    avg_p_value = round(sum(p_values.values()) / len(p_values), 6) if p_values else 0.0001
-    print(f" -> Monte Carlo p-value medio: {avg_p_value}")
-
-    # 4. Calcolo Catena di Markov e Matrice 4x4
-    print("\n[4/5] Calcolo Matrice di Transizione di Markov e Distribuzione Stazionaria...")
-    markov_res = run_markov_analysis(input_file)
-    transition_matrix = markov_res.get('transition_matrix', {})
-    stationary_dist = markov_res.get('stationary_distribution', {})
-    print(" -> Matrice di transizione calcolata con successo.")
-
-    # 5. Scrittura Output e Generazione Artefatto Token-by-Record (CR-02)
-    print("\n[5/5] Sovrascrittura file di output CSV e JSON (incluso dataset esteso CR-02)...")
-
-    # A. Scrittura voynich_line_by_line_measurements.csv (35.483 record token-level)
-    evaluator = CoherenceEvaluator()
-    cumulative_z = 0
-    
-    with open(line_by_line_csv, mode="w", newline="", encoding="utf-8") as f_line:
-        writer = csv.writer(f_line)
-        writer.writerow(["Record_ID", "Folio", "Token_Count", "Operator_Count", "Z_t", "Clock_Phase", "C_star_t"])
+    def run_full_pipeline_batch(self, mc_iterations: int = 10000) -> Dict[str, Any]:
+        """
+        Esegue la pipeline completa in sequenza sui dati reali.
+        """
+        t_start = time.time()
         
-        for t, record in enumerate(records):
-            folio = record.get('folio', f"f_line_{t+1}")
-            
-            # Estrazione token robusta con fallback multilivello
-            tokens = record.get('token_eva', record.get('token', record.get('tokens', record.get('word', []))))
-            if isinstance(tokens, str):
-                tokens = tokens.split()
-                
-            seq = record.get('vector_sequence', [])
-            if isinstance(seq, str):
-                seq = [c for c in seq]
-            
-            token_count = len(tokens)
-            operator_count = len(seq)
-            
-            # Dinamica di accumulo Z(t) e fase clock theta(t)
-            cumulative_z += operator_count
-            clock_phase = round((2.0 * math.pi * t) / max(1, total_records), 4)
-            
-            # Coerenza locale per il singolo record t
-            line_eval = evaluator.evaluate_sequence_coherence(seq)
-            c_star_t = line_eval.get('coherence_index', 0.0)
-            
-            writer.writerow([t, folio, token_count, operator_count, cumulative_z, clock_phase, c_star_t])
+        # 1. Verification & Parsing
+        parser = VoynichParserV3()
+        records = parser.parse_csv_dataset(self.csv_path)
+        n_tokens = len(records)
 
-    print(f" -> Artefatto Token-by-Record esportato con successo ({total_records} record): {line_by_line_csv}")
+        # 2. Core Algorithm Evaluation
+        df_core = run_canonical_evaluation(self.csv_path)
+        mean_c_star = float(df_core['C_star_computed'].mean())
 
-    # B. Scrittura voynich_batch_measurements.csv (Sintetico)
-    with open(batch_csv, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["metric", "value"])
-        writer.writerow(["total_records", total_records])
-        writer.writerow(["total_tokens", stats['total_tokens']])
-        writer.writerow(["total_operators", stats['total_operators']])
-        writer.writerow(["topological_coherence_filtered", c_star_filtered])
-        writer.writerow(["topological_coherence_raw", c_star_raw])
-        writer.writerow(["shannon_entropy", shannon_entropy])
-        writer.writerow(["monte_carlo_avg_p_value", avg_p_value])
-    print(f" -> Aggiornato con successo: {batch_csv}")
+        # 3. Monte Carlo Surrogate Test
+        null_suite = DemariaNullModelSuite(seed=42)
+        mc_results = null_suite.run_monte_carlo_test(self.csv_path, iterations=mc_iterations)
 
-    # C. Scrittura matrix_markov_voynich.csv
-    states = ['alpha', 'beta', 'delta', 'gamma']
-    with open(markov_csv, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["state_from", "state_to", "probability"])
-        for src in states:
-            for dst in states:
-                prob = transition_matrix.get(src, {}).get(dst, 0.25)
-                writer.writerow([src, dst, prob])
-    print(f" -> Aggiornato con successo: {markov_csv}")
+        # 4. Structural Decoding
+        decoder = VoynichDecoderPipeline()
+        df_decoded = decoder.process_csv_dataset(self.csv_path)
+        padding_count = int(df_decoded['Is_Padding'].sum())
 
-    # D. Scrittura blind_test_results.json
-    results_json = {
-        "version": "v2.03",
-        "dataset": input_file,
-        "sanitization_status": "100% pure (0% editorial noise)",
-        "metrics": {
-            "records": total_records,
-            "tokens": stats['total_tokens'],
-            "operators": stats['total_operators'],
-            "coherence_index_filtered": c_star_filtered,
-            "coherence_index_raw": c_star_raw,
-            "shannon_entropy": shannon_entropy,
-            "p_value": avg_p_value
-        },
-        "markov_stationary_distribution": stationary_dist
-    }
-    with open(json_output, mode="w", encoding="utf-8") as f:
-        json.dump(results_json, f, indent=4)
-    print(f" -> Aggiornato con successo: {json_output}")
+        t_total = time.time() - t_start
 
-    print("\n==================================================")
-    print("  PIPELINE BATCH E TOKEN-BY-RECORD COMPLETATA!    ")
-    print("==================================================")
+        return {
+            'status': 'SUCCESS',
+            'total_tokens_processed': n_tokens,
+            'mean_computed_c_star': round(mean_c_star, 4),
+            'monte_carlo_p_value': mc_results['p_value_empirical'],
+            'padding_tokens_found': padding_count,
+            'native_tokens_found': n_tokens - padding_count,
+            'total_execution_time_sec': round(t_total, 4)
+        }
 
 
 if __name__ == '__main__':
-    process_batch()
+    print("=" * 80)
+    print("METODO DEMARIA® — ESECUZIONE BATCH PIPELINE INTEGRATA (Release v3.0)")
+    print("=" * 80)
+
+    runner = DemariaBatchRunner('voynich_eva_tokens_extended.csv')
+    report = runner.run_full_pipeline_batch(mc_iterations=10000)
+
+    print(f"\n[✓] STATO ESECUZIONE        : {report['status']}")
+    print(f"  • Token Reali Processati   : {report['total_tokens_processed']}")
+    print(f"  • Coerenza Media C*        : {report['mean_computed_c_star']}")
+    print(f"  • p-value Monte Carlo      : {report['monte_carlo_p_value']}")
+    print(f"  • Token di Padding Automa  : {report['padding_tokens_found']}")
+    print(f"  • Nuclei Morfologici Nativi: {report['native_tokens_found']}")
+    print(f"  • Tempo Totale Pipeline    : {report['total_execution_time_sec']} s")
+    print("=" * 80)

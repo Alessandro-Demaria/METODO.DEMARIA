@@ -1,0 +1,11 @@
+__pycache__/ 
+*.py[cod] 
+*.png 
+*.jpg 
+*.jpeg 
+*.svg 
+voynich_master_summary.json 
+.idea/ 
+.vscode/ 
+*.swp 
+Thumbs.db

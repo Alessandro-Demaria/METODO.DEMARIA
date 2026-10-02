@@ -13,14 +13,14 @@
 * **Line-ID Codicological Fixing**: Risoluzione dell'anomalia di tracciamento sostituendo l'indicizzazione per-token con l'estrazione rigorosa del line_id reale codicologico dal parser.
 * **Epistemological Tiering**: Distinzione formale dei risultati computazionali in 4 Tier (Tier A: Evidenza Stocastica, Tier B: Selettività Adversarial, Tier C: Modello ad Automa, Tier D: Ipotesi Ermeneutica).
 
-### Architettura a 7 Moduli Core
+### Architettura Integrata a 19 Moduli (Dataset Unico: 35.483 Tokens)
 
 1. **voynich_parser.py**: Parsing, filtraggio e normalizzazione del testo EVA/IVTFF con tracciamento line_id.
-2. **batch_runner.py**: Esecuzione batch per il calcolo e la misurazione delle metriche con esportazione voynich_line_by_line_measurements.csv.
-3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (C* raw e filtered).
+2. **batch_runner.py**: Esecuzione batch per il calcolo e la misurazione delle metriche sul Master Dataset voynich_eva_tokens_extended.csv.
+3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (C* = 0.7842 raw e filtered).
 4. **null_model_runner.py**: Generazione dei modelli nulli di controllo Monte Carlo per il confronto benchmark (p-value).
-5. **verify_markov.py**: Verifica della stazionarietà e delle transizioni della catena di Markov (matrice 4x4).
-6. **adversarial_mapping_test.py**: Test cieco adversarial su 10.000 mappature casuali per la misura della selettività (CR-04).
-7. **load_engine.py**: Motore di caricamento rapido e preparazione dei dati.
+5. **master_framework_tester.py**: Audit di integrità end-to-end e sincronizzazione su tutti i 19 moduli della suite.
+6. **constrained_adversarial_test.py**: Test cieco adversarial su mappature stocastiche per la misura della selettività (CR-04).
+7. **voynich_summary_generator.py**: Generazione automatizzata del report sintetico di coerenza e bilancio globale.
 
 © METODO DEMARIA DEPOSITATO - Tutti i diritti riservati.

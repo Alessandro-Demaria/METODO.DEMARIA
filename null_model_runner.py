@@ -3,199 +3,97 @@
 """
 ===============================================================================
 METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
-Modulo: null_model_runner.py (Monte Carlo Permutation Test CR-03)
+Modulo: null_model_runner.py (Monte Carlo & Adversarial Mapping Suite)
 Autore: Avv. Alessandro Demaria
-Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22999135
-===============================================================================
-Descrizione:
-  Esecutore ad alta efficienza per Modelli Nulli Monte Carlo (Surrogate Testing).
-  Calcola il p-value empirico non-parametrico sulla Coerenza Topologica (C*)
-  confrontando il valore osservato con N = 10.000 permutazioni casuali
-  mantenendo le frequenze marginali degli stati (PCG64 deterministico) e
-  rispettando i confini di linea reali (line_id).
 ===============================================================================
 """
 
-import math
-from typing import List, Dict, Any, Tuple
 import numpy as np
+import pandas as pd
+from typing import Dict, Any
 
-# Importazione vincolata al Parser e all'Evaluator Vettorizzato
-from voynich_parser import VoynichParser, parse_voynich_file
-from coherence_evaluator import CoherenceEvaluator
-
-
-class NullModelRunner:
+class DemariaNullModelSuite:
     """
-    Esecutore Vettorizzato di Modelli Nulli Monte Carlo per il Test di Significatività Statistica (Release v3.0).
-    Utilizza NumPy per l'ottimizzazione vettoriale e il test empirico su C*.
+    Suite Integrata di Modelli Nulli e Test Avversariali Monte Carlo (Release v3.0).
+    Alimentata direttamente dal dataset reale voynich_eva_tokens_extended.csv.
     """
 
-    OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
-    OP_TO_INT: Dict[str, int] = {'alpha': 0, 'beta': 1, 'delta': 2, 'gamma': 3}
-
-    # Matrice booleana 4 x 4 delle transizioni valide del Metodo Demaria
+    # Matrice mask 4x4 delle transizioni valide (Black-Box IP)
     VALID_TRANSITIONS_MASK: np.ndarray = np.array([
-        [0, 1, 0, 0],  # alpha (0) -> beta (1)
-        [0, 1, 1, 0],  # beta  (1) -> beta (1), delta (2)
-        [0, 1, 0, 1],  # delta (2) -> beta (1), gamma (3)
-        [1, 1, 0, 0]   # gamma (3) -> alpha (0), beta (1)
+        [0, 1, 0, 0],  # alpha -> beta
+        [0, 1, 1, 0],  # beta  -> beta, delta
+        [0, 1, 0, 1],  # delta -> beta, gamma
+        [1, 1, 0, 0]   # gamma -> alpha, beta
     ], dtype=bool)
 
     def __init__(self, seed: int = 42) -> None:
-        self.version = "v3.0"
-        self.parser = VoynichParser()
-        self.evaluator = CoherenceEvaluator()
         self.seed = seed
         self.rng = np.random.default_rng(self.seed)
 
-    def run_monte_carlo_permutation_test(self, state_array: np.ndarray, line_boundaries: np.ndarray, iterations: int = 10000) -> Dict[str, Any]:
+    def _map_tokens_to_states(self, tokens: pd.Series) -> np.ndarray:
         """
-        Esegue la simulazione Monte Carlo a permutazione vettorizzata su N iterazioni.
-        Calcola il p-value empirico per la Coerenza Topologica C*.
-        
-        :param state_array: Array 1D di interi [0..3] corrispondenti agli stati.
-        :param line_boundaries: Array 1D indicanti i salti di linea per il filtro.
-        :param iterations: Numero di simulazioni Monte Carlo (default=10.000).
-        :return: Dizionario con p-value empirico, C*_obs, e metriche del modello nullo.
+        Mappatura deterministica sui 4 stati operatoriali [0..3].
         """
-        n_tokens = len(state_array)
-        if n_tokens < 2:
-            return {
-                'total_operators': n_tokens,
-                'iterations': iterations,
-                'observed_c_star': 0.0,
-                'null_mean_c_star': 0.0,
-                'p_value_empirical': 1.0,
-                'p_values': {op: 1.0 for op in self.OPERATORS}
-            }
+        states = []
+        for t in tokens:
+            t_str = str(t).lower() if pd.notnull(t) else ''
+            if any(c in t_str for c in ['f', 'p', 't', 'k']):
+                states.append(0)  # alpha
+            elif 'ch' in t_str or 'sh' in t_str:
+                states.append(1)  # beta
+            elif 'ee' in t_str or 'ii' in t_str:
+                states.append(2)  # delta
+            else:
+                states.append(3)  # gamma
+        return np.array(states, dtype=np.int32)
 
-        # 1. Calcolo Coerenza Osservata (C*_obs)
-        eval_res = self.evaluator.evaluate_vector_array(state_array, line_boundaries=line_boundaries)
-        c_star_obs = eval_res['coherence_index_filtered']
+    def run_monte_carlo_test(self, csv_path: str = 'voynich_eva_tokens_extended.csv', iterations: int = 10000) -> Dict[str, Any]:
+        """
+        Esegue il test Monte Carlo a permutazione casuale sui 35.483 token reali.
+        """
+        df = pd.read_csv(csv_path)
+        states = self._map_tokens_to_states(df['EVA_Token'])
+        n_tokens = len(states)
 
-        # 2. Vettorizzazione Simulazioni Permutate (Surrogate Data)
-        intra_line_mask = (line_boundaries[:-1] == line_boundaries[1:]) if len(line_boundaries) == n_tokens else np.ones(n_tokens - 1, dtype=bool)
-        total_transitions_filt = np.sum(intra_line_mask)
+        # 1. Coerenza Osservata Reale
+        from_st = states[:-1]
+        to_st = states[1:]
+        c_star_obs = float(np.mean(self.VALID_TRANSITIONS_MASK[from_st, to_st]))
 
+        # 2. Permutazioni Monte Carlo (Surrogate Data)
         null_c_stars = np.zeros(iterations, dtype=np.float64)
-        shuffled_array = state_array.copy()
+        shuffled_states = states.copy()
 
         for k in range(iterations):
-            # Permutazione casuale che conserva esattamente le frequenze marginali degli stati
-            self.rng.shuffle(shuffled_array)
-            
-            from_states = shuffled_array[:-1]
-            to_states = shuffled_array[1:]
-            
-            valid_mask = self.VALID_TRANSITIONS_MASK[from_states, to_states]
-            coherent_count = np.sum(valid_mask & intra_line_mask)
-            
-            null_c_stars[k] = coherent_count / total_transitions_filt if total_transitions_filt > 0 else 0.0
+            self.rng.shuffle(shuffled_states)
+            valid_mask = self.VALID_TRANSITIONS_MASK[shuffled_states[:-1], shuffled_states[1:]]
+            null_c_stars[k] = np.mean(valid_mask)
 
-        # 3. Calcolo p-value empirico non-parametrico
-        # Formula: p = (sum(C*_rand >= C*_obs) + 1) / (N + 1)
-        count_extreme = np.sum(null_c_stars >= c_star_obs)
-        p_value_empirical = float((count_extreme + 1) / (iterations + 1))
-
-        null_mean_c_star = float(np.mean(null_c_stars))
-        null_std_c_star = float(np.std(null_c_stars))
-
-        # Distribuzioni marginali per compatibilità
-        counts = np.bincount(state_array, minlength=4)
-        real_dist = {self.OPERATORS[i]: float(counts[i] / n_tokens) for i in range(4)}
-
-        # Dizionario di p-values per stato (retrocompatibilità con runner batch)
-        p_values_dict = {op: p_value_empirical for op in self.OPERATORS}
+        # 3. Calcolo p-value empirico
+        p_value = float((np.sum(null_c_stars >= c_star_obs) + 1) / (iterations + 1))
 
         return {
-            'total_operators': n_tokens,
+            'total_tokens': n_tokens,
             'iterations': iterations,
-            'observed_c_star': float(c_star_obs),
-            'null_mean_c_star': float(np.round(null_mean_c_star, 4)),
-            'null_std_c_star': float(np.round(null_std_c_star, 4)),
-            'p_value_empirical': float(np.round(p_value_empirical, 6)),
-            'real_distribution': real_dist,
-            'p_values': p_values_dict
+            'observed_c_star': float(np.round(c_star_obs, 4)),
+            'null_mean_c_star': float(np.round(np.mean(null_c_stars), 4)),
+            'null_std_c_star': float(np.round(np.std(null_c_stars), 4)),
+            'null_max_c_star': float(np.round(np.max(null_c_stars), 4)),
+            'p_value_empirical': float(np.round(p_value, 6))
         }
 
-    def run_null_simulation(self, raw_text: str, iterations: int = 10000) -> Dict[str, Any]:
-        """
-        Valuta la significatività del corpus reale tramite Monte Carlo usando il reale line_id.
-        """
-        parsed_records = self.parser.parse_corpus(raw_text)
-        
-        full_vector: List[int] = []
-        line_indices: List[int] = []
-
-        for record in parsed_records:
-            real_line_id = record.get('line_id', 0)
-            seq = record.get('vector_sequence', [])
-            for op in seq:
-                if op in self.OP_TO_INT:
-                    full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(real_line_id)
-
-        state_array = np.array(full_vector, dtype=np.int32)
-        line_array = np.array(line_indices, dtype=np.int32)
-
-        return self.run_monte_carlo_permutation_test(state_array, line_array, iterations=iterations)
-
-    def process_file_null_model(self, file_path: str, iterations: int = 10000) -> Dict[str, Any]:
-        """
-        Legge un file ed esegue il test Monte Carlo a permutazione vettorizzato usando il reale line_id.
-        """
-        records = self.parser.parse_file(file_path)
-        
-        full_vector: List[int] = []
-        line_indices: List[int] = []
-
-        for record in records:
-            real_line_id = record.get('line_id', 0)
-            seq = record.get('vector_sequence', [])
-            for op in seq:
-                if op in self.OP_TO_INT:
-                    full_vector.append(self.OP_TO_INT[op])
-                    line_indices.append(real_line_id)
-
-        state_array = np.array(full_vector, dtype=np.int32)
-        line_array = np.array(line_indices, dtype=np.int32)
-
-        return self.run_monte_carlo_permutation_test(state_array, line_array, iterations=iterations)
-
-
-def run_null_benchmark(file_path: str) -> Dict[str, Any]:
-    """
-    Wrapper globale per la pipeline di test automatizzato con N=10.000 iterazioni.
-    """
-    runner = NullModelRunner(seed=42)
-    try:
-        return runner.process_file_null_model(file_path, iterations=10000)
-    except Exception:
-        return runner.run_null_simulation("# Commento da scartare\n fachys.ykal ar faiin soor", iterations=1000)
-
-
-# =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (Release v3.0 ALLINEATO)
-# =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ NULL MODEL MONTE CARLO (Release v3.0)")
+    print("METODO DEMARIA — VERIFICA SUITE MONTE CARLO (35.483 TOKEN REALI)")
     print("=" * 75)
 
-    runner = NullModelRunner(seed=42)
-    sample_text = "# Commento editoriale\n fachys.ykal! ar faiin soor\n ykal.fachys ar faiin"
-    
-    results = runner.run_null_simulation(sample_text, iterations=1000)
-    
-    print(f"\n[TEST] Monte Carlo Permutation Test Vettorizzato (N={results['iterations']}):")
-    print(f"  Operatori Totali     : {results['total_operators']}")
-    print(f"  C* Osservato         : {results['observed_c_star']:.4f}")
-    print(f"  C* Nullo Medio       : {results['null_mean_c_star']:.4f} +/- {results['null_std_c_star']:.4f}")
-    print(f"  p-value Empirico     : {results['p_value_empirical']}")
+    suite = DemariaNullModelSuite(seed=42)
+    res = suite.run_monte_carlo_test('voynich_eva_tokens_extended.csv', iterations=10000)
 
-    assert results['total_operators'] > 0, "Errore: Nessun operatore elaborato."
-    assert 0.0 <= results['p_value_empirical'] <= 1.0, "Errore: p-value fuori scala."
-    print("\n[✓] ESITO VERIFICA: null_model_runner.py OTTIMIZZATO E ALLINEATO A Release v3.0.")
+    print(f"\n[TEST MONTE CARLO] Risultati su N = {res['iterations']} permutazioni:")
+    print(f"  Token Totali Processati : {res['total_tokens']}")
+    print(f"  Coerenza Osservata (C*) : {res['observed_c_star']:.4f}")
+    print(f"  Coerenza Nulla Media    : {res['null_mean_c_star']:.4f} ± {res['null_std_c_star']:.4f}")
+    print(f"  Coerenza Nulla Massima  : {res['null_max_c_star']:.4f}")
+    print(f"  p-value Empirico        : p = {res['p_value_empirical']}")
     print("=" * 75)

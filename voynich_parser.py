@@ -2,192 +2,85 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (v2.03)
-Modulo: voynich_parser.py (Efficientato e Vettorizzato)
-Autore: Alessandro Demaria
-Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22856418
-===============================================================================
-Descrizione:
-  Parser ad alta precisione ed efficienza per trascrizioni in formato EVA/IVTFF.
-  Esegue la pulizia vettoriale dei metadati, la sanificazione dai commenti (#)
-  ed applica la mappatura deterministica univoca dai grafemi EVA ai 4 operatori
-  topologici con ottimizzazione O(N) basata su tabelle di lookup C-level
-  e tracciamento rigoroso del line_id reale codicologico.
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0 Refresh)
+Modulo: voynich_decoder_pipeline.py (Pipeline di Decodifica Strutturale)
+Autore: Avv. Alessandro Demaria
 ===============================================================================
 """
 
-import re
-from typing import List, Dict, Any, Tuple
+import numpy as np
+import pandas as pd
+from typing import Dict, Any
 
-
-class VoynichParser:
+class VoynichDecoderPipeline:
     """
-    Parser ad alta precisione e vettorizzato per il Metodo Demaria (Release v2.03).
-    Garantisce la totale rimozione dei metadati ed un'estrazione O(N)
-    degli operatori topologici tracciando i confini di riga reali (line_id).
+    PIPELINE DI DECODIFICA STRUTTURALE (Release v3.0 Refresh)
+    Scompone i 35.483 token del Voynich dal CSV esteso, rimuove la ridondanza
+    dell'automa e isola il nucleo strutturale (structural_core).
     """
+    def __init__(self):
+        self.C_BASE = 0.7542
+        self.STRUCTURAL_PREFIXES = ['qo', 'ch', 'sh', 'ok', 'ot', 'ol']
+        self.STRUCTURAL_SUFFIXES = ['edy', 'ain', 'eedy', 'ey', 'ol', 'or', 'ar']
 
-    OPERATORS: List[str] = ['alpha', 'beta', 'delta', 'gamma']
-
-    # Tabella di Mapping Deterministica Univoca EVA -> Operatore Topologico
-    EVA_MAPPING_TABLE: Dict[str, str] = {
-        # Anchor (alpha)
-        'f': 'alpha', 'p': 'alpha', 't': 'alpha', 'k': 'alpha',
-        # Action (beta)
-        'o': 'beta',  'a': 'beta',  'e': 'beta',  'i': 'beta',  'c': 'beta', 'h': 'beta',
-        # Differential (delta)
-        'r': 'delta', 's': 'delta', 'l': 'delta', 'd': 'delta', 'x': 'delta',
-        # System Reset (gamma)
-        'm': 'gamma', 'g': 'gamma', 'y': 'gamma', 'q': 'gamma', 'n': 'gamma'
-    }
-
-    DEFAULT_OPERATOR: str = 'beta'
-
-    def __init__(self) -> None:
-        self.version = "v2.03"
-        # Pre-compilazione dinamica delle Regex con costruttori espliciti per prevenire qualsiasi errore di sintassi
-        self.META_PATTERN = re.compile("<[^>]+>")
-        self.COMMENT_PATTERN = re.compile("\\{[^}]+\\}")
-        self.UNCERTAINTY_PATTERN = re.compile("\\" + chr(91) + "[^" + chr(93) + "]+" + chr(93))
-        self.SPECIAL_CHARS_PATTERN = re.compile("[%!$*#\\-+]")
-
-        # Tabella di traduzione O(1) pre-computata
-        self._lookup = {ch: self.EVA_MAPPING_TABLE.get(ch, self.DEFAULT_OPERATOR) for ch in self.EVA_MAPPING_TABLE}
-
-    def clean_text(self, raw_text: str) -> str:
+    def extract_structural_core(self, token: str):
         """
-        Ripulisce una stringa di testo grezzo da metadati ed annotazioni.
+        Rimuove la griglia combinatoria di prefissi e suffissi dell'automa.
         """
-        text = self.META_PATTERN.sub('', raw_text)
-        text = self.COMMENT_PATTERN.sub('', text)
-        text = self.UNCERTAINTY_PATTERN.sub('', text)
-        text = self.SPECIAL_CHARS_PATTERN.sub('', text)
-        return text.strip()
+        cleaned_token = str(token).lower().strip()
+        prefix_found = ""
+        suffix_found = ""
+        
+        # 1. Isolamento Prefisso
+        for pfx in sorted(self.STRUCTURAL_PREFIXES, key=len, reverse=True):
+            if cleaned_token.startswith(pfx):
+                prefix_found = pfx
+                cleaned_token = cleaned_token[len(pfx):]
+                break
+                
+        # 2. Isolamento Suffisso
+        for sfx in sorted(self.STRUCTURAL_SUFFIXES, key=len, reverse=True):
+            if cleaned_token.endswith(sfx) and len(cleaned_token) > len(sfx):
+                suffix_found = sfx
+                cleaned_token = cleaned_token[:-len(sfx)]
+                break
+                
+        core_root = cleaned_token if cleaned_token else str(token)
+        return prefix_found, core_root, suffix_found
 
-    def tokenize(self, raw_text: str) -> List[str]:
+    def process_csv_dataset(self, csv_path: str = 'voynich_eva_tokens_extended.csv') -> pd.DataFrame:
         """
-        Estrae i token separando su spazi e punti in modo ottimizzato.
+        Esegue la scomposizione su tutti i 35.483 token del dataset unificato.
         """
-        cleaned = self.clean_text(raw_text)
-        normalized = cleaned.replace('.', ' ')
-        return [t for t in normalized.split() if t]
+        df = pd.read_csv(csv_path)
+        prefixes, cores, suffixes, paddings = [], [], [], []
+        
+        for idx, row in df.iterrows():
+            pfx, root, sfx = self.extract_structural_core(row['EVA_Token'])
+            prefixes.append(pfx if pfx else '[NONE]')
+            cores.append(root)
+            suffixes.append(sfx if sfx else '[NONE]')
+            paddings.append(True if (pfx and sfx) else False)
+            
+        df['Prefix'] = prefixes
+        df['Structural_Core'] = cores
+        df['Suffix'] = suffixes
+        df['Is_Padding'] = paddings
+        return df
 
-    def char_to_operator(self, char: str) -> str:
-        """
-        Mappatura deterministica O(1) dal grafema EVA all'operatore.
-        """
-        return self._lookup.get(char.lower(), self.DEFAULT_OPERATOR)
-
-    def parse_token(self, token: str) -> List[str]:
-        """
-        Converte un token nella sequenza di operatori corrispondenti.
-        """
-        return [self._lookup.get(ch.lower(), self.DEFAULT_OPERATOR) for ch in token]
-
-    def _build_record(self, idx: int, line_id: int, folio: str, token: str) -> Dict[str, Any]:
-        """
-        Genera la struttura record completa con metadata di riga e folio.
-        """
-        vector_seq = self.parse_token(token)
-        return {
-            'index': idx,
-            'line_id': line_id,
-            'line_num': line_id,
-            'folio': folio,
-            'token': token,
-            'word': token,
-            'token_eva': token,
-            'vector_sequence': vector_seq,
-            'primary_state': vector_seq[0] if vector_seq else self.DEFAULT_OPERATOR,
-            'length': len(token)
-        }
-
-    def parse_corpus(self, raw_text: str) -> List[Dict[str, Any]]:
-        """
-        Esegue il parsing completo del testo con tracciamento rigoroso delle linee reali.
-        """
-        records: List[Dict[str, Any]] = []
-        global_idx = 0
-
-        for line_idx, line in enumerate(raw_text.splitlines(), start=1):
-            raw_line = line.strip()
-            if not raw_line or raw_line.startswith('#'):
-                continue
-
-            folio_match = re.search("<([^>]+)>", raw_line)
-            folio = folio_match.group(1) if folio_match else f"line_{line_idx}"
-
-            cleaned_line = self.clean_text(raw_line)
-            if not cleaned_line:
-                continue
-
-            tokens = self.tokenize(cleaned_line)
-            for token in tokens:
-                records.append(self._build_record(global_idx, line_idx, folio, token))
-                global_idx += 1
-
-        return records
-
-    def parse_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """
-        Legge ed analizza un file di testo EVA/IVTFF con sanificazione totale.
-        """
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-        except Exception:
-            with open(file_path, 'r', encoding='latin-1') as f:
-                lines = f.readlines()
-
-        return self.parse_corpus("".join(lines))
-
-    def get_state_distribution(self, raw_text: str) -> Dict[str, float]:
-        """
-        Calcola la distribuzione percentuale degli operatori nel testo fornito.
-        """
-        parsed_data = self.parse_corpus(raw_text)
-        counts = {'alpha': 0, 'beta': 0, 'delta': 0, 'gamma': 0}
-        total_ops = 0
-
-        for entry in parsed_data:
-            for op in entry['vector_sequence']:
-                if op in counts:
-                    counts[op] += 1
-                    total_ops += 1
-
-        if total_ops == 0:
-            return {k: 0.0 for k in counts}
-
-        return {k: round(v / total_ops, 4) for k, v in counts.items()}
-
-
-def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
-    """
-    Wrapper globale per compatibilità.
-    """
-    parser = VoynichParser()
-    return parser.parse_file(file_path)
-
-
-# =============================================================================
-# SUITE DI TEST E VERIFICA LOCALE (v2.03 ALLINEATO)
-# =============================================================================
-if __name__ == '__main__':
-    print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ PARSER EFFICIENTATO (v2.03)")
-    print("=" * 75)
-
-    parser = VoynichParser()
-    sample_text = " fachys.ykal! {commento} ar [faiin] soor-\n ykal.fachys ar faiin"
-
-    records = parser.parse_corpus(sample_text)
-    print(f"\n[TEST] Record Estratti e Mappati:")
-    print(f"  Totale Token Estratti : {len(records)}")
-    print(f"  Folio Primo Token     : {records[0]['folio']}")
-    print(f"  Line ID Primo Token   : {records[0]['line_id']}")
-    print(f"  Sequenza Primo Token  : {records[0]['vector_sequence']}")
-
-    assert len(records) > 0, "Errore: Nessun record estratto."
-    print("\n[✓] ESITO VERIFICA: voynich_parser.py (v2.03) EFFICIENTATO E CONFORME AL 100%.")
-    print("=" * 75)
+if __name__ == "__main__":
+    print("=" * 85)
+    print(" METODO DEMARIA® — DECODIFICA STRUTTURALE SU DATASET ESTESO (35.483 RECORD)")
+    print("=" * 85)
+    
+    decoder = VoynichDecoderPipeline()
+    df_res = decoder.process_csv_dataset('voynich_eva_tokens_extended.csv')
+    
+    padding_count = df_res['Is_Padding'].sum()
+    padding_pct = (padding_count / len(df_res)) * 100
+    
+    print(f"Record Totali Elaborati : {len(df_res)}")
+    print(f"Token con Padding Automa: {padding_count} ({padding_pct:.2f}%)")
+    print("\nCampione dei primi 5 record decodificati:")
+    print(df_res[['Folio', 'EVA_Token', 'Prefix', 'Structural_Core', 'Suffix', 'Is_Padding']].head())
+    print("=" * 85)
