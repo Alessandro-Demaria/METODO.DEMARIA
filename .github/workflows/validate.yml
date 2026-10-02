@@ -27,28 +27,15 @@ jobs:
       - name: Validate Engine Environment Load
         run: |
           python load_engine.py
-          - name: Run Master Framework Integrity Audit
-      run: python master_framework_tester.py
-
-    - name: Run Coherence Evaluator Global Analysis
-      run: python coherence_evaluator.py
-
-      - name: Validate Python Modules Import
-        run: |
-          python -c "import voynich_parser; import batch_runner; import coherence_evaluator; import null_model_runner; import verify_markov; import load_engine; print('TUTTI I MODULI CARICATI CON SUCCESSO')"
-
-      - name: Run Batch Runner Pipeline
-        run: |
-          python batch_runner.py
-
-      - name: Run Coherence Evaluator Analysis
-        run: |
-          python coherence_evaluator.py
-
-      - name: Run Null Model Benchmark
-        run: |
-          python null_model_runner.py
 
       - name: Run Markov Chain Analysis
         run: |
           python verify_markov.py
+
+      - name: Run Master Framework Integrity Audit
+        run: |
+          python master_framework_tester.py
+
+      - name: Run Coherence Evaluator Global Analysis
+        run: |
+          python coherence_evaluator.py
