@@ -20,7 +20,10 @@ class VoynichParserV3:
         self.C_BASE = 0.7542
         self._regex_clean = re.compile(r'[^a-zA-Z0-9]')
         self._regex_split = re.compile(r'[\s\.]+')
-        self._regex_folio = re.compile(r' str:
+        # Utilizzo di escape unicode \x3c (<) e \x3e (>) per bypassare il bug di rendering
+        self._regex_folio = re.compile(r'\x3cf(\d+[rv])', re.IGNORECASE)
+
+    def clean_token(self, token: str) -> str:
         if not token:
             return ""
         return self._regex_clean.sub('', str(token).lower().strip())
@@ -52,7 +55,7 @@ class VoynichParserV3:
                 })
         return parsed_records
 
-# Alias per garantire la compatibilità universale con la suite
+# Alias di compatibilità universale con il framework Metodo Demaria®
 VoynichParser = VoynichParserV3
 
 if __name__ == "__main__":
