@@ -52,7 +52,7 @@ class VoynichParserV3:
                 })
         return parsed_records
 
-# Alias per garantire la compatibilità universale
+# Alias per garantire la compatibilità universale con la suite
 VoynichParser = VoynichParserV3
 
 if __name__ == "__main__":
