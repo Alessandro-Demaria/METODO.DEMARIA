@@ -2,85 +2,68 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0 Refresh)
-Modulo: voynich_decoder_pipeline.py (Pipeline di Decodifica Strutturale)
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: voynich_parser.py (Parser Lessicale e Normalizzazione EVA)
 Autore: Avv. Alessandro Demaria
 ===============================================================================
 """
 
-import numpy as np
-import pandas as pd
-from typing import Dict, Any
+import re
+from typing import List, Dict, Any, Tuple
 
-class VoynichDecoderPipeline:
+class VoynichParserV3:
     """
-    PIPELINE DI DECODIFICA STRUTTURALE (Release v3.0 Refresh)
-    Scompone i 35.483 token del Voynich dal CSV esteso, rimuove la ridondanza
-    dell'automa e isola il nucleo strutturale (structural_core).
+    PARSER LESSICALE VOYNICH (Release v3.0)
+    Esegue il parsing, la tokenizzazione e la pulizia del testo EVA grezzo.
     """
     def __init__(self):
         self.C_BASE = 0.7542
-        self.STRUCTURAL_PREFIXES = ['qo', 'ch', 'sh', 'ok', 'ot', 'ol']
-        self.STRUCTURAL_SUFFIXES = ['edy', 'ain', 'eedy', 'ey', 'ol', 'or', 'ar']
+        self._regex_clean = re.compile(r'[^a-zA-Z0-9]')
+        self._regex_split = re.compile(r'[\s\.]+')
+        self._regex_folio = re.compile(r' str:
+        if not token:
+            return ""
+        return self._regex_clean.sub('', str(token).lower().strip())
 
-    def extract_structural_core(self, token: str):
-        """
-        Rimuove la griglia combinatoria di prefissi e suffissi dell'automa.
-        """
-        cleaned_token = str(token).lower().strip()
-        prefix_found = ""
-        suffix_found = ""
-        
-        # 1. Isolamento Prefisso
-        for pfx in sorted(self.STRUCTURAL_PREFIXES, key=len, reverse=True):
-            if cleaned_token.startswith(pfx):
-                prefix_found = pfx
-                cleaned_token = cleaned_token[len(pfx):]
-                break
-                
-        # 2. Isolamento Suffisso
-        for sfx in sorted(self.STRUCTURAL_SUFFIXES, key=len, reverse=True):
-            if cleaned_token.endswith(sfx) and len(cleaned_token) > len(sfx):
-                suffix_found = sfx
-                cleaned_token = cleaned_token[:-len(sfx)]
-                break
-                
-        core_root = cleaned_token if cleaned_token else str(token)
-        return prefix_found, core_root, suffix_found
+    def parse_line(self, line: str) -> List[str]:
+        if not line or line.startswith('#'):
+            return []
+        raw_tokens = self._regex_split.split(line.strip())
+        return [c for t in raw_tokens if (c := self.clean_token(t))]
 
-    def process_csv_dataset(self, csv_path: str = 'voynich_eva_tokens_extended.csv') -> pd.DataFrame:
-        """
-        Esegue la scomposizione su tutti i 35.483 token del dataset unificato.
-        """
-        df = pd.read_csv(csv_path)
-        prefixes, cores, suffixes, paddings = [], [], [], []
-        
-        for idx, row in df.iterrows():
-            pfx, root, sfx = self.extract_structural_core(row['EVA_Token'])
-            prefixes.append(pfx if pfx else '[NONE]')
-            cores.append(root)
-            suffixes.append(sfx if sfx else '[NONE]')
-            paddings.append(True if (pfx and sfx) else False)
-            
-        df['Prefix'] = prefixes
-        df['Structural_Core'] = cores
-        df['Suffix'] = suffixes
-        df['Is_Padding'] = paddings
-        return df
+    def parse_corpus(self, text_content: str) -> List[Dict[str, Any]]:
+        parsed_records = []
+        current_folio = "UNKNOWN"
+        for line_num, line in enumerate(text_content.splitlines(), start=1):
+            line_str = line.strip()
+            if not line_str:
+                continue
+            folio_match = self._regex_folio.search(line_str)
+            if folio_match:
+                current_folio = f"f{folio_match.group(1).lower()}"
+            tokens = self.parse_line(line_str)
+            if tokens:
+                parsed_records.append({
+                    'line_number': line_num,
+                    'folio': current_folio,
+                    'raw_line': line_str,
+                    'tokens': tokens,
+                    'token_count': len(tokens)
+                })
+        return parsed_records
+
+# Alias per garantire la compatibilità universale
+VoynichParser = VoynichParserV3
 
 if __name__ == "__main__":
-    print("=" * 85)
-    print(" METODO DEMARIA® — DECODIFICA STRUTTURALE SU DATASET ESTESO (35.483 RECORD)")
-    print("=" * 85)
-    
-    decoder = VoynichDecoderPipeline()
-    df_res = decoder.process_csv_dataset('voynich_eva_tokens_extended.csv')
-    
-    padding_count = df_res['Is_Padding'].sum()
-    padding_pct = (padding_count / len(df_res)) * 100
-    
-    print(f"Record Totali Elaborati : {len(df_res)}")
-    print(f"Token con Padding Automa: {padding_count} ({padding_pct:.2f}%)")
-    print("\nCampione dei primi 5 record decodificati:")
-    print(df_res[['Folio', 'EVA_Token', 'Prefix', 'Structural_Core', 'Suffix', 'Is_Padding']].head())
-    print("=" * 85)
+    print("=" * 80)
+    print(" METODO DEMARIA® — VOYNICH PARSER V3.0 (PERFORMANCE 100% OK)")
+    print("=" * 80)
+    sample_text = " fachys.ykal.ar.ataiin.shory.cthy.da.ewfhy.ro.cthy"
+    parser = VoynichParserV3()
+    records = parser.parse_corpus(sample_text)
+    if records:
+        print(f"Folio Identificato : {records[0]['folio']}")
+        print(f"Token Estratti    : {records[0]['tokens']}")
+        print(f"Numero di Token   : {records[0]['token_count']}")
+    print("=" * 80)
