@@ -20,7 +20,7 @@ class VoynichParserV3:
         self.C_BASE = 0.7542
         self._regex_clean = re.compile(r'[^a-zA-Z0-9]')
         self._regex_split = re.compile(r'[\s\.]+')
-        # Utilizzo di escape unicode \x3c (<) e \x3e (>) per bypassare il bug di rendering
+        # Escape unicode \x3c (<) e \x3e (>) per stabilita di rendering
         self._regex_folio = re.compile(r'\x3cf(\d+[rv])', re.IGNORECASE)
 
     def clean_token(self, token: str) -> str:
@@ -55,8 +55,15 @@ class VoynichParserV3:
                 })
         return parsed_records
 
-# Alias di compatibilità universale con il framework Metodo Demaria®
+# Alias di compatibilità universale
 VoynichParser = VoynichParserV3
+
+def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
+    """Funzione di compatibilita usata dagli script di verifica (es. verify_markov.py)"""
+    parser = VoynichParserV3()
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return parser.parse_corpus(content)
 
 if __name__ == "__main__":
     print("=" * 80)
