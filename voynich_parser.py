@@ -37,10 +37,10 @@ class VoynichParserV3:
 
     def parse_corpus(self, text_content: str) -> List[Dict[str, Any]]:
         parsed_records = []
-        current_folio = "UNKNOWN"
+        current_folio = "f1r"
         for line_num, line in enumerate(text_content.splitlines(), start=1):
             line_str = line.strip()
-            if not line_str:
+            if not line_str or line_str.startswith('#'):
                 continue
             folio_match = self._regex_folio.search(line_str)
             if folio_match:
@@ -59,7 +59,7 @@ class VoynichParserV3:
     def parse_csv_dataset(self, csv_path: str) -> List[Dict[str, Any]]:
         """Legge e parsed un dataset EVA in formato CSV o testo puro."""
         try:
-            with open(csv_path, 'r', encoding='utf-8') as f:
+            with open(csv_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             return self.parse_corpus(content)
         except Exception as e:
@@ -72,9 +72,7 @@ VoynichParser = VoynichParserV3
 def parse_voynich_file(file_path: str) -> List[Dict[str, Any]]:
     """Funzione di compatibilita usata dagli script di verifica (es. verify_markov.py)"""
     parser = VoynichParserV3()
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    return parser.parse_corpus(content)
+    return parser.parse_csv_dataset(file_path)
 
 def parse_csv_dataset(csv_path: str) -> List[Dict[str, Any]]:
     """Funzione standalone di compatibilita per dataset CSV."""
