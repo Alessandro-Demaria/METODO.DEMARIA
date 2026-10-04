@@ -6,7 +6,7 @@
 * **Author**: Avv. Alessandro Demaria
 * **Standard**: Standard Demaria v3.0 (Settembre 2026)
 * **Source Document**: [Demaria_2026_Metodo_Demaria_v3_Voynich_Summa.pdf](./Demaria_2026_Metodo_Demaria_v3_Voynich_Summa.pdf)
-* **Zenodo DOI**: [10.5281/zenodo.22999135](https://doi.org/10.5281/zenodo.22999135)
+* **Zenodo DOI**: [Zenodo DOI: 10.5281/zenodo.23119964](Zenodo DOI: 10.5281/zenodo.23119964)
 * **License**: CC BY 4.0 (Documentation & Data) / Trade Secret (Hardware)
 
 ### Release v3.0 Updates
