@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # METODO DEMARIA® - Out-of-Sample Validation (Release v3.0)
 # ------------------------------------------------------------------
-# Cross-validation codicologica basata su GroupKFold / GroupShuffleSplit
-# per colonna 'Folio_Base' a garanzia dell'assenza di data leakage cross-folio.
+# Cross-validation codicologica basata su GroupShuffleSplit per colonna 'Folio_Base'
+# a garanzia dell'assenza di data leakage e con isolamento dei confini di folio.
 # Autore: Avv. Alessandro Demaria | Licenza: CC BY-NC-ND 4.0
 
 import os
@@ -17,16 +17,21 @@ def run_out_of_sample_validation(csv_path: str = "voynich_eva_tokens_extended.cs
                                   n_splits: int = 5,
                                   test_size: float = 0.20,
                                   seed: int = 42) -> tuple:
-    # 0. Verifica presenza del dataset di input
+    # 0. Verifica e caricamento dataset
     if not os.path.exists(csv_path):
         print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
         sys.exit(1)
 
     df = pd.read_csv(csv_path)
 
-    # Verifica colonne richieste
+    # Normalizzazione automatica delle colonne (Aliasing)
+    if 'Token' not in df.columns and 'EVA_Token' in df.columns:
+        df['Token'] = df['EVA_Token']
+    if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
+        df['Folio_Base'] = df['Folio']
+
     if 'Token' not in df.columns or 'Folio_Base' not in df.columns:
-        print("ERRORE CRITICO: Il dataset deve contenere le colonne 'Token' e 'Folio_Base'.")
+        print("ERRORE CRITICO: Colonne 'Token'/'EVA_Token' e 'Folio_Base'/'Folio' necessarie.")
         sys.exit(1)
 
     # 1. Matrice di adiacenza delle transizioni valide del Computus Magnus (7/16 ammesse)
@@ -37,6 +42,9 @@ def run_out_of_sample_validation(csv_path: str = "voynich_eva_tokens_extended.cs
         [1, 0, 0, 1]   # gamma -> gamma, alpha
     ], dtype=float)
 
+    tokens = df['Token'].astype(str).to_numpy()
+    folios = df['Folio_Base'].astype(str).to_numpy()
+
     # 2. Mappatura Canonica Demaria® v3.0 (Partizione Rigida 5-5-5-5)
     demaria_map = {
         'o': 0, 'a': 0, 'e': 0, 'c': 0, 'h': 0,  # alpha (0)
@@ -45,42 +53,47 @@ def run_out_of_sample_validation(csv_path: str = "voynich_eva_tokens_extended.cs
         'x': 3, 'g': 3, 'm': 3, 'n': 3, 'i': 3   # gamma (3)
     }
 
-    tokens = df['Token'].astype(str).to_numpy()
-    folios = df['Folio_Base'].astype(str).to_numpy()
-
-    # 3. Conversione del corpus negli stati cibernetici
+    # 3. Conversione dell'intero corpus negli stati cibernetici dominanti per token
     corpus_states = np.zeros(len(tokens), dtype=int)
     for idx, token_str in enumerate(tokens):
         mapped_values = [demaria_map[char] for char in token_str if char in demaria_map]
-        corpus_states[idx] = mapped_values[0] if len(mapped_values) > 0 else 0
+        if len(mapped_values) > 0:
+            counts = np.bincount(mapped_values, minlength=4)
+            corpus_states[idx] = int(np.argmax(counts))
+        else:
+            corpus_states[idx] = 0
 
-    # 4. Inizializzazione GroupShuffleSplit basato su Folio_Base (Zero Data Leakage)
+    def calculate_coherence_intra_folio_subset(subset_indices: np.ndarray) -> float:
+        # Calcolo di C* isolato entro ciascun folio contenuto nel sottoinsieme selezionato
+        sub_folios = folios[subset_indices]
+        sub_states = corpus_states[subset_indices]
+        
+        valid_transitions = 0.0
+        total_transitions = 0
+        unique_sub_folios = np.unique(sub_folios)
+
+        for fol in unique_sub_folios:
+            fol_mask = (sub_folios == fol)
+            fol_states = sub_states[fol_mask]
+            if len(fol_states) > 1:
+                s_curr = fol_states[:-1]
+                s_next = fol_states[1:]
+                valid_transitions += float(np.sum(transition_matrix[s_curr, s_next]))
+                total_transitions += len(s_curr)
+
+        return valid_transitions / total_transitions if total_transitions > 0 else 0.0
+
+    # 4. GroupShuffleSplit basato su Folio_Base (Zero Data Leakage)
     gss = GroupShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=seed)
 
     in_sample_scores = []
     out_of_sample_scores = []
-
     fold_details = []
 
     # 5. Iterazione sulle partizioni trasversali di validazione
     for fold_idx, (train_idx, test_idx) in enumerate(gss.split(corpus_states, groups=folios), start=1):
-        # In-Sample (Train Fold)
-        train_states = corpus_states[train_idx]
-        if len(train_states) > 1:
-            tr_curr = train_states[:-1]
-            tr_next = train_states[1:]
-            c_star_in = float(np.mean(transition_matrix[tr_curr, tr_next]))
-        else:
-            c_star_in = 0.0
-
-        # Out-of-Sample (Test Fold)
-        test_states = corpus_states[test_idx]
-        if len(test_states) > 1:
-            te_curr = test_states[:-1]
-            te_next = test_states[1:]
-            c_star_out = float(np.mean(transition_matrix[te_curr, te_next]))
-        else:
-            c_star_out = 0.0
+        c_star_in = calculate_coherence_intra_folio_subset(train_idx)
+        c_star_out = calculate_coherence_intra_folio_subset(test_idx)
 
         in_sample_scores.append(c_star_in)
         out_of_sample_scores.append(c_star_out)
@@ -94,7 +107,7 @@ def run_out_of_sample_validation(csv_path: str = "voynich_eva_tokens_extended.cs
             "Delta_Abs": abs(c_star_in - c_star_out)
         })
 
-    # 6. Aggregazione metrica di stabilità Out-of-Sample
+    # 6. Aggregazione metrica di stabilita Out-of-Sample
     mean_in_sample = float(np.mean(in_sample_scores))
     mean_out_sample = float(np.mean(out_of_sample_scores))
     std_out_sample = float(np.std(out_of_sample_scores))
