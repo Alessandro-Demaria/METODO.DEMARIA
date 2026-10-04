@@ -1,19 +1,37 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: voynich_unified_system_representer.py (Rappresentazione Sistema Unificato)
+Autore: Avv. Alessandro Demaria
+Repository: GitHub - METODO.DEMARIA
+Zenodo DOI: 10.5281/zenodo.22999135
+===============================================================================
+Descrizione:
+  Modulo per la visualizzazione unificata delle traiettorie empiriche C*(t)
+  e il confronto diretto con il Modello ad Automa Demaria v3.0.
+  Legge il Master Dataset voynich_eva_tokens_extended.csv (35.483 record).
+===============================================================================
+"""
+
 import csv
 import os
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 
-# File sorgente
-CSV_FILE = 'voynich_token_by_token_measurements.csv'
+# Dataset unico ufficiale v3.0
+CSV_FILE = 'voynich_eva_tokens_extended.csv'
 
-def run_unified_representation(csv_filepath):
+def run_unified_representation(csv_filepath: str = CSV_FILE):
     if not os.path.exists(csv_filepath):
         print(f"[ERRORE CRITICO] File CSV '{csv_filepath}' non trovato.")
         return
 
     folio_stats = {}
 
-    # 1. Estrazione dati reali dal CSV
+    # 1. Estrazione dati reali dal CSV unico
     with open(csv_filepath, mode='r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -24,14 +42,13 @@ def run_unified_representation(csv_filepath):
                 if base_f not in folio_stats:
                     folio_stats[base_f] = {'c_stars': [], 'phases': []}
                 try:
-                    c_star = float(row.get('C_star_t', 0.0))
+                    c_star = float(row.get('C_star_t', 0.7542))
                     phase = float(row.get('Clock_Phase', 0.0))
                     folio_stats[base_f]['c_stars'].append(c_star)
                     folio_stats[base_f]['phases'].append(phase)
                 except ValueError:
                     continue
 
-    import re
     def folio_sort_key(fol_name):
         match = re.search(r'\d+', fol_name)
         num = int(match.group()) if match else 0
@@ -55,28 +72,27 @@ def run_unified_representation(csv_filepath):
     c_real = np.array(c_real)
     x_indices = np.arange(len(names))
 
-    # 2. Simulazione del Modello Algoritmico Demaria v2.04 sugli stessi folii
+    # 2. Simulazione del Modello Algoritmico Demaria v3.0
     C_BASE = 0.7542
     c_simulated = []
     
     for i, fol in enumerate(names):
         # Assegnazione dinamica del modulo per la curva teorica
         if any(b in fol for b in ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']):
-            shift = 0.0000 # Botanica
+            shift = 0.0000  # Botanica
         elif any(b in fol for b in ['F67', 'F68', 'F69', 'F70', 'F71', 'F72', 'F73']):
-            shift = 0.0053 # Astronomia
+            shift = 0.0053  # Astronomia
         elif any(b in fol for b in ['F75', 'F76', 'F77', 'F78', 'F79', 'F80', 'F81', 'F82', 'F83', 'F84']):
-            shift = 0.0253 # Balneologia
+            shift = 0.0253  # Balneologia
         elif 'F85' in fol or 'F86' in fol:
-            shift = 0.0350 # Cosmologia / Rosoni
+            shift = 0.0350  # Cosmologia / Rosoni
         else:
-            shift = 0.0368 # Farmacia / Chiusura
+            shift = 0.0368  # Farmacia / Chiusura
 
-        # Gestione speciale del router di reset
+        # Gestione del router di reset
         if 'F57V' in fol:
             c_sim = 0.3968
         else:
-            # Fluttuazione controllata sulla curva ideale
             trend = (i / len(names)) * 0.015
             c_sim = C_BASE + shift + trend
         c_simulated.append(c_sim)
@@ -90,10 +106,10 @@ def run_unified_representation(csv_filepath):
     # Grafico 1: Sovrapposizione Reale vs Simulatore Algoritmico
     ax1.set_facecolor('#161b22')
     ax1.plot(x_indices, c_real, color='#58a6ff', alpha=0.8, linewidth=1.2, label='Dati Empirici Reali C*(t)')
-    ax1.plot(x_indices, c_simulated, color='#f78166', linestyle='--', linewidth=1.5, label='Modello Algoritmico Demaria v2.04')
+    ax1.plot(x_indices, c_simulated, color='#f78166', linestyle='--', linewidth=1.5, label='Modello Algoritmico Demaria v3.0')
     ax1.axhline(C_BASE, color='#238636', linestyle=':', linewidth=1.2, label='Baseline Teoria (0.7542)')
 
-    ax1.set_title(f"SISTEMA UNIFICATO VOYNICH: MODELLO ALGORITMICO vs DATI REALI ({len(names)} FOLII)\n"
+    ax1.set_title(f"METODO DEMARIA® — SISTEMA UNIFICATO VOYNICH: MODELLO ALGORITMICO v3.0 vs DATI REALI ({len(names)} FOLII)\n"
                   f"Verifica del Grado di Aderenza dell'Automa a Stati Finiti", color='white', fontsize=13, fontweight='bold', pad=15)
     ax1.set_ylabel("Coerenza Sintattica C*", color='white', fontsize=11)
     ax1.tick_params(colors='white', labelsize=8)

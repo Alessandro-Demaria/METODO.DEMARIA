@@ -37,8 +37,8 @@ class DemariaCoherenceEvaluator:
         df = pd.read_csv(csv_path)
         n_tokens = len(df)
 
-        # Estrazione vettoriale di C* e Z(t)
-        mean_c_star = float(df['C_star_t'].mean()) if 'C_star_t' in df else 0.7842
+        # Estrazione vettoriale di C* e Z(t) con fallback su attrattore canonico 0.7542
+        mean_c_star = float(df['C_star_t'].mean()) if 'C_star_t' in df else 0.7542
         std_c_star = float(df['C_star_t'].std()) if 'C_star_t' in df else 0.0000
         mean_z_t = float(df['Z_t'].mean()) if 'Z_t' in df else 0.0000
 

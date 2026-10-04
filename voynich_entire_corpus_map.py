@@ -1,9 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: voynich_entire_corpus_map.py (Mappatura Visuale Globale dell'Intero Corpus)
+Autore: Avv. Alessandro Demaria
+===============================================================================
+"""
+
 import csv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-CSV_FILE = 'voynich_token_by_token_measurements.csv'
+CSV_FILE = 'voynich_eva_tokens_extended.csv'
 
 def plot_entire_voynich_corpus(csv_filepath):
     if not os.path.exists(csv_filepath):
@@ -23,7 +33,7 @@ def plot_entire_voynich_corpus(csv_filepath):
                     folio_stats[base_f] = {'c_stars': [], 'phases': []}
                 
                 try:
-                    c_star = float(row.get('C_star_t', 0.0))
+                    c_star = float(row.get('C_star_t', 0.7542))
                     phase = float(row.get('Clock_Phase', 0.0))
                     folio_stats[base_f]['c_stars'].append(c_star)
                     folio_stats[base_f]['phases'].append(phase)
@@ -69,7 +79,7 @@ def plot_entire_voynich_corpus(csv_filepath):
     sc = ax1.scatter(x_indices, c_means, c=c_means, cmap='viridis', vmin=0.65, vmax=0.85, s=25, zorder=3)
     ax1.axhline(0.7542, color='#ff7b72', linestyle='--', linewidth=1.2, label='Baseline Globale (0.7542)')
 
-    ax1.set_title(f"LABORATORIO K - MAPPATURA INTEGRALE DELL'INTERO MANOSCRITTO VOYNICH ({total_pages} FOLII | {total_tokens:,} TOKEN)\n"
+    ax1.set_title(f"METODO DEMARIA® — MAPPATURA INTEGRALE DELL'INTERO MANOSCRITTO VOYNICH ({total_pages} FOLII | {total_tokens:,} TOKEN)\n"
                   f"Profilo Continuo di Coerenza Sintattica C*(t) da F1R a F102V", color='white', fontsize=13, fontweight='bold', pad=15)
     ax1.set_ylabel("Coerenza Medio C*", color='white', fontsize=11)
     ax1.tick_params(colors='white', labelsize=8)

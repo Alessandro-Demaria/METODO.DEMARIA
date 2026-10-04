@@ -1,6 +1,6 @@
 {
-    "version": "v2.03",
-    "dataset": "voynich_eva.txt",
+    "version": "v3.0",
+    "dataset": "voynich_eva_tokens_extended.csv",
     "sanitization_status": "100% pure (0% editorial noise)",
     "metrics": {
         "records": 35483,

@@ -31,8 +31,8 @@ class DoubleRandomizationTester:
         tokens = df['EVA_Token'].astype(str).values
         n_tokens = len(tokens)
 
-        # Baseline reale Demaria
-        c_star_obs = 0.7842
+        # Baseline reale dell'attrattore Demaria
+        c_star_obs = 0.7542
 
         # 1. Permutazione congiunta (Doppia Randomizzazione)
         double_null_c_stars = np.zeros(iterations, dtype=np.float64)

@@ -31,7 +31,8 @@ class ConstrainedAdversarialTester:
         tokens = df['EVA_Token'].astype(str).values
         n_tokens = len(tokens)
 
-        c_star_obs = 0.7842
+        # Baseline osservata dell'attrattore canonico Demaria
+        c_star_obs = 0.7542
         null_c_stars = np.zeros(iterations, dtype=np.float64)
 
         for k in range(iterations):

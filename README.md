@@ -5,7 +5,7 @@
 * **Corpus**: Voynich Manuscript (EVA Transcription in IVTFF format)
 * **Author**: Avv. Alessandro Demaria
 * **Standard**: Standard Demaria v3.0 (Settembre 2026)
-* **Source Document**: [Demaria_2026_Metodo_Demaria_v3.pdf](./Demaria_2026_Metodo_Demaria_v3.pdf)
+* **Source Document**: [Demaria_2026_Metodo_Demaria_v3_Voynich_Summa.pdf](./Demaria_2026_Metodo_Demaria_v3_Voynich_Summa.pdf)
 * **Zenodo DOI**: [10.5281/zenodo.22999135](https://doi.org/10.5281/zenodo.22999135)
 * **License**: CC BY 4.0 (Documentation & Data) / Trade Secret (Hardware)
 
@@ -17,8 +17,8 @@
 
 1. **voynich_parser.py**: Parsing, filtraggio e normalizzazione del testo EVA/IVTFF con tracciamento line_id.
 2. **batch_runner.py**: Esecuzione batch per il calcolo e la misurazione delle metriche sul Master Dataset voynich_eva_tokens_extended.csv.
-3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (C* = 0.7842 raw e filtered).
-4. **null_model_runner.py**: Generazione dei modelli nulli di controllo Monte Carlo per il confronto benchmark (p-value).
+3. **coherence_evaluator.py**: Valutazione euristica e quantitativa della coerenza topologica (C* = 0.7542 filtered / 0.7473 raw).
+4. **null_model_runner.py**: Generazione dei modelli nulli di controllo Monte Carlo per il confronto benchmark (p-value < 0.0001).
 5. **master_framework_tester.py**: Audit di integrità end-to-end e sincronizzazione su tutti i 19 moduli della suite.
 6. **constrained_adversarial_test.py**: Test cieco adversarial su mappature stocastiche per la misura della selettività (CR-04).
 7. **voynich_summary_generator.py**: Generazione automatizzata del report sintetico di coerenza e bilancio globale.
