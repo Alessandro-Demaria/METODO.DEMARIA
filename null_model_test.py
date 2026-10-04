@@ -2,7 +2,7 @@
 # METODO DEMARIA® - Null Model Test (Tier A Validation v3.0)
 # ------------------------------------------------------------------
 # Test d'ipotesi nulla stocastica (Monte Carlo N=10.000) su sequenza shufflata.
-# Calcolo dinamico e simmetrico di C* senza costanti hardcoded.
+# Calcolo dinamico e simmetrico di C* con isolamento dei confini di folio.
 # Autore: Avv. Alessandro Demaria | Licenza: CC BY-NC-ND 4.0
 
 import os
@@ -15,7 +15,7 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
                         output_summary_path: str = "null_model_test_results.csv",
                         n_iterations: int = 10000, 
                         seed: int = 42) -> tuple:
-    # 0. Verifica presenza del dataset di input
+    # 0. Verifica e caricamento dataset
     if not os.path.exists(csv_path):
         print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
         sys.exit(1)
@@ -23,8 +23,14 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
     rng = np.random.default_rng(seed)
     df = pd.read_csv(csv_path)
 
-    if 'Token' not in df.columns:
-        print("ERRORE CRITICO: La colonna 'Token' non e presente nel dataset.")
+    # Normalizzazione automatica delle colonne (Aliasing)
+    if 'Token' not in df.columns and 'EVA_Token' in df.columns:
+        df['Token'] = df['EVA_Token']
+    if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
+        df['Folio_Base'] = df['Folio']
+
+    if 'Token' not in df.columns or 'Folio_Base' not in df.columns:
+        print("ERRORE CRITICO: Colonne 'Token'/'EVA_Token' e 'Folio_Base'/'Folio' necessarie.")
         sys.exit(1)
 
     # 1. Matrice di adiacenza delle transizioni valide del Computus Magnus (7/16 ammesse)
@@ -36,6 +42,7 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
     ], dtype=float)
 
     tokens = df['Token'].astype(str).to_numpy()
+    folios = df['Folio_Base'].astype(str).to_numpy()
 
     # 2. Mappatura Canonica Demaria® v3.0 (Partizione Rigida 5-5-5-5)
     demaria_map = {
@@ -45,16 +52,35 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
         'x': 3, 'g': 3, 'm': 3, 'n': 3, 'i': 3   # gamma (3)
     }
 
-    # 3. Conversione del corpus reale negli stati cibernetici
+    # 3. Conversione dell'intero corpus negli stati cibernetici dominanti per token
     corpus_states = np.zeros(len(tokens), dtype=int)
     for idx, token_str in enumerate(tokens):
         mapped_values = [demaria_map[char] for char in token_str if char in demaria_map]
-        corpus_states[idx] = mapped_values[0] if len(mapped_values) > 0 else 0
+        if len(mapped_values) > 0:
+            counts = np.bincount(mapped_values, minlength=4)
+            corpus_states[idx] = int(np.argmax(counts))
+        else:
+            corpus_states[idx] = 0
+
+    def calculate_coherence_intra_folio(states_array: np.ndarray) -> float:
+        # Calcolo di C* isolato entro i confini di ciascun folio (Zero transizioni inter-folio)
+        valid_transitions = 0.0
+        total_transitions = 0
+        unique_folios = np.unique(folios)
+        
+        for fol in unique_folios:
+            fol_mask = (folios == fol)
+            fol_states = states_array[fol_mask]
+            if len(fol_states) > 1:
+                s_curr = fol_states[:-1]
+                s_next = fol_states[1:]
+                valid_transitions += float(np.sum(transition_matrix[s_curr, s_next]))
+                total_transitions += len(s_curr)
+                
+        return valid_transitions / total_transitions if total_transitions > 0 else 0.0
 
     # 4. Calcolo REALE e DINAMICO di C* osservato
-    s_curr = corpus_states[:-1]
-    s_next = corpus_states[1:]
-    c_star_obs = float(np.mean(transition_matrix[s_curr, s_next]))
+    c_star_obs = calculate_coherence_intra_folio(corpus_states)
 
     # 5. Simulazione Monte Carlo dell'Ipotesi Nulla (Shuffling della sequenza di stati)
     null_scores = np.zeros(n_iterations, dtype=float)
@@ -62,9 +88,7 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
 
     for i in range(n_iterations):
         rng.shuffle(shuffled_states)
-        r_curr = shuffled_states[:-1]
-        r_next = shuffled_states[1:]
-        null_scores[i] = np.mean(transition_matrix[r_curr, r_next])
+        null_scores[i] = calculate_coherence_intra_folio(shuffled_states)
 
     # 6. Calcolo metriche stocastiche e p-value rigoroso con correzione di Laplace
     mean_null = float(np.mean(null_scores))
@@ -74,10 +98,11 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
     p_value = float((np.sum(null_scores >= c_star_obs) + 1) / (n_iterations + 1))
     z_score = float((c_star_obs - mean_null) / std_null) if std_null > 0 else 0.0
 
-    # 7. Esportazione automatica della relazione dei risultati per la riproducibilita
+    # 7. Esportazione automatica della relazione dei risultati
     results_df = pd.DataFrame([{
         "Dataset": os.path.basename(csv_path),
         "Total_Tokens": len(tokens),
+        "Unique_Folios": len(np.unique(folios)),
         "Iterations": n_iterations,
         "C_Star_Observed": c_star_obs,
         "Null_Mean": mean_null,
@@ -96,6 +121,7 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
     print("=========================================================")
     print(f"Dataset Analizzato:        {csv_path}")
     print(f"Token Analizzati:          {len(tokens):,}")
+    print(f"Folii Distinti:            {len(np.unique(folios)):,}")
     print(f"Iterazioni Monte Carlo:    {n_iterations:,}")
     print(f"C* Osservato (Dinamico):   {c_star_obs:.6f}")
     print(f"Media Modello Nullo:       {mean_null:.6f}")
