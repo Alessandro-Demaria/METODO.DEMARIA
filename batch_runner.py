@@ -8,9 +8,9 @@ Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 Zenodo DOI: 10.5281/zenodo.23119964
 ===============================================================================
 Descrizione:
-  Orchestratore della suite di laboratorio v3.0. Esegue in sequenza
-  tutti i test di controllo stocastico e produce il report master
-  'master_batch_execution_summary.csv' con criteri reali di Pass/Fail.
+  Orchestratore completo della suite v3.0. Esegue dinamicamente l'intera
+  pipeline di controllo stocastico (10.000 iterazioni Monte Carlo, Doppia
+  Randomizzazione 1.000, Group Holdout e Stress Test UNKNOWN/Tie-Break).
 ===============================================================================
 """
 
@@ -21,6 +21,7 @@ from coherence_evaluator import DemariaCoherenceEvaluator
 from double_randomization_test import DoubleRandomizationTester
 from null_model_test import run_null_model_test
 import pandas as pd
+from robustness_stress_test import RobustnessStressTester
 from train_test_split_validation import StrictOutOfSampleValidator
 
 
@@ -28,9 +29,8 @@ def run_full_suite(
     dataset_path: str = 'voynich_eva_tokens_extended.csv',
     output_summary_path: str = 'master_batch_execution_summary.csv',
 ) -> pd.DataFrame:
-  """Esegue la suite completa e genera il report sintetico di audit."""
   print('=' * 80)
-  print('METODO DEMARIA® v3.0 — RUNNER DI SUITE E AUDIT PRESTAZIONALE')
+  print('METODO DEMARIA® v3.0 — RUNNER DI SUITE E AUDIT PRESTAZIONALE MASTER')
   print('=' * 80)
 
   if not os.path.exists(dataset_path):
@@ -43,18 +43,24 @@ def run_full_suite(
   evaluator = DemariaCoherenceEvaluator()
   res_coherence = evaluator.evaluate_dataset_coherence(dataset_path)
 
-  # 2. Null Model Test
-  c_obs, null_s, p_val = run_null_model_test(dataset_path, n_iterations=1000)
+  # 2. Null Model Test (Full N=10,000)
+  c_obs, null_s, p_val = run_null_model_test(dataset_path, n_iterations=10000)
 
-  # 3. Double Randomization Test
+  # 3. Double Randomization Test (Full N=1,000)
   double_tester = DoubleRandomizationTester(seed=42)
   res_double = double_tester.run_double_randomization(
-      dataset_path, iterations=500
+      dataset_path, iterations=1000
   )
 
-  # 4. Strict Out-of-Sample Validation
+  # 4. Grouped Folio Holdout Stability Test
   validator = StrictOutOfSampleValidator(seed=42)
   res_split = validator.run_strict_validation(dataset_path)
+
+  # 5. Robustness & Bias Stress Test
+  robust_tester = RobustnessStressTester(seed=42)
+  res_robust = robust_tester.run_robustness_audit(
+      dataset_path, simulations=100
+  )
 
   t_elapsed = time.time() - t0
 
@@ -68,18 +74,20 @@ def run_full_suite(
       ),
       'Monte_Carlo_p_value': p_val,
       'Double_Null_Z_Score': res_double['Z_Score'],
-      'C_Trans_Train': res_split['C_Trans_Train'],
-      'C_Trans_Test': res_split['C_Trans_Test'],
+      'Holdout_C_Trans_Train': res_split['C_Trans_Train'],
+      'Holdout_C_Trans_Test': res_split['C_Trans_Test'],
       'Delta_C_Trans': res_split['Delta_C_Trans'],
-      'Out_Of_Sample_Status': res_split['Status_Verified'],
-      'Execution_Time_Sec': round(t_elapsed, 4),
+      'Holdout_Status': res_split['Status_Verified'],
+      'Random_Tie_C_Trans_Mean': res_robust['C_Trans_Random_Tie_Mean'],
+      'Signal_Stability': res_robust['Signal_Stability'],
+      'Total_Execution_Time_Sec': round(t_elapsed, 4),
   }]
 
   df_summary = pd.DataFrame(summary_data)
   df_summary.to_csv(output_summary_path, index=False)
 
   print('\n' + '=' * 80)
-  print('  AUDIT COMPLETO CON SUCCESSO (ALL TESTS EXECUTED)')
+  print('  AUDIT MASTER COMPLEATO CON SUCCESSO (ALL 5 MODULES EXECUTED)')
   print('=' * 80)
   print(df_summary.to_string(index=False))
   print('=' * 80)

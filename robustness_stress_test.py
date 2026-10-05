@@ -9,8 +9,8 @@ Zenodo DOI: 10.5281/zenodo.23119964
 ===============================================================================
 Descrizione:
   Modulo di blindatura avanzata per la gestione dei bias di conversione Token->Stato.
-  Esegue 4 stress test: Tie-Breaking Casuale, Isolamento UNKNOWN,
-  Filtro Token Non-Mappabili ed Assegnazione Frazionaria Stocastica.
+  Esegue lo stress test di Tie-Breaking stocastico ed isola lo stato UNKNOWN (-1)
+  senza generare adiacenze artificiali interrotte da token non-mappabili.
 ===============================================================================
 """
 
@@ -93,14 +93,21 @@ class RobustnessStressTester:
     for fol in np.unique(folios):
       fol_mask = folios == fol
       fol_states = states[fol_mask]
-      # Escludi transizioni coinvolgenti lo stato UNKNOWN (-1)
-      valid_idx = fol_states != -1
-      fol_states_clean = fol_states[valid_idx]
 
-      if len(fol_states_clean) > 1:
-        s_curr, s_next = fol_states_clean[:-1], fol_states_clean[1:]
-        valid_trans += float(np.sum(self.TRANSITION_MATRIX[s_curr, s_next]))
-        total_trans += len(s_curr)
+      if len(fol_states) > 1:
+        s_curr = fol_states[:-1]
+        s_next = fol_states[1:]
+        # FIX REVIEWER 2 (Punto 2.2): Conserva la posizione temporale/spaziale,
+        # scartando soltanto le coppie in cui uno dei due elementi e UNKNOWN (-1)
+        valid_pair_mask = (s_curr != -1) & (s_next != -1)
+
+        if np.any(valid_pair_mask):
+          s_curr_clean = s_curr[valid_pair_mask]
+          s_next_clean = s_next[valid_pair_mask]
+          valid_trans += float(
+              np.sum(self.TRANSITION_MATRIX[s_curr_clean, s_next_clean])
+          )
+          total_trans += len(s_curr_clean)
 
     return valid_trans / total_trans if total_trans > 0 else 0.0
 
@@ -110,7 +117,6 @@ class RobustnessStressTester:
       output_path: str = 'robustness_stress_test_results.csv',
       simulations: int = 100,
   ) -> Dict[str, Any]:
-    """Esegue gli stress test di robustezza su pareggi e token sconosciuti."""
     if not os.path.exists(csv_path):
       print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
       sys.exit(1)
@@ -128,11 +134,9 @@ class RobustnessStressTester:
     tokens = df['Token'].astype(str).to_numpy()
     folios = df['Folio_Base'].astype(str).to_numpy()
 
-    # 1. Baseline Deterministica
     det_states = self._map_tokens_robust(tokens, tie_break='first')
     c_trans_det = self._calc_c_trans_robust(det_states, folios)
 
-    # 2. Stress Test: Random Tie-Breaking Monte Carlo
     random_tie_scores = np.zeros(simulations, dtype=float)
     for i in range(simulations):
       rand_states = self._map_tokens_robust(tokens, tie_break='random')
@@ -141,7 +145,6 @@ class RobustnessStressTester:
     mean_random_tie = float(np.mean(random_tie_scores))
     std_random_tie = float(np.std(random_tie_scores))
 
-    # Conteggio token non mappabili (UNKNOWN)
     unknown_count = int(np.sum(det_states == -1))
     unknown_ratio = float(unknown_count / len(tokens))
 
@@ -163,17 +166,6 @@ class RobustnessStressTester:
     }
 
     pd.DataFrame([results]).to_csv(output_path, index=False)
-
-    print('=========================================================')
-    print('   METODO DEMARIA® v3.0 — ROBUSTNESS & BIAS STRESS TEST  ')
-    print('=========================================================')
-    print(f'Token Analizzati:           {len(tokens):,}')
-    print(f'Token UNKNOWN (-1):         {unknown_count} ({unknown_ratio:.2%})')
-    print(f'C_trans Deterministico:     {c_trans_det:.6f}')
-    print(f'C_trans Random Tie-Break:   {mean_random_tie:.6f} ± {std_random_tie:.6f}')
-    print(f"Stabilità del Segnale:      {results['Signal_Stability']}")
-    print('=========================================================')
-
     return results
 
 
@@ -181,8 +173,3 @@ if __name__ == '__main__':
   tester = RobustnessStressTester(seed=42)
   if os.path.exists('voynich_eva_tokens_extended.csv'):
     tester.run_robustness_audit('voynich_eva_tokens_extended.csv')
-  else:
-    print(
-        "[✓] Modulo 'robustness_stress_test.py' (Release v3.0) caricato e"
-        ' pronto.'
-    )
