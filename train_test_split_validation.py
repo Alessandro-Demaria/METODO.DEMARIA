@@ -168,4 +168,22 @@ def run_train_test_validation():
   print(f'   - Folii Unici Train:      {len(train_folios)}')
   print(f'   - Folii Unici Test:       {len(test_folios)}')
   print(f'   - Train Coherence (C_raw): {c_train:.6f} ({c_train*100:.2f}%)')
-  print(f'   - Test Coherence  (C_raw): {c_test:.6f} ({c_test*1
+  print(f'   - Test Coherence  (C_raw): {c_test:.6f} ({c_test*100:.2f}%)')
+  print(f'   - Delta Assoluto (|ΔC|):   {delta_abs:.6f}')
+
+  output_csv = 'train_test_validation_results.csv'
+  res_df = pd.DataFrame([{
+      'Timestamp': datetime.datetime.now().isoformat(),
+      'Dataset_SHA256': dataset_hash,
+      'N_Folios_Train': len(train_folios),
+      'N_Folios_Test': len(test_folios),
+      'C_Train_Raw': c_train,
+      'C_Test_Raw': c_test,
+      'Delta_Abs': delta_abs,
+  }])
+  res_df.to_csv(output_csv, index=False)
+  print(f"\n[V] Report di Audit salvato in: {output_csv}")
+
+
+if __name__ == '__main__':
+  run_train_test_validation()
