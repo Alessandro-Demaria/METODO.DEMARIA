@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-# METODO DEMARIA® - Null Model Test (Tier A Validation v3.0)
-# ------------------------------------------------------------------
-# Test d'ipotesi nulla stocastica (Monte Carlo N=10.000) su sequenza shufflata.
-# Calcolo dinamico e simmetrico di C* con isolamento dei confini di folio.
-# Autore: Avv. Alessandro Demaria | Licenza: CC BY-NC-ND 4.0
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: null_model_test.py (Test d'Ipotesi Nulla Stocastica Monte Carlo N=10.000)
+Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+===============================================================================
+Descrizione:
+  Test d'ipotesi nulla stocastica (Monte Carlo N=10.000) su sequenza shufflata.
+  Calcolo dinamico e simmetrico di C* con isolamento dei confini di folio e
+  correzione di Laplace per la stima del p-value.
+===============================================================================
+"""
 
 import os
 import sys
@@ -23,15 +31,20 @@ def run_null_model_test(csv_path: str = "voynich_eva_tokens_extended.csv",
     rng = np.random.default_rng(seed)
     df = pd.read_csv(csv_path)
 
-    # Normalizzazione automatica delle colonne (Aliasing)
+    # Normalizzazione automatica delle colonne (Aliasing v3.0)
     if 'Token' not in df.columns and 'EVA_Token' in df.columns:
         df['Token'] = df['EVA_Token']
     if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
-        df['Folio_Base'] = df['Folio']
+        df['Folio_Base'] = df['Folio'].apply(lambda x: str(x).split('.')[0] if '.' in str(x) else str(x))
 
     if 'Token' not in df.columns or 'Folio_Base' not in df.columns:
-        print("ERRORE CRITICO: Colonne 'Token'/'EVA_Token' e 'Folio_Base'/'Folio' necessarie.")
+        print("ERRORE CRITICO: Colonne necessarie non trovate nel dataset.")
         sys.exit(1)
+
+    # FIXING CRITICO v3.0: Ordinamento sequenziale codicologico esplicito
+    sort_cols = [col for col in ['Folio_Base', 'line_id', 'Record_ID'] if col in df.columns]
+    if sort_cols:
+        df = df.sort_values(by=sort_cols).reset_index(drop=True)
 
     # 1. Matrice di adiacenza delle transizioni valide del Computus Magnus (7/16 ammesse)
     transition_matrix = np.array([

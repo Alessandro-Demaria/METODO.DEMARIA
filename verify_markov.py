@@ -4,9 +4,9 @@
 ===============================================================================
 METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
 Modulo: verify_markov.py (Analizzatore Stocastico Vettorizzato v3.0)
-Autore: Avv. Alessandro Demaria
+Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 Repository: GitHub - METODO.DEMARIA
-Zenodo DOI: 10.5281/zenodo.22856418
+Zenodo DOI: 10.5281/zenodo.23119964
 ===============================================================================
 Descrizione:
   Modulo per l'analisi stocastica delle Catene di Markov applicate al Metodo Demaria.
@@ -19,9 +19,6 @@ Descrizione:
 
 from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
-
-# Importazione vincolata al Parser Vettorizzato v3.0
-from voynich_parser import VoynichParser, parse_voynich_file
 
 
 class MarkovVerifierV3:
@@ -36,7 +33,6 @@ class MarkovVerifierV3:
 
     def __init__(self) -> None:
         self.version = "v3.0"
-        self.parser = VoynichParser()
 
     @classmethod
     def compute_stationary_distribution_numpy(cls, transition_matrix: np.ndarray) -> np.ndarray:
@@ -107,8 +103,13 @@ class MarkovVerifierV3:
         }
 
     def analyze_corpus(self, raw_text: str) -> Dict[str, Any]:
-        parsed_records = self.parser.parse_corpus(raw_text) if hasattr(self.parser, 'parse_corpus') else parse_voynich_file(raw_text)
-        
+        try:
+            from voynich_parser import VoynichParser, parse_voynich_file
+            parser = VoynichParser()
+            parsed_records = parser.parse_corpus(raw_text) if hasattr(parser, 'parse_corpus') else parse_voynich_file(raw_text)
+        except ImportError:
+            parsed_records = []
+
         full_vector: List[int] = []
         line_indices: List[int] = []
 
@@ -116,7 +117,6 @@ class MarkovVerifierV3:
 
         for idx, record in enumerate(parsed_records):
             real_line_id = record.get('line_id', record.get('line_number', idx))
-            
             seq = record.get('vector_sequence', record.get('states', []))
             
             if not seq and 'tokens' in record:
@@ -144,8 +144,10 @@ class MarkovVerifierV3:
 
     def analyze_file(self, file_path: str) -> Dict[str, Any]:
         try:
-            if hasattr(self.parser, 'parse_file'):
-                records = self.parser.parse_file(file_path)
+            from voynich_parser import VoynichParser, parse_voynich_file
+            parser = VoynichParser()
+            if hasattr(parser, 'parse_file'):
+                records = parser.parse_file(file_path)
             else:
                 records = parse_voynich_file(file_path)
         except Exception:
@@ -182,6 +184,7 @@ class MarkovVerifierV3:
         results['total_records'] = len(records)
         return results
 
+
 # Alias e Wrapper Retrocompatibili
 MarkovVerifier = MarkovVerifierV3
 
@@ -196,7 +199,7 @@ def run_markov_analysis(file_path: str) -> Dict[str, Any]:
 
 if __name__ == '__main__':
     print("=" * 75)
-    print("METODO DEMARIA — VERIFICA INTEGRITÀ MARKOV ANALYSIS (Release v3.0)")
+    print("METODO DEMARIA® — VERIFICA INTEGRITÀ MARKOV ANALYSIS (Release v3.0)")
     print("=" * 75)
 
     verifier = MarkovVerifierV3()

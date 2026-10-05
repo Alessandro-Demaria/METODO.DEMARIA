@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
-# METODO DEMARIA® - Adversarial Mapping Test (Tier B Validation v3.0)
-# ------------------------------------------------------------------
-# Test d'unicita e selettivita cibernetica basato su permutazioni bilanciate
-# dell'alfabeto EVA 20-grafemi in partizioni rigide 5-5-5-5.
-# Mappatura a struttura token completa con isolamento dei confini di folio.
-# Autore: Avv. Alessandro Demaria | Licenza: CC BY-NC-ND 4.0
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: adversarial_mapping_test.py / constrained_adversarial_test.py (Tier B)
+Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+===============================================================================
+Descrizione:
+  Test d'unicità e selettività cibernetica basato su permutazioni bilanciate
+  dell'alfabeto EVA 20-grafemi in partizioni rigide 5-5-5-5.
+  Mappatura a struttura token completa con isolamento dei confini di folio
+  ed ordinamento codicologico esplicito v3.0.
+===============================================================================
+"""
 
 import os
 import sys
@@ -24,15 +32,20 @@ def run_adversarial_alphabet_test(csv_path: str = "voynich_eva_tokens_extended.c
     rng = np.random.default_rng(seed)
     df = pd.read_csv(csv_path)
 
-    # Normalizzazione automatica delle colonne (Aliasing)
+    # Normalizzazione automatica delle colonne (Aliasing v3.0)
     if 'Token' not in df.columns and 'EVA_Token' in df.columns:
         df['Token'] = df['EVA_Token']
     if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
-        df['Folio_Base'] = df['Folio']
+        df['Folio_Base'] = df['Folio'].apply(lambda x: str(x).split('.')[0] if '.' in str(x) else str(x))
 
     if 'Token' not in df.columns or 'Folio_Base' not in df.columns:
         print("ERRORE CRITICO: Colonne 'Token'/'EVA_Token' e 'Folio_Base'/'Folio' necessarie.")
         sys.exit(1)
+
+    # FIXING CRITICO v3.0: Ordinamento sequenziale codicologico esplicito
+    sort_cols = [col for col in ['Folio_Base', 'line_id', 'Record_ID'] if col in df.columns]
+    if sort_cols:
+        df = df.sort_values(by=sort_cols).reset_index(drop=True)
 
     # 1. Alfabeto Canonico EVA a 20 Grafemi
     eva_20_alphabet = np.array([
