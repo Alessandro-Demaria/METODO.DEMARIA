@@ -1,0 +1,2 @@
+Dataset,Total_Tokens,Total_Folios,Train_Folios_Count,Test_Folios_Count,C_Trans_Train,C_Trans_Test,Delta_C_Trans,Threshold_Max,Status_Verified,Execution_Time_Sec,Release_Version
+voynich_eva_tokens_extended.csv,35483,227,91,136,0.698672,0.672677,0.025995,0.025,FAIL,0.4473,v3.0

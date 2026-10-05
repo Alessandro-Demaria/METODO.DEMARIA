@@ -1,0 +1,2 @@
+Dataset,Total_Tokens,Unknown_Tokens_Count,Unknown_Ratio,C_Trans_Deterministic,C_Trans_Random_Tie_Mean,C_Trans_Random_Tie_Std,Signal_Stability,Execution_Time_Sec,Release_Version
+voynich_eva_tokens_extended.csv,35483,52,0.001465,0.683363,0.583656,0.001682,SENSITIVE,60.8473,v3.0

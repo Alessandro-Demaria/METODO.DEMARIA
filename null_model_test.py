@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""===============================================================================
-
-METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
-Modulo: null_model_test.py (Test d'Ipotesi Nulla Stocastica Gerarchica a 3
-Livelli N=10.000)
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0 Ultra-Fast)
+Modulo: null_model_test.py (Test d'Ipotesi Nulla Gerarchica Vettorizzata N=10.000)
 Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 Zenodo DOI: 10.5281/zenodo.23119964
-===============================================================================
-Descrizione:
-  Test d'ipotesi nulla stocastica gerarchica a 3 livelli (Global, Intra-Folio e
-  Intra-Line Shuffle). Calcola C_trans osservato, baseline analitiche ed
-  esporta
-  Z-score, p-value e delta Monte Carlo per ciascun livello nullo.
 ===============================================================================
 """
 
 import os
 import sys
-from typing import Any, Dict
+import time
+from typing import Dict, Any
 import numpy as np
 import pandas as pd
 
@@ -29,26 +23,30 @@ def run_null_model_test(
     n_iterations: int = 10000,
     seed: int = 42,
 ) -> Dict[str, Any]:
-  """Esegue il test gerarchico a 3 livelli (Global, Intra-Folio, Intra-Line) e restituisce il dizionario completo."""
   if not os.path.exists(csv_path):
-    print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
+    print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.", flush=True)
     sys.exit(1)
 
   rng = np.random.default_rng(seed)
   df = pd.read_csv(csv_path)
 
-  # Normalizzazione colonne v3.0
+  # Standardizzazione Token ed Estrazione Folio / Riga Reale EVA
   if "Token" not in df.columns and "EVA_Token" in df.columns:
     df["Token"] = df["EVA_Token"]
-  if "Folio_Base" not in df.columns and "Folio" in df.columns:
+
+  if "Folio" in df.columns:
+    # Estrazione del folio base (es. 'f1r.1,@P0' -> 'f1r')
     df["Folio_Base"] = df["Folio"].apply(
         lambda x: str(x).split(".")[0] if "." in str(x) else str(x)
     )
-  if "line_id" not in df.columns and "Line" in df.columns:
-    df["line_id"] = df["Line"]
-
-  if "Token" not in df.columns or "Folio_Base" not in df.columns:
-    print("ERRORE CRITICO: Colonne necessarie non trovate nel dataset.")
+    # Estrazione della VERA riga EVA originale (es. 'f1r.1,@P0' -> '1')
+    df["line_id"] = df["Folio"].apply(
+        lambda x: str(x).split(".")[1].split(",")[0]
+        if "." in str(x) and len(str(x).split(".")) > 1
+        else "1"
+    )
+  else:
+    print("ERRORE CRITICO: Colonna 'Folio' mancante nel CSV.", flush=True)
     sys.exit(1)
 
   sort_cols = [
@@ -59,43 +57,23 @@ def run_null_model_test(
 
   transition_matrix = np.array(
       [
-          [1, 1, 0, 0],  # alpha -> alpha, beta
-          [0, 1, 1, 0],  # beta  -> beta, delta
-          [0, 0, 1, 1],  # delta -> delta, gamma
-          [1, 0, 0, 1],  # gamma -> gamma, alpha
+          [1, 1, 0, 0],
+          [0, 1, 1, 0],
+          [0, 0, 1, 1],
+          [1, 0, 0, 1],
       ],
       dtype=float,
   )
 
   tokens = df["Token"].astype(str).to_numpy()
   folios = df["Folio_Base"].astype(str).to_numpy()
-  lines = (
-      df["line_id"].astype(str).to_numpy()
-      if "line_id" in df.columns
-      else np.zeros(len(tokens), dtype=str)
-  )
+  lines = df["line_id"].astype(str).to_numpy()
 
   demaria_map = {
-      "o": 0,
-      "a": 0,
-      "e": 0,
-      "c": 0,
-      "h": 0,  # alpha (0)
-      "k": 1,
-      "t": 1,
-      "p": 1,
-      "f": 1,
-      "s": 1,  # beta  (1)
-      "r": 2,
-      "l": 2,
-      "q": 2,
-      "y": 2,
-      "d": 2,  # delta (2)
-      "x": 3,
-      "g": 3,
-      "m": 3,
-      "n": 3,
-      "i": 3,  # gamma (3)
+      "o": 0, "a": 0, "e": 0, "c": 0, "h": 0,
+      "k": 1, "t": 1, "p": 1, "f": 1, "s": 1,
+      "r": 2, "l": 2, "q": 2, "y": 2, "d": 2,
+      "x": 3, "g": 3, "m": 3, "n": 3, "i": 3,
   }
 
   corpus_states = np.zeros(len(tokens), dtype=int)
@@ -106,8 +84,15 @@ def run_null_model_test(
     if len(mapped_values) > 0:
       counts = np.bincount(mapped_values, minlength=4)
       corpus_states[idx] = int(np.argmax(counts))
-    else:
-      corpus_states[idx] = 0
+
+  same_folio_mask = folios[:-1] == folios[1:]
+
+  def calc_fast(states_arr: np.ndarray) -> float:
+    s_curr = states_arr[:-1][same_folio_mask]
+    s_next = states_arr[1:][same_folio_mask]
+    return float(np.mean(transition_matrix[s_curr, s_next]))
+
+  c_trans_obs = calc_fast(corpus_states)
 
   # Baseline analitiche
   state_counts = np.bincount(corpus_states, minlength=4)
@@ -118,15 +103,13 @@ def run_null_model_test(
 
   unique_folios = np.unique(folios)
   folio_baselines, folio_weights = [], []
-
   for fol in unique_folios:
     fol_mask = folios == fol
     fol_s = corpus_states[fol_mask]
     if len(fol_s) > 1:
       counts_f = np.bincount(fol_s, minlength=4)
       probs_f = counts_f / len(fol_s)
-      b_f = float(np.sum(transition_matrix * np.outer(probs_f, probs_f)))
-      folio_baselines.append(b_f)
+      folio_baselines.append(float(np.sum(transition_matrix * np.outer(probs_f, probs_f))))
       folio_weights.append(len(fol_s) - 1)
 
   folio_conditioned_baseline = (
@@ -135,94 +118,51 @@ def run_null_model_test(
       else theoretical_global_baseline
   )
 
-  def calculate_coherence_intra_folio(states_array: np.ndarray) -> float:
-    valid_transitions = 0.0
-    total_transitions = 0
-    for fol in unique_folios:
-      fol_mask = folios == fol
-      fol_states = states_array[fol_mask]
-      if len(fol_states) > 1:
-        s_curr = fol_states[:-1]
-        s_next = fol_states[1:]
-        valid_transitions += float(np.sum(transition_matrix[s_curr, s_next]))
-        total_transitions += len(s_curr)
-    return (
-        valid_transitions / total_transitions if total_transitions > 0 else 0.0
-    )
-
-  c_trans_obs = calculate_coherence_intra_folio(corpus_states)
+  folio_indices = [np.flatnonzero(folios == fol) for fol in unique_folios]
+  folio_line_ids = np.array([f"{f}_{l}" for f, l in zip(folios, lines)])
+  unique_lines = np.unique(folio_line_ids)
+  line_indices = [np.flatnonzero(folio_line_ids == lid) for lid in unique_lines if np.sum(folio_line_ids == lid) > 1]
 
   # 1. Null A: Global Shuffle
+  print("      -> Esecuzione Null A (Global Shuffle)...", flush=True)
   null_scores_global = np.zeros(n_iterations, dtype=float)
-  shuffled_states_g = corpus_states.copy()
+  shuffled_g = corpus_states.copy()
   for i in range(n_iterations):
-    rng.shuffle(shuffled_states_g)
-    null_scores_global[i] = calculate_coherence_intra_folio(shuffled_states_g)
+    rng.shuffle(shuffled_g)
+    null_scores_global[i] = calc_fast(shuffled_g)
 
   mean_null_global = float(np.mean(null_scores_global))
   std_null_global = float(np.std(null_scores_global))
-  count_exceed_g = int(np.sum(null_scores_global >= c_trans_obs))
-  p_val_global = float((count_exceed_g + 1) / (n_iterations + 1))
-  z_score_global = (
-      float((c_trans_obs - mean_null_global) / std_null_global)
-      if std_null_global > 0
-      else 0.0
-  )
+  p_val_global = float((np.sum(null_scores_global >= c_trans_obs) + 1) / (n_iterations + 1))
+  z_score_global = float((c_trans_obs - mean_null_global) / std_null_global) if std_null_global > 0 else 0.0
 
   # 2. Null B: Intra-Folio Shuffle
-  null_scores_intra_folio = np.zeros(n_iterations, dtype=float)
+  print("      -> Esecuzione Null B (Intra-Folio Shuffle)...", flush=True)
+  null_scores_folio = np.zeros(n_iterations, dtype=float)
   for i in range(n_iterations):
-    shuffled_states_f = corpus_states.copy()
-    for fol in unique_folios:
-      mask = folios == fol
-      idx_f = np.flatnonzero(mask)
-      shuffled_states_f[idx_f] = rng.permutation(shuffled_states_f[idx_f])
-    null_scores_intra_folio[i] = calculate_coherence_intra_folio(
-        shuffled_states_f
-    )
+    shuffled_f = corpus_states.copy()
+    for idxs in folio_indices:
+      shuffled_f[idxs] = rng.permutation(shuffled_f[idxs])
+    null_scores_folio[i] = calc_fast(shuffled_f)
 
-  mean_null_folio = float(np.mean(null_scores_intra_folio))
-  std_null_folio = float(np.std(null_scores_intra_folio))
-  count_exceed_f = int(np.sum(null_scores_intra_folio >= c_trans_obs))
-  p_val_folio = float((count_exceed_f + 1) / (n_iterations + 1))
-  z_score_folio = (
-      float((c_trans_obs - mean_null_folio) / std_null_folio)
-      if std_null_folio > 0
-      else 0.0
-  )
+  mean_null_folio = float(np.mean(null_scores_folio))
+  std_null_folio = float(np.std(null_scores_folio))
+  p_val_folio = float((np.sum(null_scores_folio >= c_trans_obs) + 1) / (n_iterations + 1))
+  z_score_folio = float((c_trans_obs - mean_null_folio) / std_null_folio) if std_null_folio > 0 else 0.0
 
-  # 3. Null C: Intra-Line Shuffle (SOLUZIONE P0.1)
-  null_scores_intra_line = np.zeros(n_iterations, dtype=float)
-  folio_line_ids = np.array([f"{f}_{l}" for f, l in zip(folios, lines)])
-  unique_lines = np.unique(folio_line_ids)
-
+  # 3. Null C: Intra-Line Shuffle (Sulle VERE linee EVA)
+  print("      -> Esecuzione Null C (Intra-Line Shuffle su linee reali EVA)...", flush=True)
+  null_scores_line = np.zeros(n_iterations, dtype=float)
   for i in range(n_iterations):
-    shuffled_states_l = corpus_states.copy()
-    for l_id in unique_lines:
-      mask = folio_line_ids == l_id
-      idx_l = np.flatnonzero(mask)
-      if len(idx_l) > 1:
-        shuffled_states_l[idx_l] = rng.permutation(shuffled_states_l[idx_l])
-    null_scores_intra_line[i] = calculate_coherence_intra_folio(
-        shuffled_states_l
-    )
+    shuffled_l = corpus_states.copy()
+    for idxs in line_indices:
+      shuffled_l[idxs] = rng.permutation(shuffled_l[idxs])
+    null_scores_line[i] = calc_fast(shuffled_l)
 
-  mean_null_line = float(np.mean(null_scores_intra_line))
-  std_null_line = float(np.std(null_scores_intra_line))
-  count_exceed_l = int(np.sum(null_scores_intra_line >= c_trans_obs))
-  p_val_line = float((count_exceed_l + 1) / (n_iterations + 1))
-  z_score_line = (
-      float((c_trans_obs - mean_null_line) / std_null_line)
-      if std_null_line > 0
-      else 0.0
-  )
-
-  global_analytic_mc_delta = float(
-      abs(theoretical_global_baseline - mean_null_global)
-  )
-  folio_analytic_mc_delta = float(
-      abs(folio_conditioned_baseline - mean_null_folio)
-  )
+  mean_null_line = float(np.mean(null_scores_line))
+  std_null_line = float(np.std(null_scores_line))
+  p_val_line = float((np.sum(null_scores_line >= c_trans_obs) + 1) / (n_iterations + 1))
+  z_score_line = float((c_trans_obs - mean_null_line) / std_null_line) if std_null_line > 0 else 0.0
 
   metrics = {
       "Dataset": os.path.basename(csv_path),
@@ -241,10 +181,13 @@ def run_null_model_test(
       "Intra_Line_Null_Mean": mean_null_line,
       "Intra_Line_Z_Score": z_score_line,
       "Intra_Line_p_value": p_val_line,
-      "Global_Analytic_MC_Delta": global_analytic_mc_delta,
-      "Folio_Analytic_MC_Delta": folio_analytic_mc_delta,
+      "Global_Analytic_MC_Delta": float(abs(theoretical_global_baseline - mean_null_global)),
+      "Folio_Analytic_MC_Delta": float(abs(folio_conditioned_baseline - mean_null_folio)),
       "Release_Version": "v3.0",
   }
 
   pd.DataFrame([metrics]).to_csv(output_summary_path, index=False)
   return metrics
+
+if __name__ == "__main__":
+  run_null_model_test()

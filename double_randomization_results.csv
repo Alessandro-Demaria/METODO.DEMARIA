@@ -1,0 +1,2 @@
+Dataset,Total_Tokens,Unique_Folios,Iterations,C_Star_Observed,Double_Null_Mean,Double_Null_Std,Double_Null_Min,Double_Null_Max,Z_Score,p_value_laplace,execution_time_sec,release_version
+voynich_eva_tokens_extended.csv,35483,227,1000,0.683174,0.572064,0.050271,0.506297,0.842467,2.2102,0.034965,443.3853,v3.0
