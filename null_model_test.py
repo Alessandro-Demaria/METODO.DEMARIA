@@ -9,8 +9,8 @@ Zenodo DOI: 10.5281/zenodo.23119964
 ===============================================================================
 Descrizione:
   Test d'ipotesi nulla stocastica (Monte Carlo N=10.000) su sequenza shufflata.
-  Calcolo dinamico e simmetrico di C_trans con isolamento dei confini di folio e
-  correzione di Laplace per la stima del p-value.
+  Calcola C_trans osservato, il baseline analitico condizionato dalle frequenze
+  marginali degli stati, ed applica la correzione di Laplace per il p-value.
 ===============================================================================
 """
 
@@ -28,7 +28,6 @@ def run_null_model_test(
     seed: int = 42,
 ) -> Tuple[float, np.ndarray, float]:
   """Esegue il test d'ipotesi nulla Monte Carlo (N=10.000) sul dataset per C_trans."""
-  # 0. Verifica e caricamento dataset
   if not os.path.exists(csv_path):
     print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
     sys.exit(1)
@@ -36,7 +35,7 @@ def run_null_model_test(
   rng = np.random.default_rng(seed)
   df = pd.read_csv(csv_path)
 
-  # Normalizzazione automatica delle colonne (Aliasing v3.0)
+  # Aliasing e normalizzazione v3.0
   if "Token" not in df.columns and "EVA_Token" in df.columns:
     df["Token"] = df["EVA_Token"]
   if "Folio_Base" not in df.columns and "Folio" in df.columns:
@@ -48,14 +47,14 @@ def run_null_model_test(
     print("ERRORE CRITICO: Colonne necessarie non trovate nel dataset.")
     sys.exit(1)
 
-  # Ordinamento sequenziale codicologico esplicito v3.0
+  # Ordinamento sequenziale codicologico
   sort_cols = [
       col for col in ["Folio_Base", "line_id", "Record_ID"] if col in df.columns
   ]
   if sort_cols:
     df = df.sort_values(by=sort_cols).reset_index(drop=True)
 
-  # 1. Matrice di adiacenza delle transizioni valide del Computus Magnus (8/16 ammesse, Densità = 0.50)
+  # Matrice di adiacenza delle transizioni valide (8/16 ammesse, Densità = 0.50)
   transition_matrix = np.array(
       [
           [1, 1, 0, 0],  # alpha -> alpha, beta
@@ -69,7 +68,6 @@ def run_null_model_test(
   tokens = df["Token"].astype(str).to_numpy()
   folios = df["Folio_Base"].astype(str).to_numpy()
 
-  # 2. Mappatura Canonica Demaria® v3.0 (Partizione Rigida 5-5-5-5)
   demaria_map = {
       "o": 0,
       "a": 0,
@@ -93,7 +91,6 @@ def run_null_model_test(
       "i": 3,  # gamma (3)
   }
 
-  # 3. Conversione dell'intero corpus negli stati cibernetici dominanti per token
   corpus_states = np.zeros(len(tokens), dtype=int)
   for idx, token_str in enumerate(tokens):
     mapped_values = [
@@ -105,8 +102,14 @@ def run_null_model_test(
     else:
       corpus_states[idx] = 0
 
+  # P0.3 FIX: Calcolo del Baseline Analitico teorico condizionato dalle Frequenze Marginali degli stati
+  state_counts = np.bincount(corpus_states, minlength=4)
+  state_probs = state_counts / len(corpus_states)
+  theoretical_baseline_c_trans = float(
+      np.sum(transition_matrix * np.outer(state_probs, state_probs))
+  )
+
   def calculate_coherence_intra_folio(states_array: np.ndarray) -> float:
-    # Calcolo di C_trans isolato entro i confini di ciascun folio (Zero transizioni inter-folio)
     valid_transitions = 0.0
     total_transitions = 0
     unique_folios = np.unique(folios)
@@ -124,10 +127,9 @@ def run_null_model_test(
         valid_transitions / total_transitions if total_transitions > 0 else 0.0
     )
 
-  # 4. Calcolo REALE e DINAMICO di C_trans osservato
   c_trans_obs = calculate_coherence_intra_folio(corpus_states)
 
-  # 5. Simulazione Monte Carlo dell'Ipotesi Nulla (Shuffling della sequenza di stati)
+  # Simulazione Monte Carlo
   null_scores = np.zeros(n_iterations, dtype=float)
   shuffled_states = corpus_states.copy()
 
@@ -135,7 +137,6 @@ def run_null_model_test(
     rng.shuffle(shuffled_states)
     null_scores[i] = calculate_coherence_intra_folio(shuffled_states)
 
-  # 6. Calcolo metriche stocastiche e p-value rigoroso con correzione di Laplace
   mean_null = float(np.mean(null_scores))
   std_null = float(np.std(null_scores))
   max_null = float(np.max(null_scores))
@@ -146,13 +147,13 @@ def run_null_model_test(
   z_score = float((c_trans_obs - mean_null) / std_null) if std_null > 0 else 0.0
   p_str = f"p <= {p_value:.6f}" if count_exceed == 0 else f"p = {p_value:.6f}"
 
-  # 7. Esportazione automatica della relazione dei risultati
   results_df = pd.DataFrame([{
       "Dataset": os.path.basename(csv_path),
       "Total_Tokens": len(tokens),
       "Unique_Folios": len(np.unique(folios)),
       "Iterations": n_iterations,
       "C_Trans_Observed": c_trans_obs,
+      "Theoretical_Marginal_Baseline": theoretical_baseline_c_trans,
       "Null_Mean": mean_null,
       "Null_Std": std_null,
       "Null_Min": min_null,
@@ -164,21 +165,17 @@ def run_null_model_test(
   }])
   results_df.to_csv(output_summary_path, index=False)
 
-  # 8. Stampa formale dell'output di laboratorio
   print("=========================================================")
   print("   METODO DEMARIA® v3.0 — NULL MODEL MONTE CARLO TEST    ")
   print("=========================================================")
-  print(f"Dataset Analizzato:        {csv_path}")
-  print(f"Token Analizzati:          {len(tokens):,}")
-  print(f"Folii Distinti:            {len(np.unique(folios)):,}")
-  print(f"Iterazioni Monte Carlo:    {n_iterations:,}")
-  print(f"C_trans Osservato:         {c_trans_obs:.6f}")
-  print(f"Media Modello Nullo:       {mean_null:.6f}")
-  print(f"Dev. Std. Modello Nullo:   {std_null:.6f}")
-  print(f"Range Nullo [Min - Max]:   [{min_null:.6f} - {max_null:.6f}]")
-  print(f"Z-Score Significativita:   {z_score:.4f}")
-  print(f"p-value Significativita:   {p_str}")
-  print(f"Report Esportato su:       {output_summary_path}")
+  print(f"Dataset Analizzato:            {csv_path}")
+  print(f"Token Analizzati:              {len(tokens):,}")
+  print(f"C_trans Osservato:             {c_trans_obs:.6f}")
+  print(f"Baseline Analitico Teorico:    {theoretical_baseline_c_trans:.6f}")
+  print(f"Media Modello Nullo Stocastico:{mean_null:.6f}")
+  print(f"Z-Score Significativita:       {z_score:.4f}")
+  print(f"p-value Significativita:       {p_str}")
+  print(f"Report Esportato su:           {output_summary_path}")
   print("=========================================================")
 
   return c_trans_obs, null_scores, p_value
