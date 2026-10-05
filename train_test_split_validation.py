@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 """===============================================================================
 
-METODO DEMARIA® — STRESS TEST DI ROBUSTEZZA E SENSIBILITÀ (v3.0 - Canonico)
-Modulo: robustness_stress_test.py
+METODO DEMARIA® — HOLDOUT CROSS-VALIDATION SUITE (v3.0 - Canonico)
+Modulo: train_test_split_validation.py
 Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 ===============================================================================
 Descrizione:
-  Iniezione progressiva di rumore sintetico (perturbazione casuale degli stati)
-  per misurare la risposta della metrica C_raw e il tasso di retention.
-  Legge la configurazione esclusivamente da method_specification.json e applica
-  la mappatura deterministica dello stato del token.
+  Holdout Cross-Validation al buio su raggruppamento rigido per Folio_Base.
+  Applica lo stripping del campo folio per prevenire l'inflazione dei gruppi e
+  utilizza la mappatura deterministica dello stato del token.
+  Legge la configurazione esclusivamente da method_specification.json.
 ===============================================================================
 """
 
@@ -75,9 +75,10 @@ def canonical_token_to_state(token: str, char_map: dict, rng=None) -> int:
   return winners[0]
 
 
-def compute_c_raw(
-    states_series: np.ndarray, transition_matrix: np.ndarray
+def compute_c_raw_subset(
+    df_subset: pd.DataFrame, transition_matrix: np.ndarray
 ) -> float:
+  states_series = df_subset['State'].values
   valid_states = states_series[states_series >= 0]
   if len(valid_states) < 2:
     return 0.0
@@ -95,9 +96,9 @@ def compute_c_raw(
   )
 
 
-def run_robustness_stress_test():
+def run_train_test_validation():
   print('==================================================================')
-  print('METODO DEMARIA® — STRESS TEST DI ROBUSTEZZA (v3.0 Canonico)')
+  print('METODO DEMARIA® — HOLDOUT CROSS-VALIDATION SUITE (v3.0 Canonico)')
   print('==================================================================')
 
   spec = load_method_specification(SPEC_FILE)
@@ -125,9 +126,16 @@ def run_robustness_stress_test():
   df.columns = df.columns.str.strip()
   col_mapping = {}
   for col in df.columns:
-    if col.lower() in ['eva_token', 'token']:
+    if col.lower() == 'folio':
+      col_mapping[col] = 'Folio_Clean'
+    elif col.lower() in ['eva_token', 'token']:
       col_mapping[col] = 'token'
   df.rename(columns=col_mapping, inplace=True)
+
+  # Stripping esplicito per isolare il vero Folio_Base (es. f1r)
+  df['Folio_Base'] = df['Folio_Clean'].apply(
+      lambda x: str(x).split('.')[0] if '.' in str(x) else str(x)
+  )
 
   rng = np.random.RandomState(seed)
   char_map = build_demaria_map_from_spec(spec)
@@ -139,49 +147,25 @@ def run_robustness_stress_test():
       lambda t: canonical_token_to_state(t, char_map)
   )
 
-  c_obs = compute_c_raw(df['State'].values, transition_matrix)
+  # Raggruppamento per veri folii unici
+  unique_folios = df['Folio_Base'].unique()
+  rng.shuffle(unique_folios)
+
+  split_idx = len(unique_folios) // 2
+  train_folios = set(unique_folios[:split_idx])
+  test_folios = set(unique_folios[split_idx:])
+
+  train_df = df[df['Folio_Base'].isin(train_folios)]
+  test_df = df[df['Folio_Base'].isin(test_folios)]
+
+  c_train = compute_c_raw_subset(train_df, transition_matrix)
+  c_test = compute_c_raw_subset(test_df, transition_matrix)
+  delta_abs = abs(c_train - c_test)
+
   print(
-      f'\n[+] Coerenza Osservata Reale (C_raw): {c_obs:.6f} ({c_obs*100:.2f}%)'
+      '\n[+] RISULTATI HOLDOUT SPLIT VALIDATION (50/50 Grouped on Folio_Base):'
   )
-
-  noise_levels = [0.05, 0.10, 0.20, 0.30, 0.50]
-  results = []
-
-  states_arr = df['State'].values.copy()
-  valid_mask = states_arr >= 0
-  n_valid = np.sum(valid_mask)
-  valid_indices = np.where(valid_mask)[0]
-
-  print('\n[*] Simulazione iniezione rumore sintetico (Perturbazione Casuale):')
-  for lvl in noise_levels:
-    arr_noisy = states_arr.copy()
-    n_corrupt = int(n_valid * lvl)
-
-    corrupt_indices = rng.choice(valid_indices, size=n_corrupt, replace=False)
-    arr_noisy[corrupt_indices] = rng.choice([0, 1, 2, 3], size=n_corrupt)
-
-    c_noisy = compute_c_raw(arr_noisy, transition_matrix)
-    retention = (c_noisy / c_obs) * 100 if c_obs > 0 else 0.0
-
-    print(
-        f'   - Rumore {int(lvl*100):2d}%: C_degraded = {c_noisy:.6f} | Retention ='
-        f' {retention:.2f}%'
-    )
-
-    results.append({
-        'Timestamp': datetime.datetime.now().isoformat(),
-        'Dataset_SHA256': dataset_hash,
-        'Noise_Level_Pct': int(lvl * 100),
-        'C_Observed_Raw': c_obs,
-        'C_Degraded_Raw': c_noisy,
-        'Retention_Pct': retention,
-    })
-
-  output_csv = 'robustness_stress_test_results.csv'
-  res_df = pd.DataFrame(results)
-  res_df.to_csv(output_csv, index=False)
-  print(f"\n[V] Report di Audit salvato in: {output_csv}")
-
-
-if __name__ == '__main__':
-  run_robustness_stress_test()
+  print(f'   - Folii Unici Train:      {len(train_folios)}')
+  print(f'   - Folii Unici Test:       {len(test_folios)}')
+  print(f'   - Train Coherence (C_raw): {c_train:.6f} ({c_train*100:.2f}%)')
+  print(f'   - Test Coherence  (C_raw): {c_test:.6f} ({c_test*1
