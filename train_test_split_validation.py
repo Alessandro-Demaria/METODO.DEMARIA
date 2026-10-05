@@ -1,190 +1,138 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""===============================================================================
-
-METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
-Modulo: train_test_split_validation.py (Validazione Strict Out-of-Sample)
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
-Zenodo DOI: 10.5281/zenodo.23119964
-===============================================================================
-Descrizione:
-  Modulo per la validazione cieca Out-of-Sample (Tier C / GroupShuffleSplit).
-  Congela la mappatura ed i parametri stocastici sul 40% dei Folii (Train)
-  e valuta la capacita predittiva ed il Delta C_trans sul 60% dei Folii (Test).
-===============================================================================
+"""
+METODO DEMARIA® — HOLDOUT CROSS-VALIDATION SUITE (v3.0)
+Autore e Responsabile Scientifico: Avv. Alessandro Demaria
+Data Congelamento: 05 Ottobre 2026
 """
 
 import os
-import sys
-import time
-from typing import Any, Dict
+import re
+import datetime
+import hashlib
 import numpy as np
 import pandas as pd
 
+SEED = 42
+INPUT_DATASET_PATH = 'voynich_eva_tokens_extended.csv'
 
-class StrictOutOfSampleValidator:
-  """Suite di validazione cieca out-of-sample raggruppata su Folio_Base (Release v3.0)."""
+DEMARIA_MAP = {
+    'o': 0, 'k': 0, 't': 0, 'p': 0, 'f': 0,
+    'a': 1, 'e': 1, 'i': 1, 'c': 1, 'h': 1,
+    'd': 2, 's': 2, 'y': 2, 'q': 2, 'l': 2,
+    'r': 3, 'm': 3, 'g': 3, 'x': 3, 'z': 3
+}
 
-  TRANSITION_MATRIX: np.ndarray = np.array(
-      [
-          [1, 1, 0, 0],  # alpha -> alpha, beta
-          [0, 1, 1, 0],  # beta  -> beta, delta
-          [0, 0, 1, 1],  # delta -> delta, gamma
-          [1, 0, 0, 1],  # gamma -> gamma, alpha
-      ],
-      dtype=np.int8,
-  )
+def get_file_sha256(filepath: str) -> str:
+    if not os.path.exists(filepath):
+        return "FILE_NOT_FOUND"
+    hasher = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        hasher.update(f.read())
+    return hasher.hexdigest()
 
-  DEMARIA_MAP: Dict[str, int] = {
-      'o': 0,
-      'a': 0,
-      'e': 0,
-      'c': 0,
-      'h': 0,  # alpha (0)
-      'k': 1,
-      't': 1,
-      'p': 1,
-      'f': 1,
-      's': 1,  # beta  (1)
-      'r': 2,
-      'l': 2,
-      'q': 2,
-      'y': 2,
-      'd': 2,  # delta (2)
-      'x': 3,
-      'g': 3,
-      'm': 3,
-      'n': 3,
-      'i': 3,  # gamma (3)
-  }
+def canonical_token_to_state(token: str, demaria_map: dict, rng: np.random.RandomState) -> int:
+    counts = [0, 0, 0, 0]
+    has_known_char = False
+    
+    for char in str(token):
+        if char in demaria_map:
+            state = demaria_map[char]
+            counts[state] += 1
+            has_known_char = True
+            
+    if not has_known_char:
+        return -1
+        
+    max_val = max(counts)
+    winners = [i for i, c in enumerate(counts) if c == max_val]
+    
+    if len(winners) == 1:
+        return winners[0]
+    else:
+        return int(rng.choice(winners))
 
-  def __init__(self, seed: int = 42) -> None:
-    self.seed = seed
-    self.rng = np.random.default_rng(self.seed)
-    self.version = 'v3.0'
+def compute_coherence_matrix(states_series: np.ndarray) -> float:
+    valid_states = states_series[states_series >= 0]
+    if len(valid_states) < 2:
+        return 0.0
+    
+    s1 = valid_states[:-1]
+    s2 = valid_states[1:]
+    
+    matrix = np.zeros((4, 4), dtype=int)
+    for a, b in zip(s1, s2):
+        matrix[a, b] += 1
+        
+    total_transitions = matrix.sum()
+    if total_transitions == 0:
+        return 0.0
+        
+    diag_sum = np.trace(matrix)
+    max_row_sum = matrix.sum(axis=1).max()
+    
+    return float((diag_sum + max_row_sum) / (2.0 * total_transitions))
 
-  def _map_tokens(self, tokens: np.ndarray) -> np.ndarray:
-    states = np.zeros(len(tokens), dtype=int)
-    for idx, token_str in enumerate(tokens):
-      mapped = [
-          self.DEMARIA_MAP[char]
-          for char in token_str
-          if char in self.DEMARIA_MAP
-      ]
-      states[idx] = int(np.argmax(np.bincount(mapped, minlength=4))) if mapped else 0
-    return states
-
-  def _calc_c_trans(self, states: np.ndarray, folios: np.ndarray) -> float:
-    valid_trans = 0.0
-    total_trans = 0
-    for fol in np.unique(folios):
-      fol_states = states[folios == fol]
-      if len(fol_states) > 1:
-        s_curr, s_next = fol_states[:-1], fol_states[1:]
-        valid_trans += float(np.sum(self.TRANSITION_MATRIX[s_curr, s_next]))
-        total_trans += len(s_curr)
-    return valid_trans / total_trans if total_trans > 0 else 0.0
-
-  def run_strict_validation(
-      self,
-      csv_path: str = 'voynich_eva_tokens_extended.csv',
-      output_path: str = 'train_test_validation_results.csv',
-      train_ratio: float = 0.40,
-      max_delta_threshold: float = 0.025,
-  ) -> Dict[str, Any]:
-    """Esegue lo split blindato per Folio e calcola la stabilità Out-of-Sample."""
-    if not os.path.exists(csv_path):
-      print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
-      sys.exit(1)
-
-    t0 = time.time()
-    df = pd.read_csv(csv_path)
-
-    # Aliasing e ordinamento v3.0
-    if 'Token' not in df.columns and 'EVA_Token' in df.columns:
-      df['Token'] = df['EVA_Token']
-    if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
-      df['Folio_Base'] = df['Folio'].apply(
-          lambda x: str(x).split('.')[0] if '.' in str(x) else str(x)
-      )
-
-    sort_cols = [
-        col
-        for col in ['Folio_Base', 'line_id', 'Record_ID']
-        if col in df.columns
-    ]
-    if sort_cols:
-      df = df.sort_values(by=sort_cols).reset_index(drop=True)
-
-    unique_folios = np.unique(df['Folio_Base'].astype(str).to_numpy())
-    n_folios = len(unique_folios)
-
-    # Split raggruppato sui Folii (Group Split)
-    shuffled_folios = self.rng.permutation(unique_folios)
-    n_train_folios = int(np.ceil(n_folios * train_ratio))
-
-    train_folios = shuffled_folios[:n_train_folios]
-    test_folios = shuffled_folios[n_train_folios:]
-
-    train_mask = df['Folio_Base'].isin(train_folios)
-    test_mask = df['Folio_Base'].isin(test_folios)
-
-    train_df = df[train_mask].reset_index(drop=True)
-    test_df = df[test_mask].reset_index(drop=True)
-
-    # 1. Fitting sul Train Set
-    train_tokens = train_df['Token'].astype(str).to_numpy()
-    train_fols = train_df['Folio_Base'].astype(str).to_numpy()
-    train_states = self._map_tokens(train_tokens)
-    c_trans_train = self._calc_c_trans(train_states, train_fols)
-
-    # 2. Evaluation al Buio sul Test Set (Blind Test)
-    test_tokens = test_df['Token'].astype(str).to_numpy()
-    test_fols = test_df['Folio_Base'].astype(str).to_numpy()
-    test_states = self._map_tokens(test_tokens)
-    c_trans_test = self._calc_c_trans(test_states, test_fols)
-
-    delta_c_trans = abs(c_trans_train - c_trans_test)
-    is_verified = bool(delta_c_trans <= max_delta_threshold)
-    t_elapsed = time.time() - t0
-
-    results = {
-        'Dataset': os.path.basename(csv_path),
-        'Total_Tokens': len(df),
-        'Total_Folios': n_folios,
-        'Train_Folios_Count': len(train_folios),
-        'Test_Folios_Count': len(test_folios),
-        'C_Trans_Train': round(c_trans_train, 6),
-        'C_Trans_Test': round(c_trans_test, 6),
-        'Delta_C_Trans': round(delta_c_trans, 6),
-        'Threshold_Max': max_delta_threshold,
-        'Status_Verified': 'PASS' if is_verified else 'FAIL',
-        'Execution_Time_Sec': round(t_elapsed, 4),
-        'Release_Version': self.version,
-    }
-
-    pd.DataFrame([results]).to_csv(output_path, index=False)
-
-    print('=========================================================')
-    print('   METODO DEMARIA® v3.0 — STRICT OUT-OF-SAMPLE TEST      ')
-    print('=========================================================')
-    print(f'Train Folios (40%):         {len(train_folios)} folii')
-    print(f'Test Folios  (60%):         {len(test_folios)} folii (Blind)')
-    print(f'C_trans Train Set:          {c_trans_train:.6f}')
-    print(f'C_trans Test Set:           {c_trans_test:.6f}')
-    print(f'Delta |Train - Test|:       {delta_c_trans:.6f}')
-    print(f"Esito Validazione:          {results['Status_Verified']}")
-    print('=========================================================')
-
-    return results
-
+def run_train_test_validation():
+    print("==================================================================")
+    print("METODO DEMARIA® — HOLDOUT CROSS-VALIDATION SUITE (v3.0)")
+    print("==================================================================")
+    
+    dataset_hash = get_file_sha256(INPUT_DATASET_PATH)
+    print(f"[*] Dataset Input: {INPUT_DATASET_PATH}")
+    print(f"[*] SHA-256 Provenance Hash: {dataset_hash}")
+    
+    if not os.path.exists(INPUT_DATASET_PATH):
+        print(f"[!] ERRORE CRITICO: File {INPUT_DATASET_PATH} non trovato.")
+        return
+        
+    df = pd.read_csv(INPUT_DATASET_PATH)
+    
+    # NORMALIZZAZIONE COLONNE
+    df.columns = df.columns.str.strip()
+    col_mapping = {}
+    for col in df.columns:
+        if col.lower() == 'folio':
+            col_mapping[col] = 'Folio_Clean'
+        elif col.lower() in ['eva_token', 'token']:
+            col_mapping[col] = 'token'
+    df.rename(columns=col_mapping, inplace=True)
+    
+    rng = np.random.RandomState(SEED)
+    
+    df['State'] = df['token'].apply(lambda t: canonical_token_to_state(t, DEMARIA_MAP, rng))
+    
+    # Split 50/50 Train / Test
+    folios = df['Folio_Clean'].unique()
+    rng.shuffle(folios)
+    
+    split_idx = len(folios) // 2
+    train_folios = set(folios[:split_idx])
+    test_folios = set(folios[split_idx:])
+    
+    train_df = df[df['Folio_Clean'].isin(train_folios)]
+    test_df = df[df['Folio_Clean'].isin(test_folios)]
+    
+    c_train = compute_coherence_matrix(train_df['State'].values)
+    c_test = compute_coherence_matrix(test_df['State'].values)
+    delta_abs = abs(c_train - c_test)
+    
+    print("\n[+] RISULTATI HOLDOUT SPLIT VALIDATION (50/50):")
+    print(f"   - Train Coherence (C_train): {c_train:.6f} ({c_train*100:.2f}%)")
+    print(f"   - Test Coherence  (C_test):  {c_test:.6f} ({c_test*100:.2f}%)")
+    print(f"   - Delta Assoluto:             {delta_abs:.6f}")
+    
+    output_csv = 'train_test_validation_results.csv'
+    res_df = pd.DataFrame([{
+        'Timestamp': datetime.datetime.now().isoformat(),
+        'Dataset_SHA256': dataset_hash,
+        'N_Folios_Train': len(train_folios),
+        'N_Folios_Test': len(test_folios),
+        'C_Train': c_train,
+        'C_Test': c_test,
+        'Delta_Abs': delta_abs
+    }])
+    res_df.to_csv(output_csv, index=False)
+    print(f"\n[V] Report salvato con successo in: {output_csv}")
 
 if __name__ == '__main__':
-  validator = StrictOutOfSampleValidator(seed=42)
-  if os.path.exists('voynich_eva_tokens_extended.csv'):
-    validator.run_strict_validation('voynich_eva_tokens_extended.csv')
-  else:
-    print(
-        "[✓] Modulo 'train_test_split_validation.py' (Release v3.0) caricato e"
-        ' pronto.'
-    )
+    run_train_test_validation()

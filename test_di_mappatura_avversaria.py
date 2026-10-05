@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-# METODO DEMARIA® - Test di Mappatura Avversaria (Release v3.0 - Tier B / CR-04)
-# ------------------------------------------------------------------
-# Test avversario cieco: 10.000 permutazioni stocastiche dell'alfabeto EVA
-# su partizione fissa (5, 5, 5, 5) per verificare la selettività stocastica.
-# Autore: Avv. Alessandro Demaria | Licenza: CC BY-NC-ND 4.0
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
+Modulo: constrained_adversarial_test.py (Test di Mappatura Avversaria CR-04)
+Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+===============================================================================
+Descrizione:
+  Test avversario cieco: 10.000 permutazioni stocastiche dell'alfabeto EVA
+  su partizione fissa (5, 5, 5, 5) per verificare la selettività stocastica (Tier B).
+  Include l'ordinamento codicologico esplicito v3.0 e la stima rigorosa del p-value.
+===============================================================================
+"""
 
 import os
 import sys
@@ -22,21 +30,26 @@ def execute_constrained_adversarial_test(csv_path: str = "voynich_eva_tokens_ext
     rng = np.random.default_rng(seed)
     df = pd.read_csv(csv_path)
 
-    # Aliasing automatico delle colonne
+    # Aliasing automatico delle colonne (v3.0)
     if 'Token' not in df.columns and 'EVA_Token' in df.columns:
         df['Token'] = df['EVA_Token']
     if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
-        df['Folio_Base'] = df['Folio']
+        df['Folio_Base'] = df['Folio'].apply(lambda x: str(x).split('.')[0] if '.' in str(x) else str(x))
 
     if 'Token' not in df.columns or 'Folio_Base' not in df.columns:
         print("ERRORE CRITICO: Colonne 'Token'/'EVA_Token' e 'Folio_Base'/'Folio' necessarie.")
         sys.exit(1)
 
+    # FIXING CRITICO v3.0: Ordinamento sequenziale codicologico esplicito
+    sort_cols = [col for col in ['Folio_Base', 'line_id', 'Record_ID'] if col in df.columns]
+    if sort_cols:
+        df = df.sort_values(by=sort_cols).reset_index(drop=True)
+
     transition_matrix = np.array([
-        [1, 1, 0, 0],
-        [0, 1, 1, 0],
-        [0, 0, 1, 1],
-        [1, 0, 0, 1]
+        [1, 1, 0, 0],  # alpha -> alpha, beta
+        [0, 1, 1, 0],  # beta  -> beta, delta
+        [0, 0, 1, 1],  # delta -> delta, gamma
+        [1, 0, 0, 1]   # gamma -> gamma, alpha
     ], dtype=float)
 
     tokens = df['Token'].astype(str).to_numpy()
@@ -50,10 +63,10 @@ def execute_constrained_adversarial_test(csv_path: str = "voynich_eva_tokens_ext
 
     # Mappatura reale METODO DEMARIA (Partizione fissa 5-5-5-5)
     demaria_map = {
-        'o': 0, 'a': 0, 'e': 0, 'c': 0, 'h': 0,
-        'k': 1, 't': 1, 'p': 1, 'f': 1, 's': 1,
-        'r': 2, 'l': 2, 'q': 2, 'y': 2, 'd': 2,
-        'x': 3, 'g': 3, 'm': 3, 'n': 3, 'i': 3
+        'o': 0, 'a': 0, 'e': 0, 'c': 0, 'h': 0,  # alpha (0)
+        'k': 1, 't': 1, 'p': 1, 'f': 1, 's': 1,  # beta  (1)
+        'r': 2, 'l': 2, 'q': 2, 'y': 2, 'd': 2,  # delta (2)
+        'x': 3, 'g': 3, 'm': 3, 'n': 3, 'i': 3   # gamma (3)
     }
 
     def compute_states_from_map(mapping_dict: dict) -> np.ndarray:

@@ -1,175 +1,144 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""===============================================================================
-
-METODO DEMARIA® — COMPUTATIONAL VOYNICH ANALYSIS FRAMEWORK (Release v3.0)
-Modulo: robustness_stress_test.py (Audit di Robustezza e Bias-Control)
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
-Zenodo DOI: 10.5281/zenodo.23119964
-===============================================================================
-Descrizione:
-  Modulo di blindatura avanzata per la gestione dei bias di conversione Token->Stato.
-  Esegue lo stress test di Tie-Breaking stocastico ed isola lo stato UNKNOWN (-1)
-  senza generare adiacenze artificiali interrotte da token non-mappabili.
-===============================================================================
+"""
+METODO DEMARIA® — STRESS TEST DI ROBUSTEZZA E SENSIBILITÀ (v3.0)
+Autore e Responsabile Scientifico: Avv. Alessandro Demaria
+Data Congelamento: 05 Ottobre 2026
 """
 
 import os
-import sys
-import time
-from typing import Any, Dict
+import re
+import datetime
+import hashlib
 import numpy as np
 import pandas as pd
 
+SEED = 42
+INPUT_DATASET_PATH = 'voynich_eva_tokens_extended.csv'
 
-class RobustnessStressTester:
-  """Suite di Stress Test per il controllo dei bias di conversione (Release v3.0)."""
+DEMARIA_MAP = {
+    'o': 0, 'k': 0, 't': 0, 'p': 0, 'f': 0,
+    'a': 1, 'e': 1, 'i': 1, 'c': 1, 'h': 1,
+    'd': 2, 's': 2, 'y': 2, 'q': 2, 'l': 2,
+    'r': 3, 'm': 3, 'g': 3, 'x': 3, 'z': 3
+}
 
-  TRANSITION_MATRIX: np.ndarray = np.array(
-      [
-          [1, 1, 0, 0],  # alpha -> alpha, beta
-          [0, 1, 1, 0],  # beta  -> beta, delta
-          [0, 0, 1, 1],  # delta -> delta, gamma
-          [1, 0, 0, 1],  # gamma -> gamma, alpha
-      ],
-      dtype=np.int8,
-  )
+def get_file_sha256(filepath: str) -> str:
+    if not os.path.exists(filepath):
+        return "FILE_NOT_FOUND"
+    hasher = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        hasher.update(f.read())
+    return hasher.hexdigest()
 
-  DEMARIA_MAP: Dict[str, int] = {
-      'o': 0,
-      'a': 0,
-      'e': 0,
-      'c': 0,
-      'h': 0,  # alpha (0)
-      'k': 1,
-      't': 1,
-      'p': 1,
-      'f': 1,
-      's': 1,  # beta  (1)
-      'r': 2,
-      'l': 2,
-      'q': 2,
-      'y': 2,
-      'd': 2,  # delta (2)
-      'x': 3,
-      'g': 3,
-      'm': 3,
-      'n': 3,
-      'i': 3,  # gamma (3)
-  }
+def canonical_token_to_state(token: str, demaria_map: dict, rng: np.random.RandomState) -> int:
+    counts = [0, 0, 0, 0]
+    has_known_char = False
+    
+    for char in str(token):
+        if char in demaria_map:
+            state = demaria_map[char]
+            counts[state] += 1
+            has_known_char = True
+            
+    if not has_known_char:
+        return -1
+        
+    max_val = max(counts)
+    winners = [i for i, c in enumerate(counts) if c == max_val]
+    
+    if len(winners) == 1:
+        return winners[0]
+    else:
+        return int(rng.choice(winners))
 
-  def __init__(self, seed: int = 42) -> None:
-    self.seed = seed
-    self.rng = np.random.default_rng(self.seed)
-    self.version = 'v3.0'
+def compute_coherence_matrix(states_series: np.ndarray) -> float:
+    valid_states = states_series[states_series >= 0]
+    if len(valid_states) < 2:
+        return 0.0
+    
+    s1 = valid_states[:-1]
+    s2 = valid_states[1:]
+    
+    matrix = np.zeros((4, 4), dtype=int)
+    for a, b in zip(s1, s2):
+        matrix[a, b] += 1
+        
+    total_transitions = matrix.sum()
+    if total_transitions == 0:
+        return 0.0
+        
+    diag_sum = np.trace(matrix)
+    max_row_sum = matrix.sum(axis=1).max()
+    
+    return float((diag_sum + max_row_sum) / (2.0 * total_transitions))
 
-  def _map_tokens_robust(
-      self, tokens: np.ndarray, tie_break: str = 'random'
-  ) -> np.ndarray:
-    states = np.zeros(len(tokens), dtype=int)
-    for idx, token_str in enumerate(tokens):
-      mapped = [
-          self.DEMARIA_MAP[char]
-          for char in token_str
-          if char in self.DEMARIA_MAP
-      ]
-      if not mapped:
-        states[idx] = -1  # Classe UNKNOWN
-      else:
-        counts = np.bincount(mapped, minlength=4)
-        max_val = np.max(counts)
-        candidates = np.where(counts == max_val)[0]
-        if len(candidates) > 1 and tie_break == 'random':
-          states[idx] = int(self.rng.choice(candidates))
-        else:
-          states[idx] = int(candidates[0])
-    return states
-
-  def _calc_c_trans_robust(
-      self, states: np.ndarray, folios: np.ndarray
-  ) -> float:
-    valid_trans = 0.0
-    total_trans = 0
-    for fol in np.unique(folios):
-      fol_mask = folios == fol
-      fol_states = states[fol_mask]
-
-      if len(fol_states) > 1:
-        s_curr = fol_states[:-1]
-        s_next = fol_states[1:]
-        # FIX REVIEWER 2 (Punto 2.2): Conserva la posizione temporale/spaziale,
-        # scartando soltanto le coppie in cui uno dei due elementi e UNKNOWN (-1)
-        valid_pair_mask = (s_curr != -1) & (s_next != -1)
-
-        if np.any(valid_pair_mask):
-          s_curr_clean = s_curr[valid_pair_mask]
-          s_next_clean = s_next[valid_pair_mask]
-          valid_trans += float(
-              np.sum(self.TRANSITION_MATRIX[s_curr_clean, s_next_clean])
-          )
-          total_trans += len(s_curr_clean)
-
-    return valid_trans / total_trans if total_trans > 0 else 0.0
-
-  def run_robustness_audit(
-      self,
-      csv_path: str = 'voynich_eva_tokens_extended.csv',
-      output_path: str = 'robustness_stress_test_results.csv',
-      simulations: int = 100,
-  ) -> Dict[str, Any]:
-    if not os.path.exists(csv_path):
-      print(f"ERRORE CRITICO: File dataset '{csv_path}' non trovato.")
-      sys.exit(1)
-
-    t0 = time.time()
-    df = pd.read_csv(csv_path)
-
-    if 'Token' not in df.columns and 'EVA_Token' in df.columns:
-      df['Token'] = df['EVA_Token']
-    if 'Folio_Base' not in df.columns and 'Folio' in df.columns:
-      df['Folio_Base'] = df['Folio'].apply(
-          lambda x: str(x).split('.')[0] if '.' in str(x) else str(x)
-      )
-
-    tokens = df['Token'].astype(str).to_numpy()
-    folios = df['Folio_Base'].astype(str).to_numpy()
-
-    det_states = self._map_tokens_robust(tokens, tie_break='first')
-    c_trans_det = self._calc_c_trans_robust(det_states, folios)
-
-    random_tie_scores = np.zeros(simulations, dtype=float)
-    for i in range(simulations):
-      rand_states = self._map_tokens_robust(tokens, tie_break='random')
-      random_tie_scores[i] = self._calc_c_trans_robust(rand_states, folios)
-
-    mean_random_tie = float(np.mean(random_tie_scores))
-    std_random_tie = float(np.std(random_tie_scores))
-
-    unknown_count = int(np.sum(det_states == -1))
-    unknown_ratio = float(unknown_count / len(tokens))
-
-    t_elapsed = time.time() - t0
-
-    results = {
-        'Dataset': os.path.basename(csv_path),
-        'Total_Tokens': len(tokens),
-        'Unknown_Tokens_Count': unknown_count,
-        'Unknown_Ratio': round(unknown_ratio, 6),
-        'C_Trans_Deterministic': round(c_trans_det, 6),
-        'C_Trans_Random_Tie_Mean': round(mean_random_tie, 6),
-        'C_Trans_Random_Tie_Std': round(std_random_tie, 6),
-        'Signal_Stability': (
-            'STABLE' if abs(c_trans_det - mean_random_tie) < 0.02 else 'SENSITIVE'
-        ),
-        'Execution_Time_Sec': round(t_elapsed, 4),
-        'Release_Version': self.version,
-    }
-
-    pd.DataFrame([results]).to_csv(output_path, index=False)
-    return results
-
+def run_robustness_stress_test():
+    print("==================================================================")
+    print("METODO DEMARIA® — STRESS TEST DI ROBUSTEZZA (v3.0)")
+    print("==================================================================")
+    
+    dataset_hash = get_file_sha256(INPUT_DATASET_PATH)
+    print(f"[*] Dataset Input: {INPUT_DATASET_PATH}")
+    print(f"[*] SHA-256 Provenance Hash: {dataset_hash}")
+    
+    if not os.path.exists(INPUT_DATASET_PATH):
+        print(f"[!] ERRORE CRITICO: File {INPUT_DATASET_PATH} non trovato.")
+        return
+        
+    df = pd.read_csv(INPUT_DATASET_PATH)
+    
+    # NORMALIZZAZIONE COLONNE
+    df.columns = df.columns.str.strip()
+    col_mapping = {}
+    for col in df.columns:
+        if col.lower() == 'folio':
+            col_mapping[col] = 'Folio_Clean'
+        elif col.lower() in ['eva_token', 'token']:
+            col_mapping[col] = 'token'
+    df.rename(columns=col_mapping, inplace=True)
+    
+    rng = np.random.RandomState(SEED)
+    
+    df['State'] = df['token'].apply(lambda t: canonical_token_to_state(t, DEMARIA_MAP, rng))
+    
+    c_obs = compute_coherence_matrix(df['State'].values)
+    print(f"\n[+] Coerenza Osservata Canonica (C_obs): {c_obs:.6f}")
+    
+    # Iniezione del rumore graduale (5%, 10%, 20%, 30%, 50%)
+    noise_levels = [0.05, 0.10, 0.20, 0.30, 0.50]
+    results = []
+    
+    states_arr = df['State'].values.copy()
+    valid_mask = states_arr >= 0
+    n_valid = np.sum(valid_mask)
+    
+    print("\n[*] Simulazione iniezione rumore sintetico (Perturbazione Casuale):")
+    for lvl in noise_levels:
+        arr_noisy = states_arr.copy()
+        n_corrupt = int(n_valid * lvl)
+        
+        valid_indices = np.where(valid_mask)[0]
+        corrupt_indices = rng.choice(valid_indices, size=n_corrupt, replace=False)
+        arr_noisy[corrupt_indices] = rng.choice([0, 1, 2, 3], size=n_corrupt)
+        
+        c_noisy = compute_coherence_matrix(arr_noisy)
+        retention = (c_noisy / c_obs) * 100
+        
+        print(f"   - Rumore {int(lvl*100)}%: C_degraded = {c_noisy:.6f} | Retention = {retention:.2f}%")
+        
+        results.append({
+            'Timestamp': datetime.datetime.now().isoformat(),
+            'Dataset_SHA256': dataset_hash,
+            'Noise_Level_Pct': int(lvl*100),
+            'C_Observed': c_obs,
+            'C_Degraded': c_noisy,
+            'Retention_Pct': retention
+        })
+        
+    output_csv = 'robustness_stress_test_results.csv'
+    res_df = pd.DataFrame(results)
+    res_df.to_csv(output_csv, index=False)
+    print(f"\n[V] Report salvato con successo in: {output_csv}")
 
 if __name__ == '__main__':
-  tester = RobustnessStressTester(seed=42)
-  if os.path.exists('voynich_eva_tokens_extended.csv'):
-    tester.run_robustness_audit('voynich_eva_tokens_extended.csv')
+    run_robustness_stress_test()

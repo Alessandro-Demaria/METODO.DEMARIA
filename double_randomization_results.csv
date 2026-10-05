@@ -1,2 +1,2 @@
-Dataset,Total_Tokens,Unique_Folios,Iterations,C_Star_Observed,Double_Null_Mean,Double_Null_Std,Double_Null_Min,Double_Null_Max,Z_Score,p_value_laplace,execution_time_sec,release_version
-voynich_eva_tokens_extended.csv,35483,227,1000,0.683174,0.572064,0.050271,0.506297,0.842467,2.2102,0.034965,443.3853,v3.0
+Timestamp,Dataset_SHA256,C_obs_Demaria,Double_Null_Mean,Double_Null_Std,Z_Score,P_Value
+2026-10-05T17:29:54.624860,dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999,0.43606571259209076,0.4244514776865103,0.001137969387257941,10.20610487033064,0.000999000999000999
