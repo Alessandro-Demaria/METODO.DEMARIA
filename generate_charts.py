@@ -1,122 +1,170 @@
 """
 ===============================================================================
-METODO DEMARIA® / METODO DEMARIA™ — SUITE DI GENERAZIONE GRAFICI AUDIT v3.2
+METODO DEMARIA® — GENERATORE DI GRAFICI EMPIRICI AD ALTA RISOLUZIONE (v3.2)
 ===============================================================================
 Modulo: generate_charts.py
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+Autore e Inventore: Avv. Alessandro Demaria
+PEC: avv.alessandrodemaria@pec.it
+DOI UFFICIALE: 10.5281/zenodo.23199718
+Licenza: CC BY 4.0
 ===============================================================================
 """
 
-import os
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# Configurazione dello stile grafico accademico
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial']
-plt.rcParams['axes.edgecolor'] = '#333333'
-plt.rcParams['axes.linewidth'] = 1.0
 
-def plot_null_models():
-    """1. Grafico Z-Scores dei Modelli Nulli Gerarchici (Fase 1)"""
-    models = ['Global Null\n(Model 1)', 'Intra-Folio Null\n(Model 2)', 'Intra-Line Null\n(Model 3)']
-    z_scores = [4.3541, 1.1882, 4.3958]
-    colors = ['#1f77b4', '#7f7f7f', '#d62728']
+def generate_empirical_charts(
+    c_obs,
+    global_scores,
+    line_scores,
+    double_scores,
+    robustness_df,
+    output_prefix="audit_master",
+):
+  """Genera i 3 grafici empirici ad alta risoluzione (300 DPI) basati esclusivamente sui punteggi reali calcolati dalle 10.000 simulazioni Monte Carlo."""
+  plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
 
-    plt.figure(figsize=(9, 5.5), dpi=300)
-    bars = plt.bar(models, z_scores, color=colors, width=0.55, edgecolor='black', linewidth=1)
-    
-    # Linea di soglia di significatività statistica (Z = +1.96, p = 0.05)
-    plt.axhline(y=1.96, color='orange', linestyle='--', linewidth=1.5, label='Soglia di Significatività (Z = +1.96, p = 0.05)')
-    plt.axhline(y=0, color='black', linewidth=0.8)
+  # ---------------------------------------------------------------------------
+  # GRAFICO 1: Modelli Nulli Gerarchici (Global vs Intra-Line vs Observed)
+  # ---------------------------------------------------------------------------
+  fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
 
-    # Etichette sui valori
-    for bar, z in zip(bars, z_scores):
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.12, f'Z = +{z:.4f}', 
-                 ha='center', va='bottom', fontsize=11, fontweight='bold')
+  ax.hist(
+      global_scores,
+      bins=50,
+      alpha=0.6,
+      color="#1f77b4",
+      label="Global Null Model (Corpus Permutation)",
+      edgecolor="black",
+      linewidth=0.5,
+  )
+  ax.hist(
+      line_scores,
+      bins=50,
+      alpha=0.6,
+      color="#2ca02c",
+      label="Intra-Line Null Model (Within-Line Permutation)",
+      edgecolor="black",
+      linewidth=0.5,
+  )
 
-    plt.title('METODO DEMARIA™ (v3.2) — Significatività Statistica Modelli Nulli (Fase 1)', fontsize=13, fontweight='bold', pad=15)
-    plt.ylabel('Z-Score (Deviazioni Standard dalla Media Nulla)', fontsize=11)
-    plt.ylim(0, 5.2)
-    plt.grid(axis='y', linestyle=':', alpha=0.6)
-    plt.legend(loc='upper right', frameon=True)
-    plt.tight_layout()
-    
-    filename = 'chart_1_null_models_zscores.png'
-    plt.savefig(filename, dpi=300)
-    plt.close()
-    print(f"[+] Grafico 1 salvato: {filename}")
+  ax.axvline(
+      c_obs,
+      color="#d62728",
+      linestyle="--",
+      linewidth=2.5,
+      label=f"Observed Real Coherence (C_obs = {c_obs:.6f})",
+  )
 
-def plot_robustness_curve():
-    """2. Grafico Curva di Resilienza al Rumore (Fase 3)"""
-    noise_levels = [0.0, 1.0, 5.0, 10.0, 20.0, 30.0]
-    retention_rates = [100.00, 99.46, 97.37, 94.85, 90.30, 86.20]
-    c_raw_values = [0.685281, 0.681574, 0.667276, 0.650001, 0.618813, 0.590724]
+  ax.set_title(
+      "METODO DEMARIA® v3.2 — Hierarchical Null Models Distribution (Empirical"
+      " N=10000)",
+      fontsize=12,
+      fontweight="bold",
+  )
+  ax.set_xlabel("Syntactic Coherence (C_raw)", fontsize=11)
+  ax.set_ylabel("Frequency", fontsize=11)
+  ax.legend(loc="upper left", frameon=True)
+  plt.tight_layout()
 
-    fig, ax1 = plt.subplots(figsize=(9, 5.5), dpi=300)
+  chart1_path = f"{output_prefix}_null_models_empirical.png"
+  plt.savefig(chart1_path)
+  plt.close()
+  print(f"[CHART] Grafico Null Models generato: {chart1_path}")
 
-    # Asse Principale: Ritenzione Coerenza (%)
-    color = '#2ca02c'
-    ax1.set_xlabel('Livello di Rumore Iniettato nel Corpus (%)', fontsize=11, labelpad=10)
-    ax1.set_ylabel('Ritenzione della Coerenza Sintattica (%)', color=color, fontsize=11, fontweight='bold')
-    line1 = ax1.plot(noise_levels, retention_rates, marker='o', linewidth=2.5, color=color, markersize=7, label='Ritenzione Coerenza (%)')
-    ax1.tick_params(axis='y', labelcolor=color)
-    ax1.set_ylim(80, 102)
+  # ---------------------------------------------------------------------------
+  # GRAFICO 2: Isomorphic Double Randomization Test
+  # ---------------------------------------------------------------------------
+  fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
 
-    # Annotazione punto critico 10% rumore
-    ax1.annotate('94.85% Ritenzione\n(10% Rumore)', xy=(10, 94.85), xytext=(12, 91),
-                 arrowprops=dict(facecolor='black', shrink=0.08, width=1, headwidth=6),
-                 fontsize=10, fontweight='bold', bbox=dict(boxstyle="round,pad=0.3", fc="yellow", ec="black", lw=1))
+  ax.hist(
+      double_scores,
+      bins=50,
+      alpha=0.7,
+      color="#9467bd",
+      label="Isomorphic Double Randomization Null",
+      edgecolor="black",
+      linewidth=0.5,
+  )
+  ax.axvline(
+      c_obs,
+      color="#d62728",
+      linestyle="--",
+      linewidth=2.5,
+      label=f"Observed Real Coherence (C_obs = {c_obs:.6f})",
+  )
 
-    # Asse Secondario: Valore C_raw
-    ax2 = ax1.twinx()  
-    color = '#1f77b4'
-    ax2.set_ylabel('Coerenza Sintattica Osservata (C_raw)', color=color, fontsize=11, fontweight='bold')
-    line2 = ax2.plot(noise_levels, c_raw_values, marker='s', linestyle='--', linewidth=2, color=color, markersize=6, label='C_raw Osservato')
-    ax2.tick_params(axis='y', labelcolor=color)
-    ax2.set_ylim(0.50, 0.72)
+  double_mean = np.mean(double_scores)
+  ax.axvline(
+      double_mean,
+      color="#8c564b",
+      linestyle=":",
+      linewidth=2.0,
+      label=f"Double Null Mean ({double_mean:.6f})",
+  )
 
-    plt.title('METODO DEMARIA™ (v3.2) — Stress Test e Resilienza al Rumore (Fase 3)', fontsize=13, fontweight='bold', pad=15)
-    ax1.grid(True, linestyle=':', alpha=0.6)
-    fig.tight_layout()
+  ax.set_title(
+      "METODO DEMARIA® v3.2 — Double Randomization Adversarial Test (Empirical"
+      " N=10000)",
+      fontsize=12,
+      fontweight="bold",
+  )
+  ax.set_xlabel("Syntactic Coherence (C_raw)", fontsize=11)
+  ax.set_ylabel("Frequency", fontsize=11)
+  ax.legend(loc="upper right", frameon=True)
+  plt.tight_layout()
 
-    filename = 'chart_2_robustness_stress_test.png'
-    plt.savefig(filename, dpi=300)
-    plt.close()
-    print(f"[+] Grafico 2 salvato: {filename}")
+  chart2_path = f"{output_prefix}_double_randomization_empirical.png"
+  plt.savefig(chart2_path)
+  plt.close()
+  print(f"[CHART] Grafico Double Randomization generato: {chart2_path}")
 
-def plot_double_randomization():
-    """3. Grafico Distribuzione Double Randomization Isomorfo (Fase 2)"""
-    np.random.seed(42)
-    # Simulazione della distribuzione normale dai parametri reali dell'Audit v3.2
-    double_null_data = np.random.normal(loc=0.711419, scale=0.032831, size=10000)
-    c_raw_real = 0.685281
+  # ---------------------------------------------------------------------------
+  # GRAFICO 3: Robustness & Noise Stress Test
+  # ---------------------------------------------------------------------------
+  fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
 
-    plt.figure(figsize=(9, 5.5), dpi=300)
-    n, bins, patches = plt.hist(double_null_data, bins=50, color='#aec7e8', edgecolor='navy', alpha=0.7, density=True, label='Distribuzione Double Null (N=10.000)')
+  noise_pcts = [int(x * 100) for x in robustness_df["noise_level"]]
+  retentions = robustness_df["retention_pct"]
 
-    # Linea del valore reale Voynich C_raw
-    plt.axvline(x=c_raw_real, color='red', linestyle='-', linewidth=2.5, label=f'C_raw Voynich Reale ({c_raw_real:.6f})')
-    plt.axvline(x=0.711419, color='black', linestyle='--', linewidth=1.5, label='Media Double Null (0.711419)')
+  ax.plot(
+      noise_pcts,
+      retentions,
+      marker="o",
+      linewidth=2.5,
+      color="#ff7f0e",
+      label="Coherence Retention %",
+  )
 
-    plt.title('METODO DEMARIA™ (v3.2) — Double Randomization Test Isomorfo (Fase 2)', fontsize=13, fontweight='bold', pad=15)
-    plt.xlabel('Indice di Coerenza Sintattica Permutato', fontsize=11)
-    plt.ylabel('Densità di Probabilità', fontsize=11)
-    plt.legend(loc='upper right', frameon=True)
-    plt.grid(True, linestyle=':', alpha=0.6)
-    plt.tight_layout()
+  for x, y in zip(noise_pcts, retentions):
+    ax.annotate(
+        f"{y:.2f}%",
+        (x, y),
+        textcoords="offset points",
+        xytext=(0, 8),
+        ha="center",
+        fontsize=9,
+        fontweight="bold",
+    )
 
-    filename = 'chart_3_double_randomization.png'
-    plt.savefig(filename, dpi=300)
-    plt.close()
-    print(f"[+] Grafico 3 salvato: {filename}")
+  ax.set_title(
+      "METODO DEMARIA® v3.2 — Noise Stress Test & Sensor Resilience Curve",
+      fontsize=12,
+      fontweight="bold",
+  )
+  ax.set_xlabel("Injected Transcription Noise (%)", fontsize=11)
+  ax.set_ylabel("Coherence Retention (%)", fontsize=11)
+  ax.set_ylim(75, 105)
+  ax.legend(loc="lower left", frameon=True)
+  plt.tight_layout()
+
+  chart3_path = f"{output_prefix}_robustness_stress_test.png"
+  plt.savefig(chart3_path)
+  plt.close()
+  print(f"[CHART] Grafico Stress Test generato: {chart3_path}")
+
 
 if __name__ == "__main__":
-    print("=" * 75)
-    print("METODO DEMARIA® — GENERAZIONE GRAFICI AD ALTA RISOLUZIONE (v3.2)")
-    print("=" * 75 + "\n")
-    plot_null_models()
-    plot_robustness_curve()
-    plot_double_randomization()
-    print("\n[+] Tutti i 3 grafici ad alta risoluzione (300 DPI) sono stati generati con successo!")
+  print("Modulo generate_charts.py pronto all'uso e bonificato (v3.2 Canonico).")

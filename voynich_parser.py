@@ -1,16 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA® — PARSER E NORMALIZZATORE DI CORPUS (v3.0 - Canonico)
-Modulo: voynich_parser.py
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
-===============================================================================
-Descrizione:
-  Modulo di ingestion, parsing e scoring segmentato del dataset EVA.
-  Esegue lo stripping esplicito via RegEx di Folio_Base e Line_Num per eliminare
-  qualsiasi leakage inter-folio o inter-linea.
-  Implementa la funzione canonica compute_c_raw_segmented().
+METODO DEMARIA™ - Release v3.2 (Audit-Master)
+SUITE DI VALIDAZIONE RIGOROSA
+Modulo 1: Parser EVA & Loader di Specifica Canonica (Calibrato sui 227 Folii)
+Autore e Inventore: Avv. Alessandro Demaria
+PEC: avv.alessandrodemaria@pec.it
+DOI UFFICIALE: 10.5281/zenodo.23199718
 ===============================================================================
 """
 
@@ -24,6 +19,10 @@ SPEC_FILE = 'method_specification.json'
 
 
 def load_method_specification(spec_path: str = SPEC_FILE) -> dict:
+  """Carica la specifica metodologica canonica v3.2.
+
+  Arresta l'esecuzione se il file non è presente.
+  """
   if not os.path.exists(spec_path):
     raise FileNotFoundError(
         f"[!] ERRORE CRITICO: File di specifica '{spec_path}' non trovato."
@@ -33,6 +32,10 @@ def load_method_specification(spec_path: str = SPEC_FILE) -> dict:
 
 
 def build_demaria_map_from_spec(spec: dict) -> dict:
+  """Costruisce la mappa dei caratteri EVA verso i 4 stati vettoriali minimi
+
+  (Alpha, Beta, Delta, Gamma).
+  """
   states_dict = spec['canonical_mapping']['states']
   indices_dict = spec['canonical_mapping']['state_indices']
 
@@ -45,9 +48,10 @@ def build_demaria_map_from_spec(spec: dict) -> dict:
 
 
 def canonical_token_to_state(token: str, char_map: dict) -> int:
-  """Mappatura deterministica dello stato dominante del token senza tie-breaking stocastico.
+  """Mappatura deterministica dello stato dominante del token EVA.
 
   Priorità deterministica: Alpha (0) -> Beta (1) -> Delta (2) -> Gamma (3).
+  Restituisce -1 se nessun carattere del token è riconosciuto.
   """
   counts = [0, 0, 0, 0]
   has_known_char = False
@@ -67,9 +71,14 @@ def canonical_token_to_state(token: str, char_map: dict) -> int:
 
 
 def parse_and_clean_dataset(spec_path: str = SPEC_FILE) -> pd.DataFrame:
-  """Parsing esplicito con RegEx per derivare Folio_Base e Line_Num dal campo originale.
+  """Carica e normalizza il dataset EVA esteso.
 
-  Arresta l'esecuzione (Fail-Fast) se la struttura del dataset risulta invalida.
+  ISOLAMENTO E RIGORE METODOLOGICO (PAPER v3.2):
+  1. Isola i 227 Folii Canonici (.split('.')[0]) preservando le sotto-sezioni.
+  2. Estrae la coordinata di rigo reale per preservare la struttura spaziale.
+  3. Genera la Composite_Line_Key (Folio_Base + "::" + Line_Num) per isolare
+     l'adiacenza intra-linea ed eliminare il data leakage inter-folio e
+     inter-linea.
   """
   spec = load_method_specification(spec_path)
   dataset_path = spec['master_dataset']['filename']
@@ -84,7 +93,7 @@ def parse_and_clean_dataset(spec_path: str = SPEC_FILE) -> pd.DataFrame:
 
   folio_col = None
   for col in df.columns:
-    if col.lower() in ['folio', 'folio_clean']:
+    if col.lower() in ['folio', 'folio_clean', 'folio_base']:
       folio_col = col
       break
 
@@ -92,8 +101,7 @@ def parse_and_clean_dataset(spec_path: str = SPEC_FILE) -> pd.DataFrame:
     raise KeyError('[!] ERRORE CRITICO: Colonna Folio non trovata nel dataset.')
 
   def extract_folio_base(val):
-    match = re.search(r'f\d+[rv]', str(val).lower())
-    return match.group(0) if match else str(val).split('.')[0]
+    return str(val).split('.')[0]
 
   def extract_line_num(val):
     match = re.search(r'\.(\d+)', str(val))
@@ -108,23 +116,25 @@ def parse_and_clean_dataset(spec_path: str = SPEC_FILE) -> pd.DataFrame:
   df['Folio_Base'] = df['Folio_Clean'].apply(extract_folio_base)
   df['Line_Num'] = df['Folio_Clean'].apply(extract_line_num)
 
-  # Fail-Fast se privo di Line_Num
   if (df['Line_Num'] == -1).any():
     invalid_count = (df['Line_Num'] == -1).sum()
     raise ValueError(
-        f'[!] ERRORE CRITICO (P0.4): Trovati {invalid_count} record privi di'
-        ' Line_Num identificabile!'
+        f'[!] ERRORE CRITICO: Trovati {invalid_count} record privi di Line_Num'
+        ' identificabile!'
     )
+
+  df['Composite_Line_Key'] = (
+      df['Folio_Base'].astype(str) + '::' + df['Line_Num'].astype(str)
+  )
 
   token_col = None
   for col in df.columns:
-    if col.lower() in ['token', 'eva_token']:
+    if col.lower() in ['token', 'eva_token', 'eva_token_clean']:
       token_col = col
       break
+
   if token_col is None:
-    raise KeyError(
-        '[!] ERRORE CRITICO: Colonna Token non trovata nel dataset.'
-    )
+    raise KeyError('[!] ERRORE CRITICO: Colonna Token non trovata nel dataset.')
 
   df['token'] = df[token_col].astype(str)
 
@@ -137,18 +147,17 @@ def parse_and_clean_dataset(spec_path: str = SPEC_FILE) -> pd.DataFrame:
 
 
 def compute_c_raw_segmented(
-    df: pd.DataFrame,
-    transition_matrix: np.ndarray,
-    group_by=['Folio_Base', 'Line_Num'],
+    df: pd.DataFrame, transition_matrix: np.ndarray
 ) -> float:
-  """Funzione Canonica Universale (P0.1): Calcola C_raw escludendo qualsiasi
+  """Funzione Canonica Universale: Calcola C_raw escludendo tassativamente
 
-  transizione a cavallo di righi o folii diversi.
+  qualsiasi transizione a cavallo di righi o folii diversi tramite
+  Composite_Line_Key.
   """
   valid_transitions_total = 0
   total_transitions_total = 0
 
-  grouped = df.groupby(group_by, sort=False)
+  grouped = df.groupby('Composite_Line_Key', sort=False)
 
   for _, group in grouped:
     states = group['State'].values
@@ -172,20 +181,18 @@ def compute_c_raw_segmented(
 
 
 if __name__ == '__main__':
-  print('==================================================================')
-  print('METODO DEMARIA® — PARSER E SCORED SEGMENTATO (v3.0 Canonico)')
-  print('==================================================================')
+  print('=' * 70)
+  print('METODO DEMARIA® — PARSER E SCORED SEGMENTATO (v3.2 Canonico)')
+  print('=' * 70)
   spec = load_method_specification(SPEC_FILE)
   transition_matrix = np.array(
-      spec['transition_matrix_validity']['allowed_transitions'], dtype=float
+      spec['transition_matrix_validity']['allowed_transitions'], dtype=bool
   )
 
   df = parse_and_clean_dataset(SPEC_FILE)
   c_raw = compute_c_raw_segmented(df, transition_matrix)
-  print(f'[*] Registri Processati:     {len(df)}')
-  print(f"[*] Folii Unici Isolati:     {df['Folio_Base'].nunique()}")
-  print(
-      '[*] Righe Uniche Isolate:    '
-      f" {df.groupby(['Folio_Base', 'Line_Num']).ngroups}"
-  )
-  print(f'[+] Coerenza C_raw Segmentata: {c_raw:.6f} ({c_raw*100:.2f}%)')
+
+  print(f'[*] Registri Processati:         {len(df)}')
+  print(f"[*] Folii Unici Isolati:         {df['Folio_Base'].nunique()}")
+  print(f"[*] Chiavi di Rigo Uniche:       {df['Composite_Line_Key'].nunique()}")
+  print(f'[+] Coerenza C_raw Segmentata:   {c_raw:.6f} ({c_raw*100:.2f}%)')

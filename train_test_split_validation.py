@@ -1,111 +1,83 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA® — HELD-OUT STRUCTURAL STABILITY SUITE (v3.0 - Canonico)
-Modulo: train_test_split_validation.py
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+METODO DEMARIA® — SPATIAL STRUCTURAL STABILITY ANALYSIS (v3.2 CANONICO)
 ===============================================================================
-Descrizione:
-  Test di stabilità e generalizzazione strutturale su raggruppamento rigido 50/50
-  per Folio_Base.
-  Utilizza voynich_parser.py per l'ingestion pulita e la funzione canonica
-  compute_c_raw_segmented() per garantire zero inter-folio / inter-line leakage.
-  Legge i parametri esclusivamente da method_specification.json.
+Modulo: train_test_split_validation.py
+Autore e Inventore: Avv. Alessandro Demaria
+PEC: avv.alessandrodemaria@pec.it
+DOI UFFICIALE: 10.5281/zenodo.23199718
+Licenza: CC BY 4.0
 ===============================================================================
 """
 
-import os
 import json
-import hashlib
-import datetime
 import numpy as np
 import pandas as pd
-from voynich_parser import (
-    parse_and_clean_dataset,
-    compute_c_raw_segmented,
-    load_method_specification,
-    SPEC_FILE
-)
+from voynich_parser import parse_and_clean_dataset, load_method_specification, compute_c_raw_segmented, SPEC_FILE
 
-def get_file_sha256(filepath: str) -> str:
-    if not os.path.exists(filepath):
-        return 'FILE_NOT_FOUND'
-    hasher = hashlib.sha256()
-    with open(filepath, 'rb') as f:
-        hasher.update(f.read())
-    return hasher.hexdigest()
 
-def run_train_test_validation():
-    print("==================================================================")
-    print(" METODO DEMARIA® — HELD-OUT STRUCTURAL STABILITY SUITE (v3.0) ")
-    print("==================================================================")
-
+def run_holdout_validation(df=None, transition_matrix=None, split_ratio=0.5, seed=42):
+    """
+    Esegue l'Analisi di Stabilità Strutturale Spaziale mediante Holdout Split 50/50 sui 227 Folii Canonici.
+    Valuta lo scarto percentuale Delta C % tra sottoinsiemi indipendenti di folii.
+    """
     spec = load_method_specification(SPEC_FILE)
-    dataset_path = spec['master_dataset']['filename']
-    expected_hash = spec['master_dataset']['sha256_hash']
-    seed = spec['system_parameters']['seed']
 
-    dataset_hash = get_file_sha256(dataset_path)
-    print(f"[*] Single Source of Truth: {SPEC_FILE}")
-    print(f"[*] Dataset Input:          {dataset_path}")
-    print(f"[*] SHA-256 Atteso:         {expected_hash}")
-    print(f"[*] SHA-256 Rilevato:       {dataset_hash}")
+    if df is None:
+        df = parse_and_clean_dataset(SPEC_FILE)
 
-    if dataset_hash.lower() != expected_hash.lower():
-        print("[!] ATTENZIONE CRITICA: SHA-256 non corrisponde all'hash congelato in specifica!")
-    else:
-        print("[✓] PROVENIENZA DATASET VERIFICATA (HASH SHA-256 MATCH).")
+    if transition_matrix is None:
+        raw_matrix = spec.get("transition_matrix_validity", {}).get("allowed_transitions", None)
+        if raw_matrix is None:
+            raw_matrix = [
+                [1, 1, 0, 0],
+                [0, 1, 1, 0],
+                [0, 0, 1, 1],
+                [1, 0, 0, 1]
+            ]
+        transition_matrix = np.array(raw_matrix, dtype=bool)
 
-    if not os.path.exists(dataset_path):
-        print(f"[!] ERRORE CRITICO: Dataset '{dataset_path}' non trovato.")
-        return
+    df = df[df['State'] >= 0].copy()
 
-    # Ingestion pulita e segmentata via parser canonico
-    df = parse_and_clean_dataset(SPEC_FILE)
-    transition_matrix = np.array(spec['transition_matrix_validity']['allowed_transitions'], dtype=float)
+    # Estrazione folii unici isolati (227 Folii Canonici)
+    unique_folios = df['Folio_Base'].unique()
+    n_folios = len(unique_folios)
 
-    # Raggruppamento per veri folii base unici (203 folii)
-    unique_folios = np.array(sorted(df['Folio_Base'].unique()))
-    
-    rng = np.random.RandomState(seed)
-    rng.shuffle(unique_folios)
+    rng = np.random.default_rng(seed)
+    shuffled_folios = rng.permutation(unique_folios)
 
-    # Split 50/50 sui folii unici
-    split_idx = len(unique_folios) // 2
-    train_folios = set(unique_folios[:split_idx])
-    test_folios = set(unique_folios[split_idx:])
+    split_point = int(n_folios * split_ratio)
+    train_folios = shuffled_folios[:split_point]
+    test_folios = shuffled_folios[split_point:]
 
-    train_df = df[df['Folio_Base'].isin(train_folios)].copy()
-    test_df = df[df['Folio_Base'].isin(test_folios)].copy()
+    df_train = df[df['Folio_Base'].isin(train_folios)].copy()
+    df_test = df[df['Folio_Base'].isin(test_folios)].copy()
 
-    # Calcolo C_raw segmentato senza leakage inter-linea / inter-folio
-    c_train = compute_c_raw_segmented(train_df, transition_matrix, group_by=['Folio_Base', 'Line_Num'])
-    c_test = compute_c_raw_segmented(test_df, transition_matrix, group_by=['Folio_Base', 'Line_Num'])
-    delta_abs = abs(c_train - c_test)
+    c_train = compute_c_raw_segmented(df_train, transition_matrix)
+    c_test = compute_c_raw_segmented(df_test, transition_matrix)
 
-    print("\n[+] RISULTATI HELD-OUT STRUCTURAL STABILITY (50/50 Grouped on Folio_Base):")
-    print(f"   - Folii Unici Totali:     {len(unique_folios)}")
-    print(f"   - Folii Train Set (50%):  {len(train_folios)}")
-    print(f"   - Folii Test Set  (50%):  {len(test_folios)}")
-    print(f"   - Train Coherence (C_raw): {c_train:.6f} ({c_train*100:.2f}%)")
-    print(f"   - Test Coherence  (C_raw): {c_test:.6f} ({c_test*100:.2f}%)")
-    print(f"   - Delta Assoluto (|ΔC|):   {delta_abs:.6f} ({delta_abs*100:.2f}%)")
+    delta_c_abs = abs(c_train - c_test)
+    delta_c_pct = (delta_c_abs / c_train) * 100.0 if c_train > 0 else 0.0
 
-    output_csv = 'train_test_validation_results.csv'
-    res_df = pd.DataFrame([{
-        'Timestamp': datetime.datetime.now().isoformat(),
-        'Dataset_SHA256': dataset_hash,
-        'Seed': seed,
-        'N_Folios_Total': len(unique_folios),
-        'N_Folios_Train': len(train_folios),
-        'N_Folios_Test': len(test_folios),
-        'C_Train_Raw': c_train,
-        'C_Test_Raw': c_test,
-        'Delta_Abs': delta_abs
-    }])
-    res_df.to_csv(output_csv, index=False)
-    print(f"\n[V] Report di Audit salvato in: '{output_csv}'")
+    print("\n>>> ESECUZIONE SPATIAL STRUCTURAL STABILITY ANALYSIS (HOLDOUT 50/50) <<<")
+    print(f"[*] Total Unique Folios: {n_folios}")
+    print(f"[*] Training Folios:     {len(train_folios)} | Test Folios: {len(test_folios)}")
+    print(f"   - Coerenza Train (C_train): {c_train:.6f}")
+    print(f"   - Coerenza Test  (C_test):  {c_test:.6f}")
+    print(f"   - Delta C %:                {delta_c_pct:.2f}%\n")
 
-if __name__ == '__main__':
-    run_train_test_validation()
+    result_summary = {
+        "n_total_folios": n_folios,
+        "n_train_folios": len(train_folios),
+        "n_test_folios": len(test_folios),
+        "c_train": c_train,
+        "c_test": c_test,
+        "delta_c_abs": delta_c_abs,
+        "delta_c_pct": delta_c_pct
+    }
+
+    return result_summary
+
+
+if __name__ == "__main__":
+    print("Modulo train_test_split_validation.py pronto all'uso e bonificato (v3.2 Canonico).")

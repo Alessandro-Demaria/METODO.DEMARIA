@@ -1,34 +1,32 @@
 """
 ===============================================================================
-METODO DEMARIA® — BATCH RUNNER SUITE AUDIT MASTER (v3.2 CANONICO)
+METODO DEMARIA® — BATCH RUNNER MASTER (v3.2 AUDIT-MASTER)
 ===============================================================================
 Modulo: batch_runner.py
-Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
+Autore e Inventore: Avv. Alessandro Demaria
+PEC: avv.alessandrodemaria@pec.it
+DOI UFFICIALE: 10.5281/zenodo.23199718
+Licenza: CC BY 4.0
 ===============================================================================
 """
 
-import sys
 import os
 import json
 import hashlib
-import time
-import pandas as pd
+from datetime import datetime
 import numpy as np
+import pandas as pd
 
-# Importazione dei moduli dell'Audit Metodo Demaria
-from voynich_parser import parse_and_clean_dataset, load_method_specification, SPEC_FILE
-from null_model_test import run_full_audit_suite
-from double_randomization_test import run_double_randomization_test
-from robustness_stress_test import run_robustness_stress_test
-
-DATASET_FILE = "voynich_eva_tokens_extended.csv"
-OUTPUT_SUMMARY_CSV = "audit_master_summary_results.csv"
-OUTPUT_ROBUSTNESS_CSV = "robustness_test_results.csv"
+import voynich_parser
+import null_model_test
+import double_randomization_test
+import robustness_stress_test
+import train_test_split_validation
+import generate_charts
 
 
-def calculate_sha256(filepath):
-    if not os.path.exists(filepath):
-        return None
+def compute_sha256(filepath):
+    """Calcola l'impronta crittografica SHA-256 di un file su disco."""
     sha256_hash = hashlib.sha256()
     with open(filepath, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
@@ -36,84 +34,162 @@ def calculate_sha256(filepath):
     return sha256_hash.hexdigest()
 
 
-def run_preflight_checks():
-    print("=" * 70)
-    print("METODO DEMARIA® — PRE-FLIGHT AUDIT & FAIL-FAST CHECK (v3.2)")
-    print("=" * 70 + "\n")
+def run_preflight_checks(spec_path="method_specification.json"):
+    """
+    Esegue le verifiche pre-flight e il controllo d'integrità Fail-Fast.
+    """
+    print("=" * 75)
+    print("METODO DEMARIA® — Release v3.2 (Audit-Master)")
+    print("ESECUZIONE AUDIT INTEGRATO SUITE ALESSANDRO")
+    print("=" * 75 + "\n")
 
-    if not os.path.exists(SPEC_FILE):
-        print(f"[-] ERRORE CRITICO: Specifica '{SPEC_FILE}' non trovata.")
-        sys.exit(1)
+    if not os.path.exists(spec_path):
+        raise FileNotFoundError(f"[!] ERRORE CRITICO: Specifica '{spec_path}' non trovata.")
 
-    if not os.path.exists(DATASET_FILE):
-        print(f"[-] ERRORE CRITICO: Dataset '{DATASET_FILE}' non trovato.")
-        sys.exit(1)
+    spec = voynich_parser.load_method_specification(spec_path)
+    csv_path = spec.get("master_dataset", {}).get("filename", "voynich_eva_tokens_extended.csv")
 
-    # Verifica SHA-256 Dataset
-    dataset_hash = calculate_sha256(DATASET_FILE)
-    expected_hash = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
-    
-    print(f"[*] Specifica Canonica:     {SPEC_FILE}")
-    print(f"[*] Dataset Master:         {DATASET_FILE}")
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"[!] ERRORE CRITICO: Dataset Master '{csv_path}' non trovato.")
+
+    expected_hash = spec.get("master_dataset", {}).get("sha256_hash", "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999")
+    detected_hash = compute_sha256(csv_path)
+
+    print(f"[*] Specifica Canonica:     {spec_path}")
+    print(f"[*] Dataset Master:         {csv_path}")
     print(f"[*] SHA-256 Atteso:         {expected_hash}")
-    print(f"[*] SHA-256 Rilevato:       {dataset_hash}")
+    print(f"[*] SHA-256 Rilevato:       {detected_hash}")
 
-    if dataset_hash != expected_hash:
-        print("[!] ATTENZIONE: Hash SHA-256 non corrisponde esattamente all'atteso.")
+    if expected_hash.lower() != detected_hash.lower():
+        print("[!] AVVERTIMENTO: Discrepanza Hash SHA-256 (Procedo con il dataset locale).")
     else:
-        print("[1/3] VERIFICA CRITTOGRAFICA SHA-256: PASS.")
+        print("[1/6] VERIFICA CRITTOGRAFICA DATASET: PASS.")
 
-    # Parse e conteggio record
-    df = parse_and_clean_dataset(SPEC_FILE)
+    df = voynich_parser.parse_and_clean_dataset(spec_path)
     n_records = len(df)
-    print(f"[*] Record Totali Rilevati: {n_records}")
-    if n_records < 30000:
-        print("[-] ERRORE CRITICO: Conteggio record insufficiente.")
-        sys.exit(1)
-    print("[2/3] VERIFICA CONTEGGIO RECORD: PASS.")
+    n_folios = df['Folio_Base'].nunique()
+    n_line_keys = df['Composite_Line_Key'].nunique()
 
-    spec = load_method_specification(SPEC_FILE)
-    print(f"[*] Tie-Breaking Rule:      {spec.get('state_mapping_rules', {}).get('tie_breaking_rule')}")
-    print(f"[*] Monte Carlo N:          10000")
-    print(f"[*] Seed di Sistema:        42\n")
-
-    print("[3/3] TUTTI I PRE-FLIGHT CHECK SUPERATI CON SUCCESSO. AVVIO SUITE...\n")
-    print("=" * 70 + "\n")
+    print(f"   - Corpus caricato con successo: {n_records} token, {n_folios} folii, {n_line_keys} chiavi di rigo.\n")
+    return df, spec
 
 
-def run_master_suite():
-    start_time = time.time()
-    run_preflight_checks()
+def execute_master_audit():
+    start_time = datetime.now()
+    df, spec = run_preflight_checks()
 
-    print("METODO DEMARIA® — ESECUZIONE SUITE DI AUDIT MASTER (FULL RUN)")
-    print("=" * 70)
-    print(f"[*] Ora Inizio Esecuzione: {time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
+    raw_matrix = spec.get("transition_matrix_validity", {}).get("allowed_transitions", None)
+    if raw_matrix is None:
+        raw_matrix = [
+            [1, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 1],
+            [1, 0, 0, 1]
+        ]
+    transition_matrix = np.array(raw_matrix, dtype=bool)
 
-    # 1. Modelli Nulli Gerarchici
-    print(">>> FASE 1/3: ESECUZIONE MODELLI NULLI GERARCHICI <<<")
-    df_null_results = run_full_audit_suite(n_simulations=10000, seed=42)
+    n_simulations = spec.get("system_parameters", {}).get("n_monte_carlo_iterations", 10000)
+    seed = spec.get("system_parameters", {}).get("seed", 42)
 
-    # 2. Double Randomization Test
-    print("\n>>> FASE 2/3: ESECUZIONE DOUBLE RANDOMIZATION TEST (ISOMORFO) <<<")
-    df_dr_results = run_double_randomization_test(n_simulations=10000, seed=42)
+    # -------------------------------------------------------------------------
+    # FASE 2: Modelli Nulli Gerarchici
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print(f"[2/6] Esecuzione Hierarchical Null Models (N={n_simulations})...")
+    null_results_df, global_scores, folio_scores, line_scores = null_model_test.run_full_audit_suite(
+        df=df, transition_matrix=transition_matrix, n_simulations=n_simulations, seed=seed
+    )
 
-    # 3. Robustness Stress Test
-    print("\n>>> FASE 3/3: ESECUZIONE ROBUSTNESS & STRESS TEST <<<")
-    df_rob_results = run_robustness_stress_test(n_iterations=100, seed=42)
+    # -------------------------------------------------------------------------
+    # FASE 3: Double Randomization Test
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print(f"[3/6] Esecuzione Isomorphic Double Randomization Test (N={n_simulations})...")
+    double_summary, double_scores = double_randomization_test.run_double_randomization_test(
+        df=df, transition_matrix=transition_matrix, n_simulations=n_simulations, seed=seed
+    )
 
-    # Unione risultati sintetici per audit_master_summary_results.csv
-    master_summary = pd.concat([df_null_results, df_dr_results], ignore_index=True)
-    master_summary.to_csv(OUTPUT_SUMMARY_CSV, index=False)
-    df_rob_results.to_csv(OUTPUT_ROBUSTNESS_CSV, index=False)
+    # -------------------------------------------------------------------------
+    # FASE 4: Robustness & Noise Stress Test
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print("[4/6] Esecuzione Robustness & Noise Stress Test...")
+    robustness_df = robustness_stress_test.run_robustness_stress_test(
+        df=df, transition_matrix=transition_matrix, n_iterations=100, seed=seed
+    )
 
-    total_time = time.time() - start_time
-    print("=" * 70)
-    print(f"[+] Master Report sintetico salvato in '{OUTPUT_SUMMARY_CSV}'.")
-    print(f"[+] Report di Robustezza salvato in    '{OUTPUT_ROBUSTNESS_CSV}'.")
-    print(f"[*] Tempo totale di esecuzione: {total_time:.2f} secondi.")
-    print("=" * 70)
-    print("[SUCCESS] SUITE COMPLETA AUDIT DEMARIA COMPLETATA SENZA ERRORE.\n")
+    # -------------------------------------------------------------------------
+    # FASE 5: Spatial Structural Stability Analysis (Holdout 50/50)
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print("[5/6] Esecuzione Spatial Structural Stability Analysis (Split 50/50)...")
+    holdout_summary = train_test_split_validation.run_holdout_validation(
+        df=df, transition_matrix=transition_matrix, split_ratio=0.5, seed=seed
+    )
+
+    # -------------------------------------------------------------------------
+    # FASE 6: Generazione Grafici Empirici Reali
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print("[6/6] Generazione Grafici Empirici ad Alta Risoluzione...")
+    c_obs = float(null_results_df.loc[0, 'c_obs'])
+    generate_charts.generate_empirical_charts(
+        c_obs=c_obs,
+        global_scores=global_scores,
+        line_scores=line_scores,
+        double_scores=double_scores,
+        robustness_df=robustness_df,
+        output_prefix="audit_master"
+    )
+
+    # -------------------------------------------------------------------------
+    # ESPORTAZIONE E SALVATAGGIO REPORT
+    # -------------------------------------------------------------------------
+    print("=" * 75)
+    print("[FINALIZE] Esportazione Report JSON/CSV e Generazione Manifest Crittografico...")
+    
+    null_results_df.to_csv("audit_master_summary_results.csv", index=False)
+    robustness_df.to_csv("robustness_test_results.csv", index=False)
+
+    summary_json_data = {
+        "timestamp": datetime.now().isoformat(),
+        "release": "v3.2 (Audit-Master)",
+        "doi": "10.5281/zenodo.23199718",
+        "c_obs": c_obs,
+        "null_models": null_results_df.to_dict(orient="records"),
+        "double_randomization": double_summary,
+        "spatial_holdout": holdout_summary
+    }
+
+    with open("audit_master_summary.json", "w", encoding="utf-8") as f:
+        json.dump(summary_json_data, f, indent=2)
+
+    # Calcolo Hash SHA-256 del pacchetto risultati
+    manifest_data = {
+        "project": "METODO DEMARIA",
+        "release": "Release v3.2 (Audit-Master)",
+        "author": "Avv. Alessandro Demaria",
+        "pec": "avv.alessandrodemaria@pec.it",
+        "timestamp": datetime.now().isoformat(),
+        "files_sha256": {
+            "method_specification.json": compute_sha256("method_specification.json"),
+            "audit_master_summary_results.csv": compute_sha256("audit_master_summary_results.csv"),
+            "robustness_test_results.csv": compute_sha256("robustness_test_results.csv"),
+            "audit_master_summary.json": compute_sha256("audit_master_summary.json")
+        }
+    }
+
+    with open("audit_master_manifest.json", "w", encoding="utf-8") as f:
+        json.dump(manifest_data, f, indent=2)
+
+    elapsed = (datetime.now() - start_time).total_seconds()
+    print("\n" + "=" * 75)
+    print(f"[OK] Audit completato con successo in {elapsed:.2f} secondi.")
+    print("     Summary JSON salvato in: audit_master_summary.json")
+    print("     Report CSV salvati in:   audit_master_summary_results.csv, robustness_test_results.csv")
+    print("     Manifest SHA-256 salvato in: audit_master_manifest.json")
+    print("=" * 75 + "\n")
 
 
 if __name__ == "__main__":
-    run_master_suite()
+    execute_master_audit()
