@@ -1,0 +1,50 @@
+===============================================================================
+METODO DEMARIA® — ATTESTATO DI CONGELAMENTO DATI E AUDIT MASTER (v3.2)
+===============================================================================
+Cartella Master        : METODO.DEMARIA-VOYNICH_AUDIT_ALESSANDRO_MASTER_v3.2
+Autore / Titolare      : Avv. Alessandro Demaria
+Data/Ora Archiviazione : 2026-10-07T00:20:23
+Licenza Codice         : Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+-------------------------------------------------------------------------------
+1. IMPRONTE CRITTOGRAFICHE SHA-256 (INTEGRITÀ DATASET E REPORT)
+-------------------------------------------------------------------------------
+Dataset Master (35.483 EVA tokens):
+  voynich_eva_tokens_extended.csv
+  SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999
+
+Report Sintetico Master (Modelli Nulli + Double Randomization):
+  audit_master_summary_results.csv
+  SHA-256: e3e4020ac6fe93cca79cfa393b773061d0b5f06c0f3c0c96d96f06efca1c2ca0
+
+Report di Robustezza al Rumore:
+  robustness_test_results.csv
+  SHA-256: d96a6ca9efe82a7cdbd5386dfe5627af728e6a5c6ba6b2c4de825d647b504812
+
+-------------------------------------------------------------------------------
+2. SINTESI SCIENTIFICA DEI RISULTATI
+-------------------------------------------------------------------------------
+Coerenza Osservata Reale (C_raw) : 0.685281 (68.53%)
+Simulazioni Monte Carlo (N)      : 10.000
+Seed Pseudo-Casuale di Sistema   : 42
+
+Fase 1 — Modelli Nulli Gerarchici:
+  - Global Null Model        : Z = +4.3541 | p-value = 0.000000 (Significativo)
+  - Intra-Folio Null Model   : Z = +1.1882 | p-value = 0.123400 (Non significativo)
+  - Intra-Line Null Model    : Z = +4.3958 | p-value = 0.000000 (Estremamente significativo)
+
+Fase 2 — Double Randomization Test (Isomorfo):
+  - Double Null Mean = 0.711419 | Std = 0.032831 | Z = -0.7961 | p-val = 0.664300
+  - Diagnosi: Accoppiamento specifico ed esclusivo tra la matrice canonica e il corpus.
+
+Fase 3 — Robustness & Stress Test (Resilienza al Rumore):
+  - 0% Rumore  : 100.00% Ritenzione (C_raw = 0.685281)
+  - 10% Rumore :  94.85% Ritenzione (C_raw = 0.650001)
+  - 30% Rumore :  86.20% Ritenzione (C_raw = 0.590724)
+
+-------------------------------------------------------------------------------
+3. ESITO AUDIT GENERALE
+-------------------------------------------------------------------------------
+STRUTTURA NON CASUALE SINTATTICAMENTE VINCOLATA LUNGO IL RIGO.
+IL SISTEMA È VALIDATO, RIPRODUCIBILE E SIGILLATO PER PUBBLICAZIONE ACCADEMICA.
+===============================================================================

@@ -2,7 +2,7 @@
   "project": "METODO DEMARIA",
   "version": "3.0",
   "release": "Audit-Aligned",
-  "date_frozen": "2026-10-05",
+  "date_frozen": "2026-10-06",
   "master_dataset": {
     "filename": "voynich_eva_tokens_extended.csv",
     "sha256_hash": "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999",
@@ -22,7 +22,7 @@
       "delta": 2,
       "gamma": 3
     },
-    "tie_breaking_rule": "random_balanced_rng_seed_42"
+    "tie_breaking_rule": "deterministic_priority_alpha_beta_delta_gamma"
   },
   "transition_matrix_validity": {
     "description": "Matrice di adiacenza delle transizioni valide del Computus Magnus (7/16 ammesse)",
@@ -37,10 +37,12 @@
     "name": "C_raw",
     "description": "Ratio puro sulle transizioni di stato di rigo/folio (transizioni_valide / transizioni_totali)",
     "formula": "C_raw = valid_transitions / total_transitions",
-    "rules": "Spazi, caratteri non riconosciuti e transizioni inter-folio sono esclusi dal denominatore."
+    "rules": "Spazi, caratteri non riconosciuti e transizioni inter-folio o inter-linea sono tassativamente esclusi da numeratore e denominatore."
   },
   "system_parameters": {
     "seed": 42,
+    "n_monte_carlo_iterations": 10000,
+    "n_double_randomization_iterations": 10000,
     "master_clock_hz": 0.0416,
     "master_clock_period_sec": 24,
     "baseline_pressure_kpa": 25.2,

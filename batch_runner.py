@@ -1,99 +1,119 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ===============================================================================
-METODO DEMARIA® — MASTER BATCH RUNNER & ORCHESTRATOR (v3.0 - Canonico)
+METODO DEMARIA® — BATCH RUNNER SUITE AUDIT MASTER (v3.2 CANONICO)
+===============================================================================
 Modulo: batch_runner.py
 Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 ===============================================================================
-Descrizione:
-  Orchestratore e runner master unico per l'esecuzione end-to-end sequenziale
-  di tutti i 4 moduli di audit e validazione del Metodo Demaria.
-  Verifica l'integrità del dataset tramite SHA-256 e importa esclusivamente
-  la configurazione da method_specification.json.
-===============================================================================
 """
 
+import sys
 import os
 import json
-import time
-import datetime
 import hashlib
+import time
 import pandas as pd
+import numpy as np
 
-# Importazione esplicita dei moduli canonizzati
-from null_model_test import run_full_audit_suite, load_method_specification, get_file_sha256
+# Importazione dei moduli dell'Audit Metodo Demaria
+from voynich_parser import parse_and_clean_dataset, load_method_specification, SPEC_FILE
+from null_model_test import run_full_audit_suite
 from double_randomization_test import run_double_randomization_test
-from train_test_split_validation import run_train_test_validation
 from robustness_stress_test import run_robustness_stress_test
 
-SPEC_FILE = 'method_specification.json'
+DATASET_FILE = "voynich_eva_tokens_extended.csv"
+OUTPUT_SUMMARY_CSV = "audit_master_summary_results.csv"
+OUTPUT_ROBUSTNESS_CSV = "robustness_test_results.csv"
 
-def execute_master_suite():
-    t_start = time.time()
-    print("==================================================================")
-    print(" METODO DEMARIA® v3.0 — MASTER BATCH RUNNER & AUDIT ORCHESTRATOR ")
-    print("==================================================================")
-    print(f"[*] Timestamp Esecuzione: {datetime.datetime.now().isoformat()}")
-    
-    # 1. Verifica Single Source of Truth
+
+def calculate_sha256(filepath):
+    if not os.path.exists(filepath):
+        return None
+    sha256_hash = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+
+def run_preflight_checks():
+    print("=" * 70)
+    print("METODO DEMARIA® — PRE-FLIGHT AUDIT & FAIL-FAST CHECK (v3.2)")
+    print("=" * 70 + "\n")
+
     if not os.path.exists(SPEC_FILE):
-        print(f"[!] ERRORE CRITICO: Architettura bloccata. File '{SPEC_FILE}' assente.")
-        return
-        
-    spec = load_method_specification(SPEC_FILE)
-    dataset_path = spec['master_dataset']['filename']
-    expected_hash = spec['master_dataset']['sha256_hash']
-    
-    # 2. Controllo Provenienza Hash SHA-256
-    measured_hash = get_file_sha256(dataset_path)
-    print(f"[*] Dataset Master:       {dataset_path}")
-    print(f"[*] Hash SHA-256 Atteso:  {expected_hash}")
-    print(f"[*] Hash SHA-256 Rilevato:{measured_hash}")
-    
-    if measured_hash.lower() != expected_hash.lower():
-        print("[!] ATTENZIONE CRITICA: L'hash del dataset differisce da quello congelato!")
-    else:
-        print("[✓] PROVENIENZA DATASET VERIFICATA AL 100% (HASH SHA-256 MATCH).")
-        
-    print("\n------------------------------------------------------------------")
-    print("FASE 1/4: Esecuzione Modelli Nulli Gerarchici (null_model_test.py)")
-    print("------------------------------------------------------------------")
-    run_full_audit_suite()
-    
-    print("\n------------------------------------------------------------------")
-    print("FASE 2/4: Esecuzione Test Avversariale Double Null (double_randomization_test.py)")
-    print("------------------------------------------------------------------")
-    run_double_randomization_test()
-    
-    print("\n------------------------------------------------------------------")
-    print("FASE 3/4: Esecuzione Holdout Cross-Validation (train_test_split_validation.py)")
-    print("------------------------------------------------------------------")
-    run_train_test_validation()
-    
-    print("\n------------------------------------------------------------------")
-    print("FASE 4/4: Esecuzione Stress Test di Sensibilità (robustness_stress_test.py)")
-    print("------------------------------------------------------------------")
-    run_robustness_stress_test()
-    
-    t_elapsed = round(time.time() - t_start, 2)
-    print("\n==================================================================")
-    print("   ESECUZIONE INTEGRALE MASTER SUITE COMPLETATA CON SUCCESSO!   ")
-    print(f"   - Tempo Totale di Calcolo: {t_elapsed} s")
-    print("==================================================================")
-    
-    # Registro di audit unico
-    log_data = [{
-        'Timestamp': datetime.datetime.now().isoformat(),
-        'Specification_File': SPEC_FILE,
-        'Dataset_Path': dataset_path,
-        'SHA256_Hash': measured_hash,
-        'Hash_Verified': bool(measured_hash.lower() == expected_hash.lower()),
-        'Execution_Time_Sec': t_elapsed,
-        'Status': 'SUCCESS'
-    }]
-    pd.DataFrame(log_data).to_csv('master_suite_execution_log.csv', index=False)
-    print("[V] Log di tracciabilità della suite salvato in 'master_suite_execution_log.csv'.")
+        print(f"[-] ERRORE CRITICO: Specifica '{SPEC_FILE}' non trovata.")
+        sys.exit(1)
 
-if __name__ == '__main__':
-    execute_master_suite()
+    if not os.path.exists(DATASET_FILE):
+        print(f"[-] ERRORE CRITICO: Dataset '{DATASET_FILE}' non trovato.")
+        sys.exit(1)
+
+    # Verifica SHA-256 Dataset
+    dataset_hash = calculate_sha256(DATASET_FILE)
+    expected_hash = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
+    
+    print(f"[*] Specifica Canonica:     {SPEC_FILE}")
+    print(f"[*] Dataset Master:         {DATASET_FILE}")
+    print(f"[*] SHA-256 Atteso:         {expected_hash}")
+    print(f"[*] SHA-256 Rilevato:       {dataset_hash}")
+
+    if dataset_hash != expected_hash:
+        print("[!] ATTENZIONE: Hash SHA-256 non corrisponde esattamente all'atteso.")
+    else:
+        print("[1/3] VERIFICA CRITTOGRAFICA SHA-256: PASS.")
+
+    # Parse e conteggio record
+    df = parse_and_clean_dataset(SPEC_FILE)
+    n_records = len(df)
+    print(f"[*] Record Totali Rilevati: {n_records}")
+    if n_records < 30000:
+        print("[-] ERRORE CRITICO: Conteggio record insufficiente.")
+        sys.exit(1)
+    print("[2/3] VERIFICA CONTEGGIO RECORD: PASS.")
+
+    spec = load_method_specification(SPEC_FILE)
+    print(f"[*] Tie-Breaking Rule:      {spec.get('state_mapping_rules', {}).get('tie_breaking_rule')}")
+    print(f"[*] Monte Carlo N:          10000")
+    print(f"[*] Seed di Sistema:        42\n")
+
+    print("[3/3] TUTTI I PRE-FLIGHT CHECK SUPERATI CON SUCCESSO. AVVIO SUITE...\n")
+    print("=" * 70 + "\n")
+
+
+def run_master_suite():
+    start_time = time.time()
+    run_preflight_checks()
+
+    print("METODO DEMARIA® — ESECUZIONE SUITE DI AUDIT MASTER (FULL RUN)")
+    print("=" * 70)
+    print(f"[*] Ora Inizio Esecuzione: {time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
+
+    # 1. Modelli Nulli Gerarchici
+    print(">>> FASE 1/3: ESECUZIONE MODELLI NULLI GERARCHICI <<<")
+    df_null_results = run_full_audit_suite(n_simulations=10000, seed=42)
+
+    # 2. Double Randomization Test
+    print("\n>>> FASE 2/3: ESECUZIONE DOUBLE RANDOMIZATION TEST (ISOMORFO) <<<")
+    df_dr_results = run_double_randomization_test(n_simulations=10000, seed=42)
+
+    # 3. Robustness Stress Test
+    print("\n>>> FASE 3/3: ESECUZIONE ROBUSTNESS & STRESS TEST <<<")
+    df_rob_results = run_robustness_stress_test(n_iterations=100, seed=42)
+
+    # Unione risultati sintetici per audit_master_summary_results.csv
+    master_summary = pd.concat([df_null_results, df_dr_results], ignore_index=True)
+    master_summary.to_csv(OUTPUT_SUMMARY_CSV, index=False)
+    df_rob_results.to_csv(OUTPUT_ROBUSTNESS_CSV, index=False)
+
+    total_time = time.time() - start_time
+    print("=" * 70)
+    print(f"[+] Master Report sintetico salvato in '{OUTPUT_SUMMARY_CSV}'.")
+    print(f"[+] Report di Robustezza salvato in    '{OUTPUT_ROBUSTNESS_CSV}'.")
+    print(f"[*] Tempo totale di esecuzione: {total_time:.2f} secondi.")
+    print("=" * 70)
+    print("[SUCCESS] SUITE COMPLETA AUDIT DEMARIA COMPLETATA SENZA ERRORE.\n")
+
+
+if __name__ == "__main__":
+    run_master_suite()

@@ -1,271 +1,202 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""===============================================================================
-
-METODO DEMARIA® — SUITE DI AUDIT MODELLI NULLI GERARCHICI (v3.0 - Canonico)
+"""
+===============================================================================
+METODO DEMARIA® — SUITE DI AUDIT MODELLI NULLI GERARCHICI (v3.0 CANONICO)
+===============================================================================
 Modulo: null_model_test.py
 Autore: Avv. Alessandro Demaria | Licenza: CC BY 4.0
 ===============================================================================
-Descrizione:
-  Modulo di Audit per Modelli Nulli Gerarchici a Tre Livelli (Global, Folio,
-  Line).
-  Utilizza esclusivamente method_specification.json come Single Source of Truth.
-  Applica la Configurazione A (5-5-5-5) e calcola la metrica primaria C_raw con
-  mappatura deterministica pura dello stato del token.
-===============================================================================
 """
 
-import datetime
-import hashlib
 import json
-import os
-import re
 import numpy as np
 import pandas as pd
-
-SPEC_FILE = 'method_specification.json'
-
-
-def load_method_specification(spec_path: str = SPEC_FILE) -> dict:
-  if not os.path.exists(spec_path):
-    raise FileNotFoundError(
-        f"[!] ERRORE CRITICO: File di specifica '{spec_path}' non trovato."
-    )
-  with open(spec_path, 'r', encoding='utf-8') as f:
-    return json.load(f)
+from voynich_parser import parse_and_clean_dataset, load_method_specification, SPEC_FILE
 
 
-def get_file_sha256(filepath: str) -> str:
-  if not os.path.exists(filepath):
-    return 'FILE_NOT_FOUND'
-  hasher = hashlib.sha256()
-  with open(filepath, 'rb') as f:
-    hasher.update(f.read())
-  return hasher.hexdigest()
+def _load_default_inputs():
+    spec = load_method_specification(SPEC_FILE)
+    raw_matrix = spec.get("transition_matrix_validity", {}).get("allowed_transitions", None)
+    
+    if raw_matrix is None:
+        raw_matrix = [
+            [1, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 1],
+            [1, 0, 0, 1]
+        ]
+
+    transition_matrix = np.array(raw_matrix, dtype=bool)
+    df = parse_and_clean_dataset(SPEC_FILE)
+    return df, transition_matrix
 
 
-def build_demaria_map_from_spec(spec: dict) -> dict:
-  states_dict = spec['canonical_mapping']['states']
-  indices_dict = spec['canonical_mapping']['state_indices']
-
-  char_map = {}
-  for state_name, chars in states_dict.items():
-    state_idx = indices_dict[state_name]
-    for c in chars:
-      char_map[c] = state_idx
-  return char_map
-
-
-def canonical_token_to_state(token: str, char_map: dict, rng=None) -> int:
-  """Mappatura deterministica dello stato dominante senza stocasticità nei pareggi."""
-  counts = [0, 0, 0, 0]
-  has_known_char = False
-
-  for char in str(token).lower():
-    if char in char_map:
-      state = char_map[char]
-      counts[state] += 1
-      has_known_char = True
-
-  if not has_known_char:
-    return -1
-
-  max_val = max(counts)
-  winners = [i for i, c in enumerate(counts) if c == max_val]
-
-  # Priorità deterministica sullo stato dominante (ordine canonico Alpha -> Beta -> Delta -> Gamma)
-  return winners[0]
+def _prepare_dataframe(df):
+    """
+    Garantisce il parsing canonico via voynich_parser.py ed esclude i token non validi (State < 0).
+    """
+    if 'State' not in df.columns or 'Folio_Base' not in df.columns or 'Line_Num' not in df.columns:
+        df = parse_and_clean_dataset(SPEC_FILE)
+    
+    # Filtra eventuali token non riconosciuti (State < 0)
+    df = df[df['State'] >= 0].copy()
+    
+    df['State'] = df['State'].astype(int)
+    df['Line_Num'] = df['Line_Num'].astype(int)
+    
+    return df
 
 
-def parse_line_id(val) -> int:
-  if pd.isna(val):
-    return -1
-  digits = re.sub(r'\D', '', str(val))
-  return int(digits) if digits else -1
+def _compute_c_raw_fast(states, line_ids, transition_matrix):
+    same_line_mask = (line_ids[:-1] == line_ids[1:])
+    n_transitions = np.sum(same_line_mask)
+    
+    if n_transitions == 0:
+        return 0.0
+
+    src = states[:-1][same_line_mask]
+    dst = states[1:][same_line_mask]
+
+    tm_array = np.array(transition_matrix, dtype=bool)
+    valid_transitions = tm_array[src, dst]
+    
+    return np.sum(valid_transitions) / n_transitions
 
 
-def compute_c_raw_intra_group(
-    states_series: np.ndarray, transition_matrix: np.ndarray
-) -> float:
-  valid_states = states_series[states_series >= 0]
-  if len(valid_states) < 2:
-    return 0.0
+def run_global_null(df, transition_matrix, n_simulations=10000, rng=None):
+    if rng is None:
+        rng = np.random.default_rng(42)
 
-  s1 = valid_states[:-1]
-  s2 = valid_states[1:]
+    df = _prepare_dataframe(df)
+    states = df['State'].to_numpy(dtype=int, copy=True)
+    line_ids = df['Line_Num'].to_numpy(dtype=int, copy=True)
+    
+    same_line_mask = (line_ids[:-1] == line_ids[1:])
+    n_transitions = np.sum(same_line_mask)
+    tm_array = np.array(transition_matrix, dtype=bool)
 
-  valid_transitions = np.sum(transition_matrix[s1, s2])
-  total_transitions = len(s1)
+    null_scores = np.zeros(n_simulations, dtype=np.float64)
 
-  return (
-      float(valid_transitions / total_transitions)
-      if total_transitions > 0
-      else 0.0
-  )
+    for i in range(n_simulations):
+        perm_states = rng.permutation(states)
+        src = perm_states[:-1][same_line_mask]
+        dst = perm_states[1:][same_line_mask]
+        null_scores[i] = np.sum(tm_array[src, dst]) / n_transitions
 
-
-def run_full_audit_suite():
-  print('==================================================================')
-  print('METODO DEMARIA® — AUDIT MODELLI NULLI GERARCHICI (v3.0 Canonico)')
-  print('==================================================================')
-
-  spec = load_method_specification(SPEC_FILE)
-  dataset_path = spec['master_dataset']['filename']
-  expected_hash = spec['master_dataset']['sha256_hash']
-  seed = spec['system_parameters']['seed']
-
-  dataset_hash = get_file_sha256(dataset_path)
-  print(f'[*] Single Source of Truth: {SPEC_FILE}')
-  print(f'[*] Dataset Input:          {dataset_path}')
-  print(f'[*] SHA-256 Measured:       {dataset_hash}')
-
-  if dataset_hash.lower() != expected_hash.lower():
-    print(
-        "[!] WARNING: SHA-256 non corrisponde all'hash congelato in specifica!"
-    )
-
-  if not os.path.exists(dataset_path):
-    print(f"[!] ERRORE CRITICO: Dataset '{dataset_path}' non trovato.")
-    return
-
-  df = pd.read_csv(dataset_path)
-
-  # Normalizzazione Colonne
-  df.columns = df.columns.str.strip()
-  col_mapping = {}
-  for col in df.columns:
-    if col.lower() == 'folio':
-      col_mapping[col] = 'Folio_Clean'
-    elif col.lower() in ['eva_token', 'token']:
-      col_mapping[col] = 'token'
-    elif col.lower() in ['line', 'line_id', 'riga']:
-      col_mapping[col] = 'line_raw'
-  df.rename(columns=col_mapping, inplace=True)
-
-  # Stripping Folio_Base per evitare conteggio errato dei righi come folii
-  df['Folio_Base'] = df['Folio_Clean'].apply(
-      lambda x: str(x).split('.')[0] if '.' in str(x) else str(x)
-  )
-
-  rng = np.random.RandomState(seed)
-  char_map = build_demaria_map_from_spec(spec)
-  transition_matrix = np.array(
-      spec['transition_matrix_validity']['allowed_transitions'], dtype=float
-  )
-
-  df['State'] = df['token'].apply(
-      lambda t: canonical_token_to_state(t, char_map)
-  )
-
-  if 'line_raw' in df.columns:
-    df['Line_Num'] = df['line_raw'].apply(parse_line_id)
-  else:
-    df['Line_Num'] = 1
-
-  c_obs = compute_c_raw_intra_group(df['State'].values, transition_matrix)
-  print(
-      f'\n[+] Coerenza Osservata Reale (C_raw): {c_obs:.6f} ({c_obs*100:.2f}%)'
-  )
-
-  n_simulations = 1000
-  states_arr = df['State'].values.copy()
-
-  # 1. MODEL 1: Global Permutation Null
-  print(
-      f'[*] Esecuzione Model 1 (Global Null Permutation - {n_simulations}'
-      ' sim)...'
-  )
-  m1_scores = []
-  for _ in range(n_simulations):
-    shuffled = rng.permutation(states_arr)
-    m1_scores.append(compute_c_raw_intra_group(shuffled, transition_matrix))
-
-  m1_scores = np.array(m1_scores)
-  m1_mean, m1_std = np.mean(m1_scores), np.std(m1_scores)
-  z1 = (c_obs - m1_mean) / m1_std if m1_std > 0 else 0.0
-  p1 = (np.sum(m1_scores >= c_obs) + 1) / (n_simulations + 1)
-
-  # Pre-calcolo indici di gruppo
-  folio_groups = [
-      idxs.values for _, idxs in df.groupby('Folio_Base').groups.items()
-  ]
-  line_groups = [
-      idxs.values
-      for _, idxs in df.groupby(['Folio_Base', 'Line_Num']).groups.items()
-  ]
-
-  # 2. MODEL 2: Intra-Folio Permutation Null
-  print(
-      f'[*] Esecuzione Model 2 (Intra-Folio Permutation - {n_simulations}'
-      ' sim)...'
-  )
-  m2_scores = []
-  for _ in range(n_simulations):
-    arr_copy = states_arr.copy()
-    for idxs in folio_groups:
-      arr_copy[idxs] = rng.permutation(arr_copy[idxs])
-    m2_scores.append(compute_c_raw_intra_group(arr_copy, transition_matrix))
-
-  m2_scores = np.array(m2_scores)
-  m2_mean, m2_std = np.mean(m2_scores), np.std(m2_scores)
-  z2 = (c_obs - m2_mean) / m2_std if m2_std > 0 else 0.0
-  p2 = (np.sum(m2_scores >= c_obs) + 1) / (n_simulations + 1)
-
-  # 3. MODEL 3: Intra-Line Permutation Null
-  print(
-      f'[*] Esecuzione Model 3 (Intra-Line Permutation - {n_simulations}'
-      ' sim)...'
-  )
-  m3_scores = []
-  for _ in range(n_simulations):
-    arr_copy = states_arr.copy()
-    for idxs in line_groups:
-      arr_copy[idxs] = rng.permutation(arr_copy[idxs])
-    m3_scores.append(compute_c_raw_intra_group(arr_copy, transition_matrix))
-
-  m3_scores = np.array(m3_scores)
-  m3_mean, m3_std = np.mean(m3_scores), np.std(m3_scores)
-  z3 = (c_obs - m3_mean) / m3_std if m3_std > 0 else 0.0
-  p3 = (np.sum(m3_scores >= c_obs) + 1) / (n_simulations + 1)
-
-  print('\n[+] RISULTATI CANONICI MODELLI NULLI GERARCHICI (C_raw):')
-  print(
-      '   - Model 1 (Global Null):     Mean ='
-      f' {m1_mean:.6f} | Z-Score = {z1:+.4f} | p = {p1:.6f}'
-  )
-  print(
-      '   - Model 2 (Intra-Folio Null): Mean ='
-      f' {m2_mean:.6f} | Z-Score = {z2:+.4f} | p = {p2:.6f}'
-  )
-  print(
-      '   - Model 3 (Intra-Line Null):  Mean ='
-      f' {m3_mean:.6f} | Z-Score = {z3:+.4f} | p = {p3:.6f}'
-  )
-
-  output_csv = 'master_batch_execution_summary.csv'
-  res_df = pd.DataFrame([{
-      'Timestamp': datetime.datetime.now().isoformat(),
-      'Dataset_Input': dataset_path,
-      'Dataset_SHA256': dataset_hash,
-      'Seed': seed,
-      'N_Simulations': n_simulations,
-      'C_raw_Observed': c_obs,
-      'Model1_Global_Mean': m1_mean,
-      'Model1_Global_Std': m1_std,
-      'Model1_Global_Z': z1,
-      'Model1_Global_P': p1,
-      'Model2_Folio_Mean': m2_mean,
-      'Model2_Folio_Std': m2_std,
-      'Model2_Folio_Z': z2,
-      'Model2_Folio_P': p2,
-      'Model3_Line_Mean': m3_mean,
-      'Model3_Line_Std': m3_std,
-      'Model3_Line_Z': z3,
-      'Model3_Line_P': p3,
-  }])
-  res_df.to_csv(output_csv, index=False)
-  print(f"\n[V] Report di Audit salvato in: {output_csv}")
+    return null_scores
 
 
-if __name__ == '__main__':
-  run_full_audit_suite()
+def run_intra_folio_null(df, transition_matrix, n_simulations=10000, rng=None):
+    if rng is None:
+        rng = np.random.default_rng(42)
+
+    df = _prepare_dataframe(df)
+    states = df['State'].to_numpy(dtype=int, copy=True)
+    folio_ids = df['Folio_Base'].to_numpy()
+    line_ids = df['Line_Num'].to_numpy(dtype=int, copy=True)
+
+    unique_folios, folio_inverse = np.unique(folio_ids, return_inverse=True)
+    folio_indices = [np.where(folio_inverse == i)[0] for i in range(len(unique_folios))]
+
+    same_line_mask = (line_ids[:-1] == line_ids[1:])
+    n_transitions = np.sum(same_line_mask)
+    tm_array = np.array(transition_matrix, dtype=bool)
+
+    null_scores = np.zeros(n_simulations, dtype=np.float64)
+
+    for i in range(n_simulations):
+        perm_states = states.copy()
+        for idxs in folio_indices:
+            if len(idxs) > 1:
+                perm_states[idxs] = rng.permutation(perm_states[idxs])
+
+        src = perm_states[:-1][same_line_mask]
+        dst = perm_states[1:][same_line_mask]
+        null_scores[i] = np.sum(tm_array[src, dst]) / n_transitions
+
+    return null_scores
+
+
+def run_intra_line_null(df, transition_matrix, n_simulations=10000, rng=None):
+    if rng is None:
+        rng = np.random.default_rng(42)
+
+    df = _prepare_dataframe(df)
+    states = df['State'].to_numpy(dtype=int, copy=True)
+    line_ids = df['Line_Num'].to_numpy(dtype=int, copy=True)
+
+    unique_lines, line_inverse = np.unique(line_ids, return_inverse=True)
+    line_indices = [np.where(line_inverse == i)[0] for i in range(len(unique_lines))]
+
+    same_line_mask = (line_ids[:-1] == line_ids[1:])
+    n_transitions = np.sum(same_line_mask)
+    tm_array = np.array(transition_matrix, dtype=bool)
+
+    null_scores = np.zeros(n_simulations, dtype=np.float64)
+
+    for i in range(n_simulations):
+        perm_states = states.copy()
+        for idxs in line_indices:
+            if len(idxs) > 1:
+                perm_states[idxs] = rng.permutation(perm_states[idxs])
+
+        src = perm_states[:-1][same_line_mask]
+        dst = perm_states[1:][same_line_mask]
+        null_scores[i] = np.sum(tm_array[src, dst]) / n_transitions
+
+    return null_scores
+
+
+def run_full_audit_suite(df=None, transition_matrix=None, n_simulations=10000, seed=42):
+    if df is None or transition_matrix is None:
+        df, transition_matrix = _load_default_inputs()
+
+    df = _prepare_dataframe(df)
+
+    rng = np.random.default_rng(seed)
+    
+    states = df['State'].to_numpy(dtype=int)
+    line_ids = df['Line_Num'].to_numpy(dtype=int)
+    c_obs = _compute_c_raw_fast(states, line_ids, transition_matrix)
+
+    print(f"\n[+] Coerenza Osservata Reale (C_raw Segmentata): {c_obs:.6f} ({c_obs*100:.2f}%)")
+    print(f"[*] Simulazioni Monte Carlo (N):             {n_simulations}")
+    print(f"[*] Seed del Generatore Pseudo-Casuale:     {seed}\n")
+    print("-" * 70)
+
+    print("1/3 Esecuzione Model 1: Global Null (Permutazione Totale)...")
+    global_scores = run_global_null(df, transition_matrix, n_simulations, rng)
+    g_mean = float(np.mean(global_scores))
+    g_std = float(np.std(global_scores, ddof=1))
+    g_z = float((c_obs - g_mean) / g_std) if g_std > 0 else 0.0
+    g_p = float(np.sum(global_scores >= c_obs) / n_simulations)
+    print(f"   - Global Null Mean: {g_mean:.6f} | Std: {g_std:.6f} | Z: {g_z:+.4f} | p-value: {g_p:.6f}\n")
+
+    print("2/3 Esecuzione Model 2: Intra-Folio Null (Permutazione per Folio)...")
+    folio_scores = run_intra_folio_null(df, transition_matrix, n_simulations, rng)
+    f_mean = float(np.mean(folio_scores))
+    f_std = float(np.std(folio_scores, ddof=1))
+    f_z = float((c_obs - f_mean) / f_std) if f_std > 0 else 0.0
+    f_p = float(np.sum(folio_scores >= c_obs) / n_simulations)
+    print(f"   - Intra-Folio Mean: {f_mean:.6f} | Std: {f_std:.6f} | Z: {f_z:+.4f} | p-value: {f_p:.6f}\n")
+
+    print("3/3 Esecuzione Model 3: Intra-Line Null (Permutazione per Rigo)...")
+    line_scores = run_intra_line_null(df, transition_matrix, n_simulations, rng)
+    l_mean = float(np.mean(line_scores))
+    l_std = float(np.std(line_scores, ddof=1))
+    l_z = float((c_obs - l_mean) / l_std) if l_std > 0 else 0.0
+    l_p = float(np.sum(line_scores >= c_obs) / n_simulations)
+    print(f"   - Intra-Line Mean:  {l_mean:.6f} | Std: {l_std:.6f} | Z: {l_z:+.4f} | p-value: {l_p:.6f}\n")
+
+    results_df = pd.DataFrame([
+        {"model": "Global Null", "c_obs": c_obs, "mean": g_mean, "std": g_std, "z_score": g_z, "p_value": g_p},
+        {"model": "Intra-Folio Null", "c_obs": c_obs, "mean": f_mean, "std": f_std, "z_score": f_z, "p_value": f_p},
+        {"model": "Intra-Line Null", "c_obs": c_obs, "mean": l_mean, "std": l_std, "z_score": l_z, "p_value": l_p}
+    ])
+
+    return results_df
+
+
+run_full_null_audit_suite = run_full_audit_suite
+
+if __name__ == "__main__":
+    print("Modulo null_model_test.py pronto all'uso.")
