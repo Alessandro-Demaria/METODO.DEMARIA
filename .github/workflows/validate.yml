@@ -26,7 +26,7 @@ jobs:
 
     - name: Run Master Audit Suite
       run: |
-        python batch_runner.py
+        python 7_batch_runner.py
 
     - name: Run Decoder Pipeline Test
       run: |
