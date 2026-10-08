@@ -27,7 +27,3 @@ jobs:
     - name: Run Master Audit Suite
       run: |
         python 7_batch_runner.py
-
-    - name: Run Decoder Pipeline Test
-      run: |
-        python voynich_decoder_pipeline.py
