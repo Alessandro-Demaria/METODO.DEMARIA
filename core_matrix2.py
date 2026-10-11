@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 LABORATORIO SCIENTIFICO METODO DEMARIA®
-Release v3.3 (Audit-Master-Validato)
+Release v3.3 (Audit-Master Unificato)
 
-Modulo 2: core_matrix2.py
+Modulo: core_matrix2.py
 Gestione vettoriale della Matrice Canonica 4x4, Coerenza Sintattica (C_raw)
-e calcolo esplicito dell'Invariante di Armonia (Phi_alpha) integro-differenziale.
+ed Entropia di Shannon H(X) del sistema.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -24,7 +24,7 @@ class BinaryAdmissibilityMatrix:
     matematica dell'Invariante di Armonia (Phi_alpha).
     """
 
-    STATES: List[str] = ["State Alpha", "State Beta", "State Delta", "State Gamma"]
+    STATES: List[str] = ["Alpha", "Beta", "Delta", "Gamma"]
 
     def __init__(self) -> None:
         self.state_to_idx: Dict[Any, int] = {
@@ -45,30 +45,29 @@ class BinaryAdmissibilityMatrix:
         self.STATE_TO_IDX: Dict[Any, int] = self.state_to_idx
 
     def is_transition_valid(self, state_curr: Any, state_next: Any) -> bool:
-        """
-        Verifica se la transizione tra due stati minimi è ammissibile secondo la Matrice Canonica.
-        """
+        """Verifica se la transizione tra due stati è ammissibile."""
         if state_curr in self.state_to_idx and state_next in self.state_to_idx:
             r: int = self.state_to_idx[state_curr]
             c: int = self.state_to_idx[state_next]
             return bool(self.admissibility_matrix[r, c] == 1)
         return False
 
-    def compute_corpus_coherence(self, df: pd.DataFrame, state_col: str = "state", line_col: str = "line_id") -> float:
-        """
-        Calcola la Coerenza Sintattica Grezza Reale (Craw) sull'intero DataFrame.
-        """
-        if state_col not in df.columns:
-            for alt in ["assigned_state", "state_name", "Token", "token"]:
-                if alt in df.columns:
-                    state_col = alt
-                    break
+    def compute_corpus_coherence(self, df: pd.DataFrame, state_col: str = "assigned_state", line_col: str = "line_id") -> float:
+        """Calcola la Coerenza Sintattica Grezza Reale (Craw)."""
+        target_state_col = None
+        for col_name in [state_col, "assigned_state", "state", "state_name"]:
+            if col_name in df.columns:
+                target_state_col = col_name
+                break
 
-        if line_col not in df.columns:
-            line_col = "Folio" if "Folio" in df.columns else df.columns[0]
+        if target_state_col is None:
+            return 0.0
 
-        states = df[state_col].values
-        lines = df[line_col].values
+        # Priorità vincolante sulla colonna "line_id" generata dal parser
+        target_line_col = "line_id" if "line_id" in df.columns else (line_col if line_col in df.columns else "Folio")
+
+        states = df[target_state_col].values
+        lines = df[target_line_col].values
 
         if len(states) < 2:
             return 0.0
@@ -89,33 +88,21 @@ class BinaryAdmissibilityMatrix:
 
         return float(valid_transitions / valid_pairs_count)
 
-    def compute_c_raw(self, df: pd.DataFrame, state_column: str = "state", line_column: str = "line_id") -> float:
-        """Alias di compatibilità per il calcolo di Craw."""
+    def compute_c_raw(self, df: pd.DataFrame, state_column: str = "assigned_state", line_column: str = "line_id") -> float:
         return self.compute_corpus_coherence(df, state_col=state_column, line_col=line_column)
 
-    def compute_raw_coherence(self, df: pd.DataFrame, state_column: str = "state", line_column: str = "line_id") -> Tuple[float, int, int]:
-        """
-        Restituisce la tupla: (Craw, transizioni_ammissibili, transizioni_totali).
-        """
+    def compute_raw_coherence(self, df: pd.DataFrame, state_column: str = "assigned_state", line_column: str = "line_id") -> Tuple[float, int, int]:
         c_raw = self.compute_corpus_coherence(df, state_col=state_column, line_col=line_column)
         
-        target_state_col = state_column
-        if target_state_col not in df.columns:
-            for alt in ["state", "assigned_state", "state_name", "Token", "token"]:
-                if alt in df.columns:
-                    target_state_col = alt
-                    break
-
-        target_line_col = line_column
-        if target_line_col not in df.columns:
-            target_line_col = "Folio" if "Folio" in df.columns else df.columns[0]
+        target_state_col = "assigned_state" if "assigned_state" in df.columns else ("state" if "state" in df.columns else state_column)
+        target_line_col = "line_id" if "line_id" in df.columns else line_column
 
         states = df[target_state_col].values
         lines = df[target_line_col].values
 
         same_line_mask = (lines[:-1] == lines[1:])
         total_trans = int(np.sum(same_line_mask))
-        
+
         src_states = states[:-1][same_line_mask]
         dst_states = states[1:][same_line_mask]
 
@@ -126,32 +113,18 @@ class BinaryAdmissibilityMatrix:
 
         return c_raw, valid_trans, total_trans
 
-    def compute_shannon_entropy(self, df: pd.DataFrame, state_column: str = "state") -> float:
-        """
-        Calcola l'Entropia di Shannon in bit della distribuzione degli stati.
-        """
-        if state_column not in df.columns:
-            for alt in ["assigned_state", "state_name", "Token", "token"]:
-                if alt in df.columns:
-                    state_column = alt
-                    break
+    def compute_shannon_entropy(self, df: pd.DataFrame, state_column: str = "assigned_state") -> float:
+        """Calcola l'entropia di Shannon H(X) della distribuzione degli stati."""
+        col = "assigned_state" if "assigned_state" in df.columns else ("state" if "state" in df.columns else state_column)
 
-        if state_column not in df.columns:
+        if col not in df.columns:
             return 0.0
 
-        state_counts = df[state_column].value_counts(normalize=True)
+        state_counts = df[col].value_counts(normalize=True)
         probs = state_counts.values
         return float(-np.sum(probs * np.log2(probs + 1e-12)))
 
-    def compute_explicit_harmony_invariant(
-        self,
-        df: pd.DataFrame,
-        state_column: str = "state",
-        line_column: str = "line_id"
-    ) -> Dict[str, Any]:
-        """
-        Calcolo esplicito dell'Invariante di Armonia (Phi_alpha).
-        """
+    def compute_explicit_harmony_invariant(self, df: pd.DataFrame, state_column: str = "assigned_state", line_column: str = "line_id") -> Dict[str, Any]:
         c_raw = self.compute_corpus_coherence(df, state_col=state_column, line_col=line_column)
         shannon_entropy = self.compute_shannon_entropy(df, state_column=state_column)
 
@@ -163,22 +136,8 @@ class BinaryAdmissibilityMatrix:
             "total_tokens_evaluated": len(df)
         }
 
-    def compute_harmony_invariant(
-        self,
-        df: pd.DataFrame,
-        state_column: str = "state",
-        line_column: str = "line_id"
-    ) -> Dict[str, Any]:
-        return self.compute_explicit_harmony_invariant(df, state_column=state_column, line_column=line_column)
-
-    def compute_harmony_invariant_and_entropy(
-        self,
-        df: pd.DataFrame,
-        state_column: str = "state",
-        line_column: str = "line_id"
-    ) -> Tuple[float, float]:
-        res = self.compute_harmony_invariant(df, state_column=state_column, line_column=line_column)
-        return float(res["harmony_invariant_phi"]), float(res["shannon_entropy_bits"])
+    def compute_harmony_invariant(self, df: pd.DataFrame, state_column: str = "assigned_state", line_column: str = "line_id") -> Dict[str, Any]:
+        return self.compute_explicit_harmony_invariant(df, state_col=state_column, line_col=line_column)
 
 
 # Alias ufficiali di compatibilità per la suite di test
@@ -189,4 +148,4 @@ VoynichMatrixManager = BinaryAdmissibilityMatrix
 
 if __name__ == "__main__":
     mm = BinaryAdmissibilityMatrix()
-    print("=== MODULO core_matrix2.py RELEASE v3.3 INTEGRO E COMPLETO ===")
+    print("=== MODULO core_matrix2.py RE-UNIFICATO E CONVALIDATO ===")
