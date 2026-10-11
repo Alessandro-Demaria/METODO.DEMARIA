@@ -41,10 +41,10 @@ def test_full_pipeline_coherence_regression():
 
         folio_col = ["f1r.1,+P0"] * n_records
 
-        # 27.912 token "cheol" producono esattamente 27.911 transizioni Delta -> Delta valide (1)
+        # 27.912 token "cheol" (State Delta) producono esattamente 27.911 transizioni Delta -> Delta valide (1)
         tokens_valid = ["cheol"] * (n_valid_trans + 1)
 
-        # I restanti token alternano "qokaiin" (Alpha) e "am" (Gamma) producendo transizioni vietate (0)
+        # I restanti token alternano "qokaiin" (Alpha) e "am" (Gamma) producendo transizioni vietate Alpha -> Gamma (0)
         n_remaining = n_records - len(tokens_valid)
         tokens_invalid = []
         for i in range(n_remaining):
