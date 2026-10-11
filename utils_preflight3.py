@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3 (AUDIT-MASTER UNIFICATO)
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
 
 Modulo: utils_preflight3.py
 Descrizione: Modulo di controllo e verifica integrità preliminare dei dati (Preflight Audit).
              Integrazione della normalizzazione canonica Folio / folio_id / line_id (P0.2 / P0.3).
+
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
 """
 
 import os
@@ -39,22 +43,21 @@ class PreflightIntegrityAudit:
         """
         df_norm = df.copy()
 
-        if "Folio" not in df_norm.columns:
+        if "Folio" not in df_norm.columns and "folio" not in df_norm.columns:
             raise KeyError("[-] Errore Preflight: Colonna 'Folio' non presente nel dataset.")
 
-        # Scomposizione delle coordinate dal formato composito (es. f116r.49,+P0)
-        df_norm["folio_id"] = df_norm["Folio"].astype(str).apply(lambda x: x.split(".")[0])
-        df_norm["line_number"] = df_norm["Folio"].astype(str).apply(
+        col_target = "Folio" if "Folio" in df_norm.columns else "folio"
+
+        df_norm["folio_id"] = df_norm[col_target].astype(str).apply(lambda x: x.split(".")[0])
+        df_norm["line_number"] = df_norm[col_target].astype(str).apply(
             lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
         )
         df_norm["line_id"] = df_norm["folio_id"] + "." + df_norm["line_number"]
-
-        # Colonna 'folio' minuscola esplicita per compatibilità universale (P0.2 Fix)
         df_norm["folio"] = df_norm["folio_id"]
 
         return df_norm
 
-    def run_preflight_checks() -> dict:
+    def run_preflight_checks(self) -> dict:
         """Esegue i controlli preliminari di esistenza, conteggio ed eventuale hash."""
         print("[+] Avvio Preflight Integrity Check...")
 
@@ -68,7 +71,6 @@ class PreflightIntegrityAudit:
         if record_count != self.expected_record_count:
             print(f"[!] Avviso: Conteggio record ({record_count}) diverso da atteso ({self.expected_record_count}).")
 
-        # Verifica e normalizzazione colonne
         try:
             df_normalized = self.normalize_dataset_structure(df)
             unique_folios = df_normalized["folio_id"].nunique()
