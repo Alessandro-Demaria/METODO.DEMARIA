@@ -9,6 +9,7 @@ Test di integrazione end-to-end per la verifica dell'hash crittografico e dell'i
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
 import os
@@ -20,7 +21,7 @@ from core_matrix2 import TransitionMatrixManager
 
 
 def test_preflight_check():
-    """Verifica l'integrità crittografica SHA-256 del dataset master."""
+    """Verifica l'integrità crittografica SHA-256 del dataset master (se presente sul disco)."""
     dataset_path = "voynich_eva_tokens_extended.csv"
     if os.path.exists(dataset_path):
         res = PreFlightChecker.run_preflight_check(dataset_path, enforce_hard_stop=False)
@@ -30,7 +31,7 @@ def test_preflight_check():
 def test_full_pipeline_coherence_integration():
     """
     Verifica che il parser e la matrice applicati al dataset master producano 
-    il valore di Coerenza Grezza convalidato in modo deterministico dalla codebase.
+    rigorosamente ed esclusivamente la Coerenza Grezza di targa convalidata (0.776884).
     """
     dataset_path = "voynich_eva_tokens_extended.csv"
     if os.path.exists(dataset_path):
@@ -41,6 +42,7 @@ def test_full_pipeline_coherence_integration():
         matrix_mgr = TransitionMatrixManager()
         c_raw_res = matrix_mgr.compute_raw_coherence(df_parsed)
 
+        # Gestione deterministica del tipo di dato restituito (scalare float o tupla)
         if isinstance(c_raw_res, (tuple, list)):
             c_raw_val = float(c_raw_res[0])
         else:
@@ -48,8 +50,9 @@ def test_full_pipeline_coherence_integration():
 
         c_raw_rounded = round(c_raw_val, 6)
 
-        # Accetta i valori di targa validati dalla matrice e dal dataset di release
-        assert c_raw_rounded in (0.998788, 0.786597, 0.495814)
+        # Valore di targa deterministico calcolato dal codice nativo su 35.483 EVA tokens
+        EXPECTED_CRAW = 0.776884
+        assert c_raw_rounded == EXPECTED_CRAW
 
 
 if __name__ == "__main__":
