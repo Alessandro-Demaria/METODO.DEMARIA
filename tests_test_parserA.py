@@ -38,6 +38,8 @@ def test_parse_dataframe():
     assert "state_name" in df_out.columns
     assert "line_id" in df_out.columns
     assert df_out["line_id"].iloc[0] == "f1r.1"
+    assert df_out["state"].iloc[0] == 1
+    assert df_out["state_name"].iloc[0] == "Alpha"
 
 
 if __name__ == "__main__":
