@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -5,7 +6,7 @@ LABORATORIO SCIENTIFICO METODO DEMARIA®
 Release v3.3 (Audit-Master Unificato)
 
 Suite Test A: tests_test_parserA.py
-Test unitari per la verifica della logica di parsing ed assegnazione degli stati.
+Test unitari per la verifica del parser e della classificazione degli stati.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -18,18 +19,16 @@ from core_parser1 import EVAParser
 
 def test_clean_eva_token():
     parser = EVAParser()
-    # Verifica rimozione marcatori paleografici
-    assert parser.clean_token("qokaiin!") == "qokaiin"
-    assert parser.clean_token("cheol*") == "cheol"
+    assert parser.clean_eva_token("qokaiin!") == "qokaiin"
+    assert parser.clean_eva_token("cheol*") == "cheol"
 
 
-def test_classify_token():
+def test_map_token_to_state():
     parser = EVAParser()
-    # Verifica assegnazione deterministica secondo le 4 regole di precedenza
-    assert parser.classify_token("qokaiin") == EVAParser.STATE_ALPHA
-    assert parser.classify_token("cheol") == EVAParser.STATE_ALPHA
-    assert parser.classify_token("am") == EVAParser.STATE_GAMMA
-    assert parser.classify_token("ck") == EVAParser.STATE_DELTA
+    assert parser.map_token_to_state("qokaiin") == EVAParser.STATE_ALPHA
+    assert parser.map_token_to_state("cheol") == EVAParser.STATE_ALPHA
+    assert parser.map_token_to_state("am") == EVAParser.STATE_GAMMA
+    assert parser.map_token_to_state("ck") == EVAParser.STATE_DELTA
 
 
 def test_parse_dataframe():
