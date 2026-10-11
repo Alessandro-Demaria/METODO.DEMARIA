@@ -2,132 +2,125 @@
 # -*- coding: utf-8 -*-
 """
 LABORATORIO SCIENTIFICO METODO DEMARIA®
-Release v3.3 (Audit-Master Unificato)
+Release v3.3 (Audit-Master-Validato)
 
 Modulo 5: audit_doublerand5.py
-Test avversariale di Doppia Randomizzazione Isomorfa (N=10.000, Seed 42)
-per la verifica della specificità dell'accoppiamento Matrice-Corpus.
+Test avversariale di doppia randomizzazione isomorfa (Double Null Test) per la verifica 
+della selettività ed esclusività dell'accoppiamento tra la Matrice Canonica ed il Corpus.
 
-Autore: Avv. Alessandro Demaria
+Sessione di Lavoro: BARVI
+Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
 Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Tuple
-from core_matrix2 import TransitionMatrixManager
+from typing import Dict, Any
+from core_matrix2 import MatrixManager
 
 
-class IsomorphicDoubleRandomizationAudit:
+class DoubleRandomizationAuditor:
     """
-    Esecutore stocastico per l'Audit Avversariale di Doppia Randomizzazione Isomorfa.
-    Permuta simultaneamente le sequenze sintattiche del corpus e la struttura
-    della Matrice Canonica 4x4 conservando la densità topologica degli archi.
+    Esecutore stocastico del Test di Doppia Randomizzazione Isomorfa (Double Null Test).
+    Permuta simultaneamente sia la sequenza degli stati sintattici sia la topologia
+    della matrice di ammissibilità 4x4, preservandone la densità di celle (12/16).
     """
 
-    def __init__(self, iterations: int = 10000, seed: int = 42) -> None:
+    def __init__(self, matrix_mgr: MatrixManager) -> None:
         """
-        Inizializza il modulo fissando il numero di simulazioni e il Seed deterministico.
+        Inizializza l'auditor collegando l'istanza del gestore della matrice.
+        Risoluzione P0.2: Collegamento diretto agli attributi canonici unificati.
         """
-        self.iterations: int = iterations
-        self.seed: int = seed
-        self.matrix_mgr: TransitionMatrixManager = TransitionMatrixManager()
+        self.matrix_mgr: MatrixManager = matrix_mgr
 
-    def _compute_coherence_with_custom_matrix(self, states: np.ndarray, lines: np.ndarray, 
-                                              matrix: np.ndarray) -> float:
+    def run_double_randomization_test(
+        self,
+        df: pd.DataFrame,
+        iterations: int = 10000,
+        seed: int = 42,
+        state_column: str = "assigned_state",
+        line_column: str = "line_id"
+    ) -> Dict[str, Any]:
         """
-        Calcola la coerenza sintattica grezza su array di stati e righe utilizzando
-        una matrice binaria 4x4 arbitraria o permutata.
-        """
-        total_transitions: int = 0
-        valid_transitions: int = 0
-        state_map: Dict[str, int] = self.matrix_mgr.STATE_TO_IDX
-
-        for k in range(len(states) - 1):
-            if lines[k] == lines[k + 1]:
-                total_transitions += 1
-                s_from = states[k]
-                s_to = states[k + 1]
-                if s_from in state_map and s_to in state_map:
-                    i = state_map[s_from]
-                    j = state_map[s_to]
-                    if matrix[i, j] == 1:
-                        valid_transitions += 1
-
-        if total_transitions == 0:
-            return 0.0
-
-        return valid_transitions / total_transitions
-
-    def run_double_randomization_test(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Esegue l'Audit di Doppia Randomizzazione Isomorfa su N iterazioni.
+        Esegue le permutazioni Monte Carlo (N=10.000) sul doppio nullo (Corpus + Matrice).
         
-        Algoritmo:
-        1. Estrae le sequenze reali di stati e line_id.
-        2. Calcola la coerenza osservata reale C_raw.
-        3. Per ciascuna iterazione:
-           a. Permuta globalmente la sequenza degli stati assegnati.
-           b. Permuta casualmente gli elementi della Matrice Canonica 4x4
-              mantenendo invariato il numero totale di 1 (densità di ammissibilità).
-           c. Calcola la coerenza sulla combinazione doppiamente permutata.
-        4. Estrae media nulla, deviazione standard, Double-Null Z-Score e p-value.
+        Args:
+            df (pd.DataFrame): DataFrame contenente gli stati assegnati ed il vincolo di rigo.
+            iterations (int): Numero di simulazioni Monte Carlo. Default = 10.000.
+            seed (int): Seed pseudo-casuale per la riproducibilità. Default = 42.
+            state_column (str): Nome della colonna contenente gli stati topologici.
+            line_column (str): Nome della colonna dell'identificatore di rigo.
+
+        Returns:
+            Dict[str, Any]: Report quantitativo con media nulla, z-score e p-value empirico.
         """
-        np.random.seed(self.seed)
+        np.random.seed(seed)
 
-        states_orig: np.ndarray = df["assigned_state"].values.copy()
-        lines_orig: np.ndarray = df["line_id"].values
-        canonical_matrix: np.ndarray = self.matrix_mgr.canonical_matrix.copy()
+        if state_column not in df.columns:
+            raise ValueError(f"Colonna degli stati '{state_column}' non presente nel DataFrame.")
 
-        # Coerenza osservata reale
-        c_real, _, _ = self.matrix_mgr.compute_raw_coherence(df)
+        states: np.ndarray = df[state_column].values
+        lines: np.ndarray = df[line_column].values if line_column in df.columns else np.zeros(len(df))
 
-        null_coherences: np.ndarray = np.zeros(self.iterations, dtype=np.float64)
-        flat_matrix: np.ndarray = canonical_matrix.flatten()
+        # Accesso diretto agli attributi della Matrice Canonica (Risoluzione P0.2)
+        base_matrix: np.ndarray = self.matrix_mgr.admissibility_matrix
+        state_map: Dict[str, int] = self.matrix_mgr.state_to_idx
+        n_states: int = len(self.matrix_mgr.STATES)
 
-        for it in range(self.iterations):
-            # Permutazione 1: Vettore degli stati
-            permuted_states: np.ndarray = np.random.permutation(states_orig)
+        # Calcolo Coerenza Sintattica Osservata Reale (C_raw)
+        c_raw_obs: float = self.matrix_mgr.compute_c_raw(df, state_column=state_column, line_column=line_column)
 
-            # Permutazione 2: Celle della Matrice 4x4 (conservando la densità di 1)
-            permuted_flat_matrix: np.ndarray = np.random.permutation(flat_matrix)
-            permuted_matrix: np.ndarray = permuted_flat_matrix.reshape((4, 4))
+        double_null_scores: np.ndarray = np.zeros(iterations, dtype=np.float64)
+        flattened_matrix: np.ndarray = base_matrix.flatten()
 
-            # Calcolo coerenza su doppio nullo
-            null_coherences[it] = self._compute_coherence_with_custom_matrix(
-                permuted_states, lines_orig, permuted_matrix
-            )
+        for it in range(iterations):
+            # 1. Randomizzazione della sequenza degli stati
+            permuted_states: np.ndarray = np.random.permutation(states)
 
-        mean_double_null: float = float(np.mean(null_coherences))
-        std_double_null: float = float(np.std(null_coherences, ddof=1))
+            # 2. Randomizzazione isomorfa della matrice (conservazione della densità di 12/16)
+            permuted_matrix: np.ndarray = np.random.permutation(flattened_matrix).reshape((n_states, n_states))
 
-        # Calcolo Double-Null Z-Score
-        z_double_score: float = (
-            float((c_real - mean_double_null) / std_double_null)
-            if std_double_null > 0 else 0.0
-        )
+            total_trans: int = 0
+            admiss_trans: int = 0
 
-        # Calcolo corretto e conservativo del p-value Monte Carlo (Davison-Hinkley)
-        count_exceeding: int = int(np.sum(null_coherences >= c_real))
-        p_value_empirical: float = float((count_exceeding + 1) / (self.iterations + 1))
+            # Valutazione della coerenza sul sistema doppio nullo
+            for i in range(len(permuted_states) - 1):
+                if lines[i] == lines[i + 1]:
+                    st_curr: str = permuted_states[i]
+                    st_next: str = permuted_states[i + 1]
+
+                    if st_curr in state_map and st_next in state_map:
+                        r: int = state_map[st_curr]
+                        c: int = state_map[st_next]
+                        total_trans += 1
+                        if permuted_matrix[r, c] == 1:
+                            admiss_trans += 1
+
+            double_null_scores[it] = (admiss_trans / total_trans) if total_trans > 0 else 0.0
+
+        mean_null: float = float(np.mean(double_null_scores))
+        std_null: float = float(np.std(double_null_scores, ddof=1))
+
+        z_score: float = float((c_raw_obs - mean_null) / std_null) if std_null > 0 else 0.0
+        
+        # Calcolo del p-value empirico Monte Carlo (Davison-Hinkley)
+        count_exceeding: int = int(np.sum(double_null_scores >= c_raw_obs))
+        p_value_empirical: float = float((count_exceeding + 1) / (iterations + 1))
 
         return {
-            "test_name": "Isomorphic Double Randomization Test",
-            "c_observed": c_real,
-            "double_null_mean": mean_double_null,
-            "double_null_std": std_double_null,
-            "z_double_score": z_double_score,
+            "release": "v3.3 (Audit-Master-Validato)",
+            "c_raw_observed": c_raw_obs,
+            "double_null_mean": mean_null,
+            "double_null_std": std_null,
+            "z_score": z_score,
             "p_value_empirical": p_value_empirical,
             "count_exceeding": count_exceeding,
-            "iterations": self.iterations
+            "iterations": iterations
         }
 
 
 if __name__ == "__main__":
-    # Test unitario rapido di isolamento locale
-    print("=== TEST UNITARIO AUDIT_DOUBLERAND5 ===")
-    dummy_df = pd.DataFrame({
-        "line_id": ["f1r_l1", "f1r_l1", "f1r_l1", "f1r_l2", "f1r_l2", "f1r_l2"],
-        "assigned_state": ["Alpha", "Beta", "Gamma", "Alpha", "Beta", "Gamma"]
-    })
+    mm = MatrixManager()
+    auditor = DoubleRandomizationAuditor(mm)
+    print("=== MODULO audit_doublerand5.py (Release v3.3 Audit-Master-Validato) PRONTO PER APPROVAZIONE ===")

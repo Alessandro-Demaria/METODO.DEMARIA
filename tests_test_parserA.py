@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -6,7 +5,7 @@ LABORATORIO SCIENTIFICO METODO DEMARIA®
 Release v3.3 (Audit-Master Unificato)
 
 Suite Test A: tests_test_parserA.py
-Test unitari per la verifica del parser e della classificazione degli stati.
+Test unitari per la verifica della logica di parsing ed assegnazione degli stati.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
