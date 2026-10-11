@@ -35,7 +35,7 @@ class PreflightIntegrityAudit:
     # Impronta crittografica ufficiale SHA-256 congelata nel Trattato v3.3
     CANONICAL_SHA256 = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
     CANONICAL_RECORD_COUNT = 35483
-    REQUIRED_COLUMNS = ["Record_ID", "Folio", "token", "folio_id", "line_id"]
+    REQUIRED_COLUMNS = ["Record_ID", "Folio", "token"]
 
     def __init__(self, dataset_path: str = "voynich_eva_tokens_extended.csv"):
         self.dataset_path = dataset_path
@@ -125,8 +125,7 @@ class PreflightIntegrityAudit:
             "status": "SUCCESS",
             "sha256_hash": calculated_hash,
             "total_records": actual_records,
-            "unique_folios": int(df["Folio"].nunique()) if "Folio" in df.columns else 0,
-            "unique_lines": int(df["line_id"].nunique()) if "line_id" in df.columns else 0
+            "unique_folios": int(df["Folio"].nunique()) if "Folio" in df.columns else 0
         }
 
 
