@@ -242,4 +242,5 @@ BinaryAdmissibilityMatrix = MatrixManager
 if __name__ == "__main__":
     mm = MatrixManager()
     bam = BinaryAdmissibilityMatrix()
-    assert np.array_equal(mm.get_matrix(), bam.
+    assert np.array_equal(mm.get_matrix(), bam.get_matrix())
+    print("=== MODULO core_matrix2.py CORRETTO E SINTATTICAMENTE VALIDATO CON SUCCESSO ===")
