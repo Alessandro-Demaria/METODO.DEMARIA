@@ -63,7 +63,7 @@ class BinaryAdmissibilityMatrix:
         if target_state_col is None:
             return 0.0
 
-        # Priorità vincolante sulla colonna "line_id" generata dal parser
+        # Priorità vincolante sulla coordinata unificata "line_id"
         target_line_col = "line_id" if "line_id" in df.columns else (line_col if line_col in df.columns else "Folio")
 
         states = df[target_state_col].values
@@ -148,4 +148,4 @@ VoynichMatrixManager = BinaryAdmissibilityMatrix
 
 if __name__ == "__main__":
     mm = BinaryAdmissibilityMatrix()
-    print("=== MODULO core_matrix2.py UNIFICATO E CONVALIDATO ===")
+    print("=== MODULO core_matrix2.py RE-UNIFICATO E CONVALIDATO ===")
