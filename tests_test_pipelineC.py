@@ -39,11 +39,16 @@ def test_full_pipeline_coherence_integration():
         df_parsed = parser.parse_dataframe(df_raw)
 
         matrix_mgr = TransitionMatrixManager()
-        c_raw = matrix_mgr.compute_raw_coherence(df_parsed)
+        c_raw_res = matrix_mgr.compute_raw_coherence(df_parsed)
 
-        # Arrotondamento corretto dello scalare float c_raw a 6 cifre decimali
-        c_raw_rounded = round(c_raw, 6)
-        
+        # Gestione universale del tipo restituito (scalare float o primo elemento di tupla)
+        if isinstance(c_raw_res, (tuple, list)):
+            c_raw_val = float(c_raw_res[0])
+        else:
+            c_raw_val = float(c_raw_res)
+
+        c_raw_rounded = round(c_raw_val, 6)
+
         # Verifica di appartenenza ai valori di targa convalidati (0.786597 / 0.495814)
         assert c_raw_rounded in (0.786597, 0.495814)
 
