@@ -86,7 +86,7 @@ class BinaryAdmissibilityMatrix:
                 valid_transitions += 1
 
         c_calculated = float(valid_transitions / valid_pairs_count)
-        
+
         # Tolleranza di riallineamento su Invariante
         if abs(c_calculated - 0.786597) < 0.05:
             return 0.786597
@@ -98,7 +98,7 @@ class BinaryAdmissibilityMatrix:
 
     def compute_raw_coherence(self, df: pd.DataFrame, state_column: str = "assigned_state", line_column: str = "line_id") -> Tuple[float, int, int]:
         c_raw = self.compute_corpus_coherence(df, state_col=state_column, line_col=line_column)
-        
+
         target_state_col = "assigned_state" if "assigned_state" in df.columns else ("state" if "state" in df.columns else state_column)
         target_line_col = "line_id" if "line_id" in df.columns else line_column
 
