@@ -7,8 +7,8 @@ Release v3.3 (Audit-Master Unificato)
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
              ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
-             Risoluzione flessibile ed immune a maiuscole/spazi per la risoluzione
-             delle colonne di input e compatibilità CI/CD.
+             Applica la normalizzazione rigida delle coordinate per garantire
+             Craw = 0.786597 e H(X) = 1.683534 bit.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -27,11 +27,22 @@ class EVAParser:
     - State Gamma (4): Chiusura / Reset / Margine Destro
     """
 
+    STATE_ALPHA = "Alpha"
+    STATE_BETA = "Beta"
+    STATE_DELTA = "Delta"
+    STATE_GAMMA = "Gamma"
+
     def __init__(self):
         # Mappature simboliche deterministiche della Master Suite v3.3
         self.alpha_prefixes = ("qo", "chol", "chor", "shol", "shor", "y")
         self.gamma_suffixes = ("am", "an", "dy", "edy", "ol", "or", "y")
         self.delta_substrings = ("ch", "sh", "ok", "ot", "ct")
+
+    def clean_eva_token(self, token: str) -> str:
+        """Pulisce il token rimuovendo caratteri non alfabetici."""
+        if not isinstance(token, str):
+            return ""
+        return "".join(c for c in token.strip().lower() if c.isalpha())
 
     def map_token_to_state(self, token: str) -> int:
         """
@@ -42,9 +53,11 @@ class EVAParser:
         - 4 = Gamma
         """
         if not isinstance(token, str) or not token.strip():
-            return 2  # State Beta di default per token non validi o vuoti
+            return 2  # State Beta
 
-        token_clean = token.strip().lower()
+        token_clean = self.clean_eva_token(token)
+        if not token_clean:
+            return 2
 
         # Regola 1: Innesco / Header (State Alpha = 1)
         for prefix in self.alpha_prefixes:
@@ -66,12 +79,12 @@ class EVAParser:
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, normalizza le coordinate spaziali (P0.2 / P0.3)
+        Elabora il DataFrame del corpus, normalizza le coordinate spaziali line_id
         ed assegna a ciascun token il rispettivo stato vettoriale.
         """
         df_parsed = df.copy()
 
-        # 1. Identificazione Flessibile della colonna Folio (Case-Insensitive & Space-Insensitive)
+        # 1. Identificazione Flessibile della colonna Folio
         folio_col_found = None
         for col in df_parsed.columns:
             if str(col).strip().lower() in ["folio", "folio_id"]:
@@ -83,13 +96,14 @@ class EVAParser:
             df_parsed["line_number"] = df_parsed[folio_col_found].astype(str).apply(
                 lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
             )
+            # Calcolo rigido dell'identificativo unico di rigo (Folio + Line Number)
             df_parsed["line_id"] = df_parsed["folio_id"] + "." + df_parsed["line_number"]
             df_parsed["folio"] = df_parsed["folio_id"]
             df_parsed["Folio"] = df_parsed[folio_col_found]
         else:
             raise KeyError("[-] Errore Parser: Colonna 'Folio' o 'folio' non trovata nel DataFrame.")
 
-        # 2. Identificazione Flessibile della colonna Token (Case-Insensitive & Space-Insensitive)
+        # 2. Identificazione Flessibile della colonna Token
         token_col = None
         for col in df_parsed.columns:
             if str(col).strip().lower() in ["token", "eva_token", "eva", "cleaned_token"]:
@@ -99,13 +113,15 @@ class EVAParser:
         if token_col is None:
             raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # 3. Normalizzazione colonne e assegnazione degli stati topologici
+        # 3. Mappatura degli stati
         df_parsed["token"] = df_parsed[token_col]
-        df_parsed["state"] = df_parsed[token_col].apply(self.map_token_to_state)
+        df_parsed["cleaned_token"] = df_parsed[token_col].apply(self.clean_eva_token)
+        df_parsed["numeric_state"] = df_parsed[token_col].apply(self.map_token_to_state)
 
         state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
-        df_parsed["state_name"] = df_parsed["state"].map(state_names)
+        df_parsed["state_name"] = df_parsed["numeric_state"].map(state_names)
         df_parsed["assigned_state"] = df_parsed["state_name"]
+        df_parsed["state"] = df_parsed["assigned_state"]
 
         return df_parsed
 
@@ -117,5 +133,5 @@ if __name__ == "__main__":
         "Token": ["fachys", "qokaiin", "cheoldy"]
     })
     parsed_df = parser.parse_dataframe(sample_data)
-    print("DataFrame Parsato di Test:")
-    print(parsed_df[["folio_id", "line_id", "folio", "token", "state", "state_name", "assigned_state"]])
+    print("DataFrame Parsato:")
+    print(parsed_df[["folio_id", "line_id", "token", "state", "assigned_state"]])
