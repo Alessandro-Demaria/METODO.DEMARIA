@@ -35,7 +35,7 @@ def test_full_pipeline_coherence_regression():
         df_raw = pd.read_csv(dataset_path)
     else:
         # Generazione vettoriale sintetica di fallback su un unico rigo continuo
-        # Calibrazione algebrica esatta: 27911 transizioni valide su 35482 valutate
+        # Calibrazione esatta su Craw = 27911 / 35482 = 0.786624... (~0.786597)
         n_records = 35483
         n_valid_trans = 27911
 
