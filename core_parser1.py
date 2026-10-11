@@ -7,8 +7,8 @@ Release v3.3 (Audit-Master Unificato)
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
              ai 4 stati minimi (Alpha=1, Beta=2, Delta=3, Gamma=4).
-             Garantisce la rigenerazione vincolata delle coordinate line_id
-             per Craw = 0.786597 ed H(X) = 1.683534 bit.
+             Rigenera in modo vincolante line_id = folio_id + "." + line_number
+             per garantire Craw = 0.786597 ed H(X) = 1.683534 bit.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -77,7 +77,7 @@ class EVAParser:
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, forza la ricostruzione univoca di line_id
+        Elabora il DataFrame del corpus, forza la ricostruzione unificata di line_id
         ed assegna a ciascun token il rispettivo stato vettoriale numerico e testuale.
         """
         df_parsed = df.copy()
