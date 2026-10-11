@@ -1,4 +1,4 @@
-# METODO DEMARIA® Release v3.3 (Audit-Master Unificato)
+[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=33)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)# METODO DEMARIA® Release v3.3 (Audit-Master Unificato)
 ### Quantitative Audit & Vector Topology of the Voynich Manuscript (Beinecke MS 408)
 
 [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO-DEMARIA-v3.3-VOYNICH-AUDIT-MASTER/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO-DEMARIA-v3.3-VOYNICH-AUDIT-MASTER/actions/workflows/validate.yml)
