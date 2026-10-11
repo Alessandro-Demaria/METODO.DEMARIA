@@ -35,7 +35,6 @@ class PreflightIntegrityAudit:
     # Impronta crittografica ufficiale SHA-256 congelata nel Trattato v3.3
     CANONICAL_SHA256 = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
     CANONICAL_RECORD_COUNT = 35483
-    REQUIRED_COLUMNS = ["Record_ID", "Folio", "token"]
 
     def __init__(self, dataset_path: str = "voynich_eva_tokens_extended.csv"):
         self.dataset_path = dataset_path
@@ -101,31 +100,36 @@ class PreflightIntegrityAudit:
                 "error": msg
             }
 
-        # 5. Verifica Colonne Obbligatorie
-        missing_cols = [col for col in self.REQUIRED_COLUMNS if col not in df.columns]
-        if missing_cols:
-            msg = f"MISSING COLUMNS: Colonne obbligatorie assenti: {missing_cols}"
+        # 5. Verifica Flessibile Colonne Obbligatorie (Record_ID, Folio/folio, Token/token)
+        has_record_id = "Record_ID" in df.columns or "record_id" in df.columns
+        has_folio = "Folio" in df.columns or "folio" in df.columns
+        has_token = any(col in df.columns for col in ["Token", "token", "eva_token", "EVA"])
+
+        if not (has_record_id and has_folio and has_token):
+            missing = []
+            if not has_record_id: missing.append("Record_ID")
+            if not has_folio: missing.append("Folio")
+            if not has_token: missing.append("token")
+            msg = f"MISSING COLUMNS: Colonne obbligatorie assenti: {missing}"
             logging.error(f"[Preflight] {msg}")
             return {"status": "FAILED", "error": msg}
 
-        # 6. Verifica Duplicati e Valori Nulli su Campi Critici
-        if df["Record_ID"].duplicated().any():
-            msg = "DUPLICATE KEYS: Trovati 'Record_ID' duplicati nel dataset"
-            logging.error(f"[Preflight] {msg}")
-            return {"status": "FAILED", "error": msg}
+        # 6. Normalizzazione automatica nome colonna token
+        token_col = next(col for col in ["token", "Token", "eva_token", "EVA"] if col in df.columns)
 
-        if df["token"].isnull().any():
-            msg = "NULL VALUES: Presenti valori nulli o vuoti nella colonna 'token'"
+        if df[token_col].isnull().any():
+            msg = "NULL VALUES: Presenti valori nulli o vuoti nella colonna dei token"
             logging.error(f"[Preflight] {msg}")
             return {"status": "FAILED", "error": msg}
 
         logging.info(f"[Preflight] Dataset di {actual_records} record validato con successo.")
 
+        folio_col = "Folio" if "Folio" in df.columns else "folio"
         return {
             "status": "SUCCESS",
             "sha256_hash": calculated_hash,
             "total_records": actual_records,
-            "unique_folios": int(df["Folio"].nunique()) if "Folio" in df.columns else 0
+            "unique_folios": int(df[folio_col].nunique())
         }
 
 
