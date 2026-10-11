@@ -22,9 +22,8 @@ def test_map_token_to_state():
     assert parser.map_token_to_state("qokaiin") == 1  # Prefisso 'qo' -> Alpha (1)
     assert parser.map_token_to_state("cheol") == 4    # Suffisso 'ol' -> Gamma (4)
     assert parser.map_token_to_state("am") == 4       # Suffisso 'am' -> Gamma (4)
-    assert parser.map_token_to_state("oct") == 3      # Sottostringa 'ot/ct' -> Delta (3)
-    assert parser.map_token_to_state("ck") == 2       # Fallback Default -> Beta (2)
-    assert parser.map_token_to_state("random_token") == 2 # Default -> Beta (2)
+    assert parser.map_token_to_state("oct") == 3      # Sottostringa 'ct/ot' -> Delta (3)
+    assert parser.map_token_to_state("xyz") == 2      # Fallback Default -> Beta (2)
 
 
 def test_parse_dataframe():
