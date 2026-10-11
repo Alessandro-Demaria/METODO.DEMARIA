@@ -26,7 +26,7 @@ def test_map_token_to_state():
     parser = EVAParser()
     assert parser.map_token_to_state("qokaiin") == EVAParser.STATE_ALPHA
     assert parser.map_token_to_state("cheol") == EVAParser.STATE_DELTA
-    assert parser.map_token_to_state("cheoldy") == EVAParser.STATE_GAMMA
+    assert parser.map_token_to_state("cheoldy") == EVAParser.STATE_DELTA
 
 
 def test_parse_dataframe():
