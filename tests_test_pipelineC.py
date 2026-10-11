@@ -50,7 +50,7 @@ def test_full_pipeline_coherence_regression():
             + ["chodaiin"] * n_delta
             + ["cheoldy"] * n_gamma
         )
-        df_raw = pd.DataFrame({"Folio": folio_col, "Token": tokens})
+        df_raw = pd.DataFrame({"Folio": folio_col, "token": tokens})
 
     parser = EVAParser()
     df_parsed = parser.parse_dataframe(df_raw)
