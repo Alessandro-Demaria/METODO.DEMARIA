@@ -1,21 +1,75 @@
-from utils_preflight3 import PreFlightChecker  
-from core_parser1 import EVAParser  
-from core_matrix2 import MatrixManager  
-from audit_nullmodels4 import HierarchicalNullModelsAudit  
-from audit_doublerand5 import DoubleRandomizationAuditor  
-from audit_robustness6 import RobustnessStressTestAudit  
-import pandas as pd, numpy as np  
-p = PreFlightChecker()  
-p.run_preflight_check('voynich_eva_tokens_extended.csv')  
-df = EVAParser().parse_dataframe(pd.read_csv('voynich_eva_tokens_extended.csv'))  
-mm = MatrixManager()  
-MatrixManager.compute_raw_coherence = lambda self, df, **kw: (self.compute_c_raw(df, state_column=kw.get('state_column', 'assigned_state'), line_column=kw.get('line_column', 'line_id')), 0, 0)  
-c_raw = mm.compute_c_raw(df, state_column='assigned_state', line_column='line_id')  
-print(f'C_RAW OSSERVATO: {c_raw:.6f}')  
-nm = HierarchicalNullModelsAudit(mm).run_global_null_model(df)  
-dr = DoubleRandomizationAuditor(mm).run_double_randomization_test(df, iterations=10000, seed=42)  
-rb = RobustnessStressTestAudit(mm).run_noise_robustness_sweep(df, noise_levels=[0.01, 0.05, 0.10, 0.20, 0.30])  
-rb.to_csv('robustness_test_results.csv', index=False)  
-summary = [{'Release':'v3.3', 'C_raw_observed':c_raw, 'C_raw_percentage':c_raw*100, 'Double_Null_ZScore':dr.get('z_score', 1.5239), 'Double_Null_p_value_empirical':dr.get('p_value_empirical', 0.032)}]  
-pd.DataFrame(summary).to_csv('audit_master_summary_results.csv', index=False)  
-print('AUDIT V3.3 COMPLETATO CON SUCCESSO E REPORT GENERATI!') 
+#!/usr/bin/env python3
+"""LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3 (AUDIT-MASTER UNIFICATO)
+
+Modulo: run_audit_direct.py
+Descrizione: Script di esecuzione diretta dell'Audit di Robustezza e Stress Test.
+             Riallineato esattamente alle API ufficiali della Master Audit Suite v3.3.
+Autore: Avv. Alessandro Demaria
+"""
+
+import os
+import sys
+import pandas as pd
+
+from audit_robustness6 import RobustnessStressTestAudit
+from core_matrix2 import BinaryAdmissibilityMatrix
+from core_parser1 import EVAParser
+from utils_preflight3 import PreflightIntegrityAudit
+
+
+def execute_direct_robustness_audit():
+  """Esegue direttamente lo Stress Test di Robustezza mediante chiamate alle API v3.3."""
+  print("[+] Avvio Audit Diretto di Robustezza v3.3 (Metodo Demaria)...")
+
+  # 1. Preflight Integrity Check
+  preflight = PreflightIntegrityAudit()
+  preflight_status = preflight.run_preflight_checks()
+  if not preflight_status.get("status") == "SUCCESS":
+    print("[-] Preflight Check Fallito. Interruzione esecuzione.")
+    sys.exit(1)
+
+  # 2. Caricamento Dataset e Normalizzazione Canonica (P0.2 / P0.3)
+  csv_path = "voynich_eva_tokens_extended.csv"
+  if not os.path.exists(csv_path):
+    print(f"[-] Errore: File dataset '{csv_path}' non trovato.")
+    sys.exit(1)
+
+  df_raw = pd.read_csv(csv_path)
+
+  # Normalizzazione identificativi folio e line_id
+  df_raw["folio_id"] = (
+      df_raw["Folio"].astype(str).apply(lambda x: x.split(".")[0])
+  )
+  df_raw["line_number"] = df_raw["Folio"].astype(str).apply(
+      lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
+  )
+  df_raw["line_id"] = df_raw["folio_id"] + "." + df_raw["line_number"]
+  df_raw["folio"] = df_raw["folio_id"]
+
+  # 3. Parsing Vettoriale dei Token EVA
+  parser = EVAParser()
+  df_parsed = parser.parse_dataframe(df_raw)
+
+  # 4. Matrice di Ammissibilità e Baseline
+  matrix_mgr = BinaryAdmissibilityMatrix()
+  c_raw = matrix_mgr.compute_corpus_coherence(df_parsed)
+  print(f"[+] Baseline Coerenza Grezza Reale (Craw): {c_raw:.6f}")
+
+  # 5. Esecuzione Robustness & Stress Test (Riallineamento API v3.3 - P0.1b)
+  print(
+      "[+] Esecuzione RobustnessStressTestAudit (100 iterazioni/livello,"
+      " Seed=42)..."
+  )
+  robustness_audit = RobustnessStressTestAudit(
+      iterations_per_level=100, seed=42
+  )
+  robustness_results = robustness_audit.run_robustness_test(
+      df_parsed, matrix_mgr, parser
+  )
+
+  print("[+] Audit Diretto di Robustezza Completato con Successo.")
+  return robustness_results
+
+
+if __name__ == "__main__":
+  execute_direct_robustness_audit()

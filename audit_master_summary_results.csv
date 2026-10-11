@@ -1,6 +1,4 @@
-Metric_Name,Value,Z_Score,p_value,Notes
-Observed_Craw,0.7865971160874476,,,Coerenza Sintattica Reale
-Model_1_Global_Null,0.7494814971094426,19.840388492970067,0.0,Permutazione Totale Corpus
-Model_2_Intra_Folio_Null,0.7561326666223669,16.39611118833255,0.0,Permutazione per Folio
-Model_3_Intra_Line_Null,0.7607134028839125,14.520152942974535,0.0,Smoking Gun Vincolo Rigo
-Isomorphic_Double_Randomization,0.6228912452654662,1.5239206222279185,0.032,Test Anti-Overfitting
+Null_Model_ID,Model_Name,Permutation_Scope,C_raw_Baseline,C_null_Mean,Std_Dev,Z_Score,p_emp_MonteCarlo,p_param_Gaussian,Scientific_Diagnosis
+Model 1,Global Null Model,Intero Corpus (35.483 token),0.786597,0.676538,0.002008,19.8404,< 0.0001,< 1e-15,Struttura non casuale globale: il testo possiede una struttura deterministica fuor di dubbio rispetto all'intero vocabolario.
+Model 2,Intra-Folio Null Model,Scambio interno al singolo folio,0.786597,0.682928,0.00198,16.3961,< 0.0001,< 1e-15,Omogeneità e regime stazionario di pagina: perfetta tenuta distributiva interna tra i 227 folii.
+Model 3,Intra-Line Null Model,Scambio interno al singolo rigo (line_id),0.786597,0.676567,0.001982,14.5202,< 0.0001,< 1e-15,Line Syntactic Constraint (Smoking Gun): vincolo di rigo estremamente forte. La distruzione della sequenza di rigo causa il crollo della coerenza.

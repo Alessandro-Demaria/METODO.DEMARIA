@@ -1,154 +1,107 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-LABORATORIO SCIENTIFICO METODO DEMARIA®
-Release v3.3 (Audit-Master-Validato)
+LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3 (AUDIT-MASTER UNIFICATO)
 
-Modulo 1: core_parser1.py
-Parser deterministico per la classificazione vettoriale dei token EVA
-nella quadrupla degli stati topologici minimi (Alpha, Beta, Delta, Gamma).
-
-Sessione di Lavoro: BARVI
+Modulo: core_parser1.py
+Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
+             ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
+             Include la normalizzazione strutturale e la risoluzione P0.2 / P0.3.
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
-Licenza Codebase: MIT License
-Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
-import re
 import pandas as pd
-from typing import List, Tuple, Dict, Any, Optional
 
 
 class EVAParser:
     """
-    Parser deterministico a regole prioritarie per la riduzione dell'alfabeto EVA
-    alla quadrupla degli stati topologici minimi (Alpha, Beta, Delta, Gamma).
+    Parser vettoriale del METODO DEMARIA™.
+    Esegue il mapping deterministico dei token EVA sulla quadrupla degli stati minimi:
+    - State Alpha (1): Innesco / Margine Sinistro
+    - State Beta  (2): Regime / Azione / Attrattore Stazionario
+    - State Delta (3): Differenziazione / Modulazione
+    - State Gamma (4): Chiusura / Reset / Margine Destro
     """
 
-    STATE_ALPHA: str = "Alpha"
-    STATE_BETA: str = "Beta"
-    STATE_DELTA: str = "Delta"
-    STATE_GAMMA: str = "Gamma"
+    def __init__(self):
+        # Mappature simboliche deterministiche della Master Suite v3.3
+        self.alpha_prefixes = ("qo", "chol", "chor", "shol", "shor", "y")
+        self.gamma_suffixes = ("am", "an", "dy", "edy", "ol", "or", "y")
+        self.delta_substrings = ("ch", "sh", "ok", "ot", "ct")
 
-    def __init__(self) -> None:
+    def map_token_to_state(self, token: str) -> int:
         """
-        Inizializza le sequenze grafematiche deterministiche di ancoraggio,
-        transizione e chiusura secondo le specifiche convalidate della Release v3.3.
+        Mappatura deterministica Many-to-One del singolo token EVA in uno stato [1, 2, 3, 4].
+        - 1 = Alpha
+        - 2 = Beta
+        - 3 = Delta
+        - 4 = Gamma
         """
-        # Prefissi d'innesco deterministici (State Alpha / Header di Rigo)
-        self.alpha_prefixes: Tuple[str, ...] = (
-            "qo", "cho", "che", "ch", "sh", "ok", "ot", "ol", "op",
-            "po", "to", "so", "do", "y", "q"
-        )
-        # Suffissi di chiusura deterministici (State Gamma / Reset e Drenaggio)
-        self.gamma_suffixes: Tuple[str, ...] = (
-            "am", "an", "ain", "in", "al", "or", "ar", "dy", "eedy",
-            "ey", "old", "m", "n", "g", "z"
-        )
-        # Modulatori interni di variazione (State Delta / Differenziazione)
-        self.delta_substrings: Tuple[str, ...] = (
-            "ck", "ct", "ee", "ii", "iii", "aiin"
-        )
+        if not isinstance(token, str) or not token.strip():
+            return 2  # State Beta di default per token non validi o vuoti
 
-    def clean_token(self, token: Any) -> str:
-        """
-        Rimuove marcatori di incertezza, punteggiatura e caratteri non appartenenti
-        all'alfabeto EVA standard.
-        """
-        if not isinstance(token, str):
-            return ""
-        # Rimozione marcatori di incertezza transcrizionale ed interpolazione
-        cleaned: str = re.sub(r"[!\?\*\.\,\-\=\_]", "", token)
-        return cleaned.strip().lower()
+        token_clean = token.strip().lower()
 
-    def clean_eva_token(self, token: Any) -> str:
-        """
-        Alias retro-compatibile per la suite di test unitari (tests_test_parserA.py).
-        """
-        return self.clean_token(token)
+        # Regola 1: Innesco / Header (State Alpha = 1)
+        for prefix in self.alpha_prefixes:
+            if token_clean.startswith(prefix):
+                return 1
 
-    def classify_token(self, token: Any) -> str:
-        """
-        Assegna lo stato sintattico vettoriale secondo la gerarchia di precedenza rigida v3.3:
-        1. Alpha (Prefisso d'innesco)
-        2. Gamma (Suffisso di chiusura)
-        3. Delta (Modulatore interno)
-        4. Beta  (Stato stazionario residuale / Azione)
-        """
-        tok: str = self.clean_token(token)
-        if not tok:
-            return self.STATE_BETA
+        # Regola 2: Chiusura / Terminale (State Gamma = 4)
+        for suffix in self.gamma_suffixes:
+            if token_clean.endswith(suffix):
+                return 4
 
-        # Priorità 1: Prefissi d'Innesco (State Alpha)
-        for pfx in self.alpha_prefixes:
-            if tok.startswith(pfx):
-                return self.STATE_ALPHA
-
-        # Priorità 2: Suffissi di Chiusura (State Gamma)
-        for sfx in self.gamma_suffixes:
-            if tok.endswith(sfx):
-                return self.STATE_GAMMA
-
-        # Priorità 3: Modulatori Interni (State Delta)
+        # Regola 3: Differenziazione / Modulazione (State Delta = 3)
         for sub in self.delta_substrings:
-            if sub in tok:
-                return self.STATE_DELTA
+            if sub in token_clean:
+                return 3
 
-        # Fallback: Stato Stazionario (State Beta)
-        return self.STATE_BETA
-
-    def map_token_to_state(self, token: Any) -> str:
-        """
-        Alias retro-compatibile per la suite di test unitari (tests_test_parserA.py).
-        """
-        return self.classify_token(token)
+        # Regola 4: Regime Stazionario (State Beta = 2)
+        return 2
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del dataset master e genera le colonne di parsing vettoriale,
-        estrapolando rigorosamente l'identificatore di rigo (line_id) e la coordinata di folio.
+        Elabora il DataFrame del corpus, normalizza le coordinate spaziali (P0.2/P0.3)
+        ed assegna a ciascun token il rispettivo stato vettoriale.
         """
-        df_out: pd.DataFrame = df.copy()
+        df_parsed = df.copy()
 
-        # Identificazione deterministica della colonna contenente i token EVA
-        token_col: Optional[str] = None
-        for col in ["token", "eva_token", "EVA_Token", "EVA_token"]:
-            if col in df_out.columns:
+        # Normalizzazione canonica identificativi (P0.2 / P0.3 Fix)
+        if "Folio" in df_parsed.columns:
+            df_parsed["folio_id"] = df_parsed["Folio"].astype(str).apply(lambda x: x.split(".")[0])
+            df_parsed["line_number"] = df_parsed["Folio"].astype(str).apply(
+                lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
+            )
+            df_parsed["line_id"] = df_parsed["folio_id"] + "." + df_parsed["line_number"]
+            df_parsed["folio"] = df_parsed["folio_id"]
+        elif "folio" not in df_parsed.columns:
+            raise KeyError("[-] Errore Parser: Colonna 'Folio' o 'folio' non trovata nel DataFrame.")
+
+        # Identificazione colonna del token
+        token_col = None
+        for col in ["Token", "eva_token", "token", "EVA"]:
+            if col in df_parsed.columns:
                 token_col = col
                 break
-        
+
         if token_col is None:
-            # Selezione della prima colonna di tipo testo se nessuna corrispondenza esplicita è trovata
-            object_cols = df_out.select_dtypes(include=["object"]).columns
-            if len(object_cols) > 0:
-                token_col = object_cols[0]
-            else:
-                token_col = df_out.columns[0]
+            raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # Applicazione della pulizia e della classificazione deterministica
-        df_out["cleaned_token"] = df_out[token_col].apply(self.clean_token)
-        df_out["assigned_state"] = df_out[token_col].apply(self.classify_token)
+        # Assegnazione dello stato vettoriale numeric [1, 2, 3, 4] e della stringa di stato
+        df_parsed["state"] = df_parsed[token_col].apply(self.map_token_to_state)
 
-        # Gestione ed estrazione rigorosa di line_id e Folio
-        if "line_id" not in df_out.columns:
-            if "Folio" in df_out.columns and "Line" in df_out.columns:
-                df_out["line_id"] = df_out["Folio"].astype(str) + "." + df_out["Line"].astype(str)
-            elif "Folio" in df_out.columns:
-                df_out["line_id"] = df_out["Folio"].astype(str)
-            elif "folio" in df_out.columns:
-                df_out["line_id"] = df_out["folio"].astype(str)
-            else:
-                df_out["line_id"] = "line_1"
+        state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
+        df_parsed["state_name"] = df_parsed["state"].map(state_names)
 
-        if "Folio" not in df_out.columns and "folio" in df_out.columns:
-            df_out["Folio"] = df_out["folio"]
-        elif "Folio" not in df_out.columns:
-            df_out["Folio"] = df_out["line_id"].apply(lambda x: str(x).split(".")[0] if "." in str(x) else str(x))
-
-        return df_out
+        return df_parsed
 
 
 if __name__ == "__main__":
-    parser_instance = EVAParser()
-    print("=== MODULO core_parser1.py (Release v3.3 Audit-Master-Validato) CARICATO ED ESEGUITO ===")
-    print(f"Stati Definiti: {[parser_instance.STATE_ALPHA, parser_instance.STATE_BETA, parser_instance.STATE_DELTA, parser_instance.STATE_GAMMA]}")
+    parser = EVAParser()
+    sample_data = pd.DataFrame({
+        "Folio": ["f1r.1,+P0", "f1r.1,+P0", "f1r.2,+P0"],
+        "Token": ["fachys", "qokaiin", "cheoldy"]
+    })
+    parsed_df = parser.parse_dataframe(sample_data)
+    print("DataFrame Parsato di Test:")
+    print(parsed_df[["folio_id", "line_id", "folio", "Token", "state", "state_name"]])

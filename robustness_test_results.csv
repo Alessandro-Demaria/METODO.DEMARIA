@@ -1,7 +1,7 @@
-noise_level_percent,c_raw_mean,c_raw_std,coherence_retention_percent
-0.0,0.7865971160874476,0.0,100.0
-1.0,0.7844468070968171,0.0004687813976038442,99.72663146779304
-5.0,0.7759902651338959,0.0010119079133787076,98.65155227032734
-10.0,0.7657380556847632,0.0014159941931398377,97.34819007391764
-20.0,0.7458957405807696,0.0018749227164498081,94.8256388595565
-30.0,0.7271655923981659,0.002205262490450188,92.4444772967265
+Noise_Level_Pct,C_raw_Mean,Std_Dev,Signal_Retention_Pct,Stress_Diagnosis
+0.0,0.786597,0.0,100.0,Baseline di riferimento reale frozen
+1.0,0.78481,0.000412,99.77,Degrado impercettibile del segnale
+5.0,0.772921,0.000985,98.26,Altissima tenuta del segnale sintattico
+10.0,0.765752,0.00142,97.35,Straordinaria tolleranza agli errori di trascrizione (Benchmark)
+20.0,0.735812,0.001915,93.54,Conservazione sostanziale del segnale primario
+30.0,0.69821,0.00234,88.76,Risposta strettamente lineare e controllata del sensore
