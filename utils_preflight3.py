@@ -100,10 +100,12 @@ class PreflightIntegrityAudit:
                 "error": msg
             }
 
-        # 5. Verifica Flessibile Colonne Obbligatorie (Record_ID, Folio/folio, Token/token)
-        has_record_id = "Record_ID" in df.columns or "record_id" in df.columns
-        has_folio = "Folio" in df.columns or "folio" in df.columns
-        has_token = any(col in df.columns for col in ["Token", "token", "eva_token", "EVA"])
+        # 5. Controllo Flessibile e Case-Insensitive delle Colonne
+        cols_lower = [str(c).strip().lower() for c in df.columns]
+
+        has_record_id = "record_id" in cols_lower
+        has_folio = "folio" in cols_lower
+        has_token = any(t in cols_lower for t in ["token", "eva_token", "eva"])
 
         if not (has_record_id and has_folio and has_token):
             missing = []
@@ -114,17 +116,21 @@ class PreflightIntegrityAudit:
             logging.error(f"[Preflight] {msg}")
             return {"status": "FAILED", "error": msg}
 
-        # 6. Normalizzazione automatica nome colonna token
-        token_col = next(col for col in ["token", "Token", "eva_token", "EVA"] if col in df.columns)
+        # 6. Identificazione e verifica colonna Token
+        token_col = None
+        for col in df.columns:
+            if str(col).strip().lower() in ["token", "eva_token", "eva"]:
+                token_col = col
+                break
 
-        if df[token_col].isnull().any():
+        if token_col is None or df[token_col].isnull().any():
             msg = "NULL VALUES: Presenti valori nulli o vuoti nella colonna dei token"
             logging.error(f"[Preflight] {msg}")
             return {"status": "FAILED", "error": msg}
 
         logging.info(f"[Preflight] Dataset di {actual_records} record validato con successo.")
 
-        folio_col = "Folio" if "Folio" in df.columns else "folio"
+        folio_col = next((col for col in df.columns if str(col).strip().lower() == "folio"), "Folio")
         return {
             "status": "SUCCESS",
             "sha256_hash": calculated_hash,
