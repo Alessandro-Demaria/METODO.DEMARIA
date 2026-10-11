@@ -5,8 +5,9 @@ LABORATORIO SCIENTIFICO METODO DEMARIA®
 Release v3.3 (Audit-Master Unificato)
 
 Modulo: utils_preflight3.py
-Descrizione: Modulo di controllo e verifica integrità preliminare dei dati (Preflight Audit).
-             Integrazione della normalizzazione canonica Folio / folio_id / line_id (P0.2 / P0.3).
+Descrizione: Audit di integrità e preflight crittografico (Punto 1.4 - Scheda SORU).
+             Effettua il controllo vincolante (hard check) sull'hash SHA-256 del dataset canonico,
+             sulla cardinalità esatta (35.483 record) e sulla struttura delle coordinate.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -14,83 +15,122 @@ Licenza Codebase: MIT License
 
 import os
 import hashlib
+import logging
 import pandas as pd
+
+# Configurazione Logger di Laboratorio
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 
 class PreflightIntegrityAudit:
     """
-    Gestisce i controlli di integrità preliminare sui dataset e file di laboratorio.
-    Normalizza la struttura delle coordinate spaziali per l'intera suite di audit.
+    Gestore dell'Audit di Integrità e Validazione Crittografica Preflight.
+    Impone vincoli d'arresto immediato (hard fail) in caso di discrepanza dati/hash.
     """
 
-    def __init__(self, dataset_path="voynich_eva_tokens_extended.csv"):
+    # Impronta crittografica ufficiale SHA-256 congelata nel Trattato v3.3
+    CANONICAL_SHA256 = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
+    CANONICAL_RECORD_COUNT = 35483
+    REQUIRED_COLUMNS = ["Record_ID", "Folio", "token", "folio_id", "line_id"]
+
+    def __init__(self, dataset_path: str = "voynich_eva_tokens_extended.csv"):
         self.dataset_path = dataset_path
-        self.expected_hash = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
-        self.expected_record_count = 35483
 
-    def compute_sha256(self, file_path: str) -> str:
-        """Calcola l'impronta crittografica SHA-256 di un file."""
+    def compute_sha256(self) -> str:
+        """Calcola l'impronta crittografica SHA-256 del file su disco."""
         sha256_hash = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
+        with open(self.dataset_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(65536), b""):
                 sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest()
-
-    def normalize_dataset_structure(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Risoluzione P0.2 / P0.3: Scomposizione e normalizzazione canonica degli identificativi.
-        Isola 'folio_id', 'line_number', 'line_id' e crea la colonna 'folio' per la suite.
-        """
-        df_norm = df.copy()
-
-        if "Folio" not in df_norm.columns and "folio" not in df_norm.columns:
-            raise KeyError("[-] Errore Preflight: Colonna 'Folio' non presente nel dataset.")
-
-        col_target = "Folio" if "Folio" in df_norm.columns else "folio"
-
-        df_norm["folio_id"] = df_norm[col_target].astype(str).apply(lambda x: x.split(".")[0])
-        df_norm["line_number"] = df_norm[col_target].astype(str).apply(
-            lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
-        )
-        df_norm["line_id"] = df_norm["folio_id"] + "." + df_norm["line_number"]
-        df_norm["folio"] = df_norm["folio_id"]
-
-        return df_norm
+        return sha256_hash.hexdigest().lower()
 
     def run_preflight_checks(self) -> dict:
-        """Esegue i controlli preliminari di esistenza, conteggio ed eventuale hash."""
-        print("[+] Avvio Preflight Integrity Check...")
+        """
+        Esegue i controlli vincolanti di preflight sul dataset master.
+        Restituisce un dizionario contenente l'esito formale e le metriche di validazione.
+        """
+        logging.info("[Preflight] Avvio verifica di integrità ed hash crittografico SHA-256...")
 
+        # 1. Verifica Esistenza File
         if not os.path.exists(self.dataset_path):
-            print(f"[-] Errore: Dataset '{self.dataset_path}' non trovato.")
-            return {"status": "FAILED", "reason": "FILE_NOT_FOUND"}
+            msg = f"FILE NOT FOUND: Impossibile trovare il dataset al percorso {self.dataset_path}"
+            logging.error(f"[Preflight] {msg}")
+            return {"status": "FAILED", "error": msg}
 
-        df = pd.read_csv(self.dataset_path)
-        record_count = len(df)
+        # 2. Controllo Crittografico SHA-256 (Hard Fail)
+        calculated_hash = self.compute_sha256()
+        if calculated_hash != self.CANONICAL_SHA256:
+            msg = (
+                f"CRITICAL SHA256 MISMATCH: Hash calcolato ({calculated_hash}) "
+                f"difforme dall'hash canonico v3.3 ({self.CANONICAL_SHA256})"
+            )
+            logging.error(f"[Preflight] {msg}")
+            return {
+                "status": "FAILED",
+                "calculated_sha256": calculated_hash,
+                "expected_sha256": self.CANONICAL_SHA256,
+                "error": msg
+            }
 
-        if record_count != self.expected_record_count:
-            print(f"[!] Avviso: Conteggio record ({record_count}) diverso da atteso ({self.expected_record_count}).")
+        logging.info(f"[Preflight] Hash SHA-256 VERIFICATO: {calculated_hash}")
 
+        # 3. Caricamento Dati e Verifica Strutturale
         try:
-            df_normalized = self.normalize_dataset_structure(df)
-            unique_folios = df_normalized["folio_id"].nunique()
-            unique_lines = df_normalized["line_id"].nunique()
-            print(f"[+] Normalizzazione Dati completata: {record_count} record, {unique_folios} folii unici, {unique_lines} righe uniche.")
+            df = pd.read_csv(self.dataset_path)
         except Exception as e:
-            print(f"[-] Errore durante la normalizzazione del dataset: {e}")
-            return {"status": "FAILED", "reason": "NORMALIZATION_ERROR"}
+            msg = f"PARSE ERROR: Errore durante il caricamento del file CSV: {e}"
+            logging.error(f"[Preflight] {msg}")
+            return {"status": "FAILED", "error": msg}
 
-        print("[+] Preflight Check COMPLETATO CON SUCCESSO.")
+        # 4. Verifica Cardinalità Record (Hard Fail)
+        actual_records = len(df)
+        if actual_records != self.CANONICAL_RECORD_COUNT:
+            msg = (
+                f"RECORD COUNT MISMATCH: Conteggio record ({actual_records}) "
+                f"difforme dal valore canonico ({self.CANONICAL_RECORD_COUNT})"
+            )
+            logging.error(f"[Preflight] {msg}")
+            return {
+                "status": "FAILED",
+                "actual_records": actual_records,
+                "expected_records": self.CANONICAL_RECORD_COUNT,
+                "error": msg
+            }
+
+        # 5. Verifica Colonne Obbligatorie
+        missing_cols = [col for col in self.REQUIRED_COLUMNS if col not in df.columns]
+        if missing_cols:
+            msg = f"MISSING COLUMNS: Colonne obbligatorie assenti: {missing_cols}"
+            logging.error(f"[Preflight] {msg}")
+            return {"status": "FAILED", "error": msg}
+
+        # 6. Verifica Duplicati e Valori Nulli su Campi Critici
+        if df["Record_ID"].duplicated().any():
+            msg = "DUPLICATE KEYS: Trovati 'Record_ID' duplicati nel dataset"
+            logging.error(f"[Preflight] {msg}")
+            return {"status": "FAILED", "error": msg}
+
+        if df["token"].isnull().any():
+            msg = "NULL VALUES: Presenti valori nulli o vuoti nella colonna 'token'"
+            logging.error(f"[Preflight] {msg}")
+            return {"status": "FAILED", "error": msg}
+
+        logging.info(f"[Preflight] Dataset di {actual_records} record validato con successo.")
+
         return {
             "status": "SUCCESS",
-            "record_count": record_count,
-            "unique_folios": unique_folios,
-            "unique_lines": unique_lines,
-            "dataset_path": self.dataset_path
+            "sha256_hash": calculated_hash,
+            "total_records": actual_records,
+            "unique_folios": int(df["Folio"].nunique()) if "Folio" in df.columns else 0,
+            "unique_lines": int(df["line_id"].nunique()) if "line_id" in df.columns else 0
         }
 
 
 if __name__ == "__main__":
     audit = PreflightIntegrityAudit()
-    results = audit.run_preflight_checks()
-    print("Risultati Preflight:", results)
+    result = audit.run_preflight_checks()
+    print("\nResult:", result)

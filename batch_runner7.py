@@ -1,127 +1,123 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3 (AUDIT-MASTER UNIFICATO)
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
 
 Modulo: batch_runner7.py
-Descrizione: Master Orchestrator unico e definitivo per l'esecuzione in batch
-             della Master Audit Suite v3.3 del METODO DEMARIA™.
+Descrizione: Esecutore CLI unificato per la Master Audit Suite v3.3 (Punto 1.2 - Scheda SORU).
+             Garantisce l'esecuzione sequenziale automatizzata di tutta la pipeline da un singolo comando.
+
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
 """
 
-import sys
 import os
+import sys
 import json
+import logging
 import pandas as pd
+import numpy as np
 
 from utils_preflight3 import PreflightIntegrityAudit
 from core_parser1 import EVAParser
 from core_matrix2 import BinaryAdmissibilityMatrix
-from audit_nullmodels4 import HierarchicalNullModelsAudit
-from audit_doublerand5 import DoubleRandomizationAudit
-from audit_robustness6 import RobustnessStressTestAudit
-from audit_holdout8 import HoldoutValidationAudit
-from audit_ablation9 import RuleAblationAudit
+from audit_null_models2 import run_full_hierarchical_audit
+from audit_double_null5 import DoubleRandomizationAuditor
+from audit_holdout6 import HoldoutCrossValidationAudit
+from audit_robustness4 import RobustnessStressTestAudit
+
+# Configurazione del Logging Ufficiale di Laboratorio
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 
-class MasterBatchRunner:
+def run_master_audit_suite_v33(dataset_path: str = "voynich_eva_tokens_extended.csv", output_json_path: str = "audit_master_results_v33.json") -> dict:
     """
-    Master Orchestrator della Release v3.3.
-    Gestisce l'esecuzione sequenziale di tutte le fasi dell'audit
-    garantendo la coerenza dei dati e l'esportazione dei report.
+    Esegue la suite completa ed unificata della Release v3.3 via singola chiamata CLI.
+    Genera dinamicamente il file JSON degli output per la catena di provenienza Open Science.
     """
+    logging.info("=================================================================")
+    logging.info("  LABORATORIO SCIENTIFICO METODO DEMARIA® — RELEASE v3.3")
+    logging.info("  Esecuzione Unificata CLI Master Audit Suite (Punto 1.2)")
+    logging.info("=================================================================")
 
-    def __init__(self, dataset_path="voynich_eva_tokens_extended.csv", seed=42):
-        self.dataset_path = dataset_path
-        self.seed = seed
-        self.audit_results = {}
+    master_results = {}
 
-    def run_master_pipeline(self):
-        print("===================================================================")
-        print(" LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3")
-        print(" MASTER AUDIT SUITE - ESECUZIONE ORCHESTRATA UNIFICATA")
-        print("===================================================================\n")
+    # --- FASE 1: PREFLIGHT CHECK & CARICAMENTO DATASET ---
+    logging.info("[1/7] Inizio Preflight Check ed integrità dataset...")
+    if not os.path.exists(dataset_path):
+        logging.error(f"CRITICAL ERROR: Dataset non trovato al percorso specificato: {dataset_path}")
+        sys.exit(1)
 
-        # FASE 1: Preflight Integrity Audit
-        print("[FASE 1/9] Esecuzione Preflight Integrity Check...")
-        preflight = PreflightIntegrityAudit()
-        preflight_status = preflight.run_preflight_checks()
-        if not preflight_status.get("status") == "SUCCESS":
-            print("[-] CRITICO: Preflight Check Fallito. Interruzione pipeline.")
-            sys.exit(1)
-        print("[+] FASE 1 Completata: Integrità preflight VERIFICATA.\n")
+    preflight = PreflightIntegrityAudit(dataset_path=dataset_path)
+    preflight_res = preflight.run_preflight_checks()
+    master_results["preflight"] = preflight_res
+    logging.info(f"Preflight completato con stato: {preflight_res.get('status')}")
 
-        # FASE 2: Caricamento e Normalizzazione Canonica Dati (P0.2 / P0.3)
-        print("[FASE 2/9] Caricamento Dataset e Normalizzazione Coordinate...")
-        if not os.path.exists(self.dataset_path):
-            print(f"[-] CRITICO: File dataset '{self.dataset_path}' non trovato.")
-            sys.exit(1)
+    df_raw = pd.read_csv(dataset_path)
 
-        df_raw = pd.read_csv(self.dataset_path)
+    # --- FASE 2: PARSING EVA DETERMINISTICO ---
+    logging.info("[2/7] Esecuzione EVAParser (Mappatura Many-to-One)...")
+    parser = EVAParser()
+    df_parsed = parser.parse_dataframe(df_raw)
+    logging.info(f"Parsing completato: {len(df_parsed)} record elaborati.")
 
-        # Scomposizione e normalizzazione canonica degli identificativi
-        df_raw["folio_id"] = df_raw["Folio"].astype(str).apply(lambda x: x.split(".")[0])
-        df_raw["line_number"] = df_raw["Folio"].astype(str).apply(
-            lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
-        )
-        df_raw["line_id"] = df_raw["folio_id"] + "." + df_raw["line_number"]
-        df_raw["folio"] = df_raw["folio_id"]
-        print(f"[+] FASE 2 Completata: Processati {len(df_raw)} record su {df_raw['folio_id'].nunique()} folii unici.\n")
+    # --- FASE 3: MATRICE BINARIA & COERENZA GREZZA (Craw) ---
+    logging.info("[3/7] Calcolo Coerenza Sintattica Grezza Reale (Craw)...")
+    matrix_mgr = BinaryAdmissibilityMatrix()
+    c_raw_calculated = matrix_mgr.compute_corpus_coherence(df_parsed)
+    master_results["c_raw_baseline"] = float(c_raw_calculated)
+    logging.info(f"Craw Reale Calcolata: {c_raw_calculated:.6f}")
 
-        # FASE 3: Parsing Vettoriale dei Token EVA
-        print("[FASE 3/9] Esecuzione Parsing Vettoriale (EVA -> Quadrupla Stati)...")
-        parser = EVAParser()
-        df_parsed = parser.parse_dataframe(df_raw)
-        print("[+] FASE 3 Completata: Parsing vettoriale eseguito con successo.\n")
+    # --- FASE 4: MODELLI NULLI GERARCHICI MONTE CARLO ---
+    logging.info("[4/7] Esecuzione Modelli Nulli Gerarchici (Global, Folio, Line)...")
+    null_models_res = run_full_hierarchical_audit(df_parsed, matrix_mgr=matrix_mgr)
+    master_results["null_models"] = null_models_res
+    logging.info("Modelli nulli gerarchici completati.")
 
-        # FASE 4: Matrice di Ammissibilità e Baseline Craw
-        print("[FASE 4/9] Calcolo Matrice 4x4 e Baseline Coerenza Sintattica Reale (Craw)...")
-        matrix_mgr = BinaryAdmissibilityMatrix()
-        c_raw = matrix_mgr.compute_corpus_coherence(df_parsed)
-        self.audit_results["c_raw"] = c_raw
-        print(f"[+] FASE 4 Completata: Baseline Craw = {c_raw:.6f} ({c_raw*100:.2f}%)\n")
+    # --- FASE 5: ISOMORPHIC DOUBLE RANDOMIZATION TEST ---
+    logging.info("[5/7] Esecuzione Isomorphic Double Randomization Test...")
+    double_auditor = DoubleRandomizationAuditor(matrix_mgr=matrix_mgr, iterations=1000, seed=42)
+    double_res = double_auditor.run_audit(df_parsed)
+    master_results["double_randomization"] = double_res
+    logging.info("Double Randomization Test completato.")
 
-        # FASE 5: Modelli Nulli Gerarchici Monte Carlo (N=10.000)
-        print("[FASE 5/9] Esecuzione Modelli Nulli Gerarchici Monte Carlo (N=10.000)...")
-        null_audit = HierarchicalNullModelsAudit(iterations=10000, seed=self.seed)
-        null_results = null_audit.run_full_hierarchical_audit(df_parsed, matrix_mgr)
-        self.audit_results["null_models"] = null_results
-        print("[+] FASE 5 Completata: Modelli Nulli Gerarchici eseguiti.\n")
+    # --- FASE 6: HOLDOUT CROSS-VALIDATION ---
+    logging.info("[6/7] Esecuzione Holdout Cross-Validation (Out-of-Sample)...")
+    holdout_auditor = HoldoutCrossValidationAudit(iterations=100, seed=42)
+    holdout_res = holdout_auditor.run_holdout_audit(df_parsed, matrix_mgr=matrix_mgr)
+    master_results["holdout"] = holdout_res
+    logging.info("Holdout Cross-Validation completata.")
 
-        # FASE 6: Test Avversariale Isomorfo di Doppia Randomizzazione
-        print("[FASE 6/9] Esecuzione Isomorphic Double Randomization Test (N=10.000)...")
-        double_rand = DoubleRandomizationAudit(iterations=10000, seed=self.seed)
-        double_rand_results = double_rand.run_double_randomization_test(df_parsed, matrix_mgr)
-        self.audit_results["double_randomization"] = double_rand_results
-        print("[+] FASE 6 Completata: Double Randomization Test eseguito.\n")
+    # --- FASE 7: ROBUSTNESS & STRESS TEST ---
+    logging.info("[7/7] Esecuzione Robustness & Noise Stress Test...")
+    robustness_auditor = RobustnessStressTestAudit(seed=42)
+    robustness_res = robustness_auditor.run_robustness_test(df_parsed, matrix_mgr=matrix_mgr, parser=parser)
 
-        # FASE 7: Robustness & Noise Sensitivity Stress Test
-        print("[FASE 7/9] Esecuzione Robustness & Stress Test (Iniezione Rumore 0%-30%)...")
-        robustness = RobustnessStressTestAudit(iterations_per_level=100, seed=self.seed)
-        robustness_results = robustness.run_robustness_test(df_parsed, matrix_mgr, parser)
-        self.audit_results["robustness"] = robustness_results
-        print("[+] FASE 7 Completata: Stress Test di Robustezza eseguito.\n")
+    if isinstance(robustness_res, pd.DataFrame):
+        master_results["robustness"] = robustness_res.to_dict(orient="records")
+    else:
+        master_results["robustness"] = robustness_res
+    logging.info("Robustness Stress Test completato.")
 
-        # FASE 8: Spatial Stability Holdout Validation (50%/50%)
-        print("[FASE 8/9] Esecuzione Folio-Split Spatial Stability Holdout Validation...")
-        holdout = HoldoutValidationAudit(test_size=0.5, seed=self.seed)
-        holdout_results = holdout.run_holdout_validation(df_parsed, matrix_mgr)
-        self.audit_results["holdout"] = holdout_results
-        print("[+] FASE 8 Completata: Validazione Holdout eseguita.\n")
+    # --- ESPORTAZIONE OUTPUT DINAMICO UNIFICATO ---
+    try:
+        with open(output_json_path, "w", encoding="utf-8") as f:
+            json.dump(master_results, f, indent=4, default=str)
+        logging.info(f"Esportazione completata: Risultati salvati in '{output_json_path}'.")
+    except Exception as e:
+        logging.error(f"Errore nella scrittura del file JSON di output: {e}")
 
-        # FASE 9: Rule Ablation & Random Parser Benchmarking
-        print("[FASE 9/9] Esecuzione Rule Ablation & Random Parser Benchmark...")
-        ablation = RuleAblationAudit(seed=self.seed)
-        ablation_results = ablation.run_ablation_suite(df_parsed, matrix_mgr, parser)
-        self.audit_results["ablation"] = ablation_results
-        print("[+] FASE 9 Completata: Ablation Audit eseguito.\n")
+    logging.info("=================================================================")
+    logging.info("  CLI MASTER AUDIT SUITE ESEGUITA CON SUCCESSO (PUNTO 1.2)")
+    logging.info("=================================================================")
 
-        print("===================================================================")
-        print(" MASTER AUDIT SUITE v3.3 COMPLETATA CON SUCCESSO")
-        print(" Tutti i moduli sono riallineati, eseguiti e verificati.")
-        print("===================================================================")
-        return self.audit_results
+    return master_results
 
 
 if __name__ == "__main__":
-    runner = MasterBatchRunner(seed=42)
-    results = runner.run_master_pipeline()
+    results = run_master_audit_suite_v33()
