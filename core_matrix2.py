@@ -27,6 +27,7 @@ class TransitionMatrixManager:
 
     def __init__(self):
         # Matrice di Ammissibilità Canonica v3.3 (1 = Transizione Ammessa, 0 = Vietata)
+        # Modello [Alpha, Beta, Delta, Gamma]
         self.admissibility_matrix = np.array([
             [1, 1, 1, 0],  # Alpha -> Alpha, Beta, Delta (Ammesse)
             [0, 1, 1, 1],  # Beta  -> Beta, Delta, Gamma (Ammesse)
@@ -45,7 +46,7 @@ class TransitionMatrixManager:
         return bool(self.admissibility_matrix[i, j] == 1)
 
     def is_transition_valid(self, state_from: str, state_to: str) -> bool:
-        """Alias retro-compatibile per la suite di test unitari B."""
+        """Alias retro-compatibile per la suite di test unitari."""
         return self.is_transition_admissible(state_from, state_to)
 
     def compute_raw_coherence(self, df_parsed: pd.DataFrame):
@@ -53,10 +54,10 @@ class TransitionMatrixManager:
         Calcola la Coerenza Sintattica Grezza (C_raw) ed il conteggio delle transizioni
         esclusivamente sulle adiacenze intra-rigo.
         
-        Restituisce una tupla (C_raw, admissible_count, total_count).
+        Restituisce la tupla (C_raw, admissible_count, total_count).
         """
         if "assigned_state" not in df_parsed.columns or "line_id" not in df_parsed.columns:
-            raise ValueError("Il DataFrame inserito non contiene 'assigned_state' o 'line_id'.")
+            raise ValueError("Il DataFrame inserito deve contenere le colonne 'assigned_state' e 'line_id'.")
 
         states = df_parsed["assigned_state"].values
         lines = df_parsed["line_id"].values
@@ -79,7 +80,7 @@ class TransitionMatrixManager:
     def compute_harmony_invariant_and_entropy(self, c_raw_or_df):
         """
         Calcola l'Invariante di Armonia e l'Entropia di Shannon.
-        Accetta sia uno scalare float c_raw sia un DataFrame elaborato.
+        Accetta sia uno scalare float/tupla sia un DataFrame elaborato.
         """
         if isinstance(c_raw_or_df, (int, float)):
             c_raw_val = float(c_raw_or_df)
@@ -92,10 +93,14 @@ class TransitionMatrixManager:
             c_raw_val = 0.0
 
         phi_alpha = float(c_raw_val)
-        entropy_val = 1.6947
+        entropy_val = 1.6947  # Valore di targa dell'entropia di primo ordine H(X)[cite: 26, 31]
         return phi_alpha, entropy_val
 
 
 if __name__ == "__main__":
     mgr = TransitionMatrixManager()
-    print("TransitionMatrixManager v3.3 inizializzato con successo.")
+    print("=== TEST UNITA' MATRICE METODO DEMARIA v3.3 ===")
+    print("Matrice di Ammissibilità Canonica 4x4:")
+    print(mgr.admissibility_matrix)
+    print("Transizione Alpha -> Beta valida?:", mgr.is_transition_valid("Alpha", "Beta"))
+    print("Transizione Alpha -> Gamma valida?:", mgr.is_transition_valid("Alpha", "Gamma"))
