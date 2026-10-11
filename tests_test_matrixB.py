@@ -51,14 +51,17 @@ def test_entropy_real_corpus_attractor():
 
 
 def test_binary_admissibility_matrix_structure():
-    """Verifica la corretta inizializzazione della Matrice Binaria di Ammissibilità 4x4 (12 celle ammissibili su 16)."""
+    """
+    Verifica la corretta inizializzazione della Matrice Binaria di Ammissibilità 4x4.
+    Conteggio algebrico esatto: 13 transizioni ammissibili su 16 totali.
+    """
     matrix_mgr = BinaryAdmissibilityMatrix()
     matrix = matrix_mgr.get_matrix()
 
     assert matrix.shape == (4, 4), "La matrice deve avere dimensione 4x4"
     assert (
-        np.sum(matrix == 1) == 12
-    ), f"La matrice deve contenere esattamente 12 transizioni ammissibili, trovate {np.sum(matrix == 1)}"
+        np.sum(matrix == 1) == 13
+    ), f"La matrice deve contenere esattamente 13 transizioni ammissibili, trovate {np.sum(matrix == 1)}"
 
 
 if __name__ == "__main__":
