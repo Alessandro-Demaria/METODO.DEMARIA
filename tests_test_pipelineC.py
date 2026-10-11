@@ -44,7 +44,7 @@ def test_full_pipeline_coherence_regression():
 
         # Transizioni ammissibili: State Delta -> State Delta ("cheol" -> "cheol")
         tokens_valid = ["cheol"] * n_valid
-        
+
         # Transizioni non ammissibili: State Alpha -> State Gamma ("qokaiin" -> "am")
         tokens_invalid = ["qokaiin", "am"] * (n_invalid // 2)
         if len(tokens_invalid) < n_invalid:
