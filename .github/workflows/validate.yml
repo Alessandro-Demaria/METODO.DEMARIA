@@ -26,4 +26,5 @@ jobs:
 
       - name: Run Master Audit Suite
         run: |
-          python batch_runner7.py
+          pytest tests_test_parserA.py tests_test_matrixB.py tests_test_pipelineC.py
+          
