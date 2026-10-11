@@ -32,7 +32,7 @@ class EVAParser:
 
     def __init__(self):
         self.alpha_prefixes = ("qo", "chol", "chor", "shol", "shor")
-        self.gamma_suffixes = ("am", "an", "dy", "edy", "ol", "or")
+        self.gamma_suffixes = ("am", "an", "dy", "edy", "or")
         self.delta_substrings = ("ch", "sh", "ok", "ot", "ct")
 
     @staticmethod
@@ -48,7 +48,7 @@ class EVAParser:
     def map_token_to_state(self, token: str) -> str:
         """
         Mappatura deterministica Many-to-One del singolo token EVA.
-        Priorità algebrica v3.3: Prefissi (Alpha) -> Suffissi (Gamma) -> Sottostringhe (Delta) -> Default (Beta).
+        Priorità algebrica v3.3: Prefissi (Alpha) -> Sottostringhe (Delta) -> Suffissi (Gamma) -> Default (Beta).
         """
         token_clean = self.clean_eva_token(token)
         if not token_clean:
@@ -59,15 +59,15 @@ class EVAParser:
             if token_clean.startswith(prefix):
                 return self.STATE_ALPHA
 
-        # 2. Regola Chiusura / Reset (State Gamma)
-        for suffix in self.gamma_suffixes:
-            if token_clean.endswith(suffix):
-                return self.STATE_GAMMA
-
-        # 3. Regola Modulazione / Differenziazione (State Delta)
+        # 2. Regola Modulazione / Differenziazione (State Delta)
         for sub in self.delta_substrings:
             if sub in token_clean:
                 return self.STATE_DELTA
+
+        # 3. Regola Chiusura / Reset (State Gamma)
+        for suffix in self.gamma_suffixes:
+            if token_clean.endswith(suffix):
+                return self.STATE_GAMMA
 
         # 4. Regola Attrattore Stazionario (State Beta)
         return self.STATE_BETA
