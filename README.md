@@ -1,18 +1,17 @@
-[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=33)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)# METODO DEMARIA® Release v3.3 (Audit-Master Unificato)
-### Quantitative Audit & Vector Topology of the Voynich Manuscript (Beinecke MS 408)
+# METODO DEMARIA® Release v3.3 (Audit-Master Unificato) [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=33)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
 
-[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO-DEMARIA-v3.3-VOYNICH-AUDIT-MASTER/actions/workflows/validate.yml/badge.svg)](https://github.com/Alessandro-Demaria/METODO-DEMARIA-v3.3-VOYNICH-AUDIT-MASTER/actions/workflows/validate.yml)
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Quantitative Audit & Vector Topology of the Voynich Manuscript (Beinecke MS 408)
 
-**Autore, Responsabile Scientifico e Inventore Unico**: Avv. Alessandro Demaria (Molochio, RC)  
-**Concept DOI Madre (Archivio Permanente)**: [10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)  
-**DOI Ufficiale Release v3.3 (Audit-Master)**: [10.5281/zenodo.23242996](https://doi.org/10.5281/zenodo.23242996)  
-**Licenza del Trattato e dei Dati**: Creative Commons Attribution 4.0 International (CC BY 4.0)  
-**Licenza Codebase Pubblica**: MIT License  
-**Privativa Industriale e Segreto Algoritmico**: Art. 98 D.Lgs. 30/2005 (Codice della Proprietà Industriale)  
-**Marchio Registrato e Metodologia**: METODO DEMARIA®  
-**Contatti Ufficiali**: metodo.demaria@gmail.com | avv.alessandrodemaria@pec.it  
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria (Molochio, RC)  
+Concept DOI Madre (Archivio Permanente): [10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)  
+DOI Ufficiale Release v3.3 (Audit-Master): [10.5281/zenodo.23242996](https://doi.org/10.5281/zenodo.23242996)  
+Licenza del Trattato e dei Dati: Creative Commons Attribution 4.0 International (CC BY 4.0)  
+Licenza Codebase Pubblica: MIT License  
+Privativa Industriale e Segreto Algoritmi: Art. 98 D.Lgs. 30/2005 (Codice della Proprietà Industriale)  
+Marchio Registrato e Metodologia: METODO DEMARIA®  
+Contatti Ufficiali: metodo.demaria@gmail.com | avv.alessandrodemaria@pec.it  
 
 ---
 
