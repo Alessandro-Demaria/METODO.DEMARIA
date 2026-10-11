@@ -1,75 +1,144 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-METODO DEMARIA v3.3 - MAGISTER
-DOI UFFICIALE DI RELEASE: 10.5281/zenodo.23242996
-Modulo: core_parser1.py (Elemento 1 del Motore - EVA Parser & State Mapping Engine)
-Descrizione: Parser deterministico dell'alfabeto EVA e mappatura biunivoca sui 4 stati minimi cibernetici.
-             Garantisce il rispetto della distribuzione stazionaria di laboratorio:
-             - State Alpha (Innesco / Anchor): 10.00%
-             - State Beta  (Azione / Resonance): 54.99%
-             - State Delta (Differenziazione): 19.51%
-             - State Gamma (Reset / Closure): 15.50%
-             Garantisce la perfetta riproducibilità della baseline Craw = 0.786597 (78.66%).
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
+
+Modulo 1: core_parser1.py
+Parser deterministico per trascrizioni EVA (IVTFF) e mappatura vettoriale
+sulla quadrupla degli stati minimi (Alpha, Beta, Delta, Gamma).
+
+Autore: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
-from typing import Tuple, List
-import numpy as np
+import re
+import pandas as pd
+from typing import Dict, List, Tuple, Optional
 
 
 class EVAParser:
     """
-    Motore di parsing deterministico dell'alfabeto EVA (Extensible Transliteration Alphabet).
-    Mappa ogni token o sequenza di caratteri nello stato minimo topologico cibernetico corrispondente.
+    Parser deterministico dell'alfabeto e della notazione EVA (European Voynich Alphabet)
+    in formato IVTFF, deputato alla trasformazione simbolico-vettoriale dei token
+    nella quadrupla degli stati minimi topologici (Alpha, Beta, Delta, Gamma).
     """
 
-    @classmethod
-    def parse_token(cls, token: str) -> Tuple[str, str]:
+    # Definizione congelata dei gruppi di caratteri EVA e delle regole di prefisso/suffisso
+    ALPHA_TRIGGERS: Tuple[str, ...] = ("qo", "cho", "cho", "cht", "da", "so")
+    GAMMA_TERMINATORS: Tuple[str, ...] = ("am", "al", "or", "ar", "dy", "ed", "ey")
+    DELTA_MODULATORS: Tuple[str, ...] = ("sh", "ch", "ok", "ot", "ct")
+
+    STATE_ALPHA: str = "Alpha"
+    STATE_BETA: str = "Beta"
+    STATE_DELTA: str = "Delta"
+    STATE_GAMMA: str = "Gamma"
+
+    def __init__(self, target_distribution: Optional[Dict[str, float]] = None) -> None:
         """
-        Analizza un singolo token EVA e restituisce la tupla (stato_assegnato, regola_applicata).
+        Inizializza il parser congelando la baseline delle distribuzioni teoriche di targa.
+        """
+        self.target_distribution: Dict[str, float] = target_distribution or {
+            self.STATE_ALPHA: 10.00,
+            self.STATE_BETA: 54.99,
+            self.STATE_DELTA: 19.51,
+            self.STATE_GAMMA: 15.50
+        }
+
+    @staticmethod
+    def clean_eva_token(token_raw: str) -> str:
+        """
+        Rimuove i marcatori di incertezza, i commenti e i caratteri speciali del formato IVTFF.
+        """
+        if not isinstance(token_raw, str):
+            return ""
+        # Rimuove note tra parentesi quadre/graffe e caratteri di dubbia lettura
+        cleaned: str = re.sub(r"\[.*?\]|\{.*?\}|\!|\?|\*|\$", "", token_raw.strip())
+        return cleaned.lower()
+
+    @classmethod
+    def map_token_to_state(cls, token: str) -> str:
+        """
+        Mappatura deterministica molti-a-uno dal token EVA allo stato topologico minimo.
         
-        Parametri:
-            token (str): Il token simbolico EVA da analizzare.
-            
-        Ritorna:
-            Tuple[str, str]: (assigned_state, applied_rule)
+        Regole di precedenza:
+        1. Alpha (Innesco/Header): Se il token inizia con prefissi specifici di innesco.
+        2. Gamma (Reset/Chiusura): Se il token termina con suffissi di scarico/sincronizzazione.
+        3. Delta (Modulatore): Se il token contiene strutture grafemiche intermedie varianti.
+        4. Beta (Azione/Resonance): Attrattore stazionario predefinito (Stato di Regime).
         """
-        if not isinstance(token, str) or not token.strip():
-            return "Beta", "Default_Empty_Fallback"
+        token_clean = cls.clean_eva_token(token)
+        if not token_clean:
+            return cls.STATE_BETA
 
-        clean_token = token.strip().lower()
+        # Check 1: Prefissi d'Innesco (State Alpha)
+        for prefix in cls.ALPHA_TRIGGERS:
+            if token_clean.startswith(prefix):
+                return cls.STATE_ALPHA
 
-        # Priorità 1: Innesco / Header di Rigo (State Alpha - Target ~10.00%)
-        if clean_token.startswith(("qok", "qot", "qop", "qof")) or clean_token in ("qo", "y", "o"):
-            return "Alpha", "Rule_Alpha_Trigger"
+        # Check 2: Suffissi di Chiusura (State Gamma)
+        for suffix in cls.GAMMA_TERMINATORS:
+            if token_clean.endswith(suffix):
+                return cls.STATE_GAMMA
 
-        # Priorità 2: Reset / Chiusura / Scarico (State Gamma - Target ~15.50%)
-        if clean_token.endswith(("am", "dy", "ed", "iin.g")) or (clean_token.endswith(("m", "g", "z")) and not clean_token.startswith("q")):
-            return "Gamma", "Rule_Gamma_Closure"
+        # Check 3: Modulatori di Variazione (State Delta)
+        for mod in cls.DELTA_MODULATORS:
+            if mod in token_clean:
+                return cls.STATE_DELTA
 
-        # Priorità 3: Differenziazione / Modulazione (State Delta - Target ~19.51%)
-        if clean_token.startswith(("d", "s", "l", "r", "x")):
-            return "Delta", "Rule_Delta_Differentiation"
+        # Default: Attrattore Stazionario di Regime (State Beta)
+        return cls.STATE_BETA
 
-        # Priorità 4: Attrattore Stazionario Centrale di Regime (State Beta - Target ~54.99%)
-        return "Beta", "Rule_Beta_Resonance_Attractor"
-
-    @classmethod
-    def parse_tokens_batch(cls, tokens: List[str]) -> Tuple[List[str], List[str]]:
+    def parse_dataframe(self, df_raw: pd.DataFrame) -> pd.DataFrame:
         """
-        Esegue il parsing vettorizzato su una sequenza o lista di token EVA.
+        Elabora il DataFrame grezzo, garantendo l'estrazione e la creazione dinamica
+        delle colonne 'folio', 'line_id' e 'assigned_state'.
         """
-        states = []
-        rules = []
-        for t in tokens:
-            st, rl = cls.parse_token(str(t) if t is not None else "")
-            states.append(st)
-            rules.append(rl)
-        return states, rules
+        df: pd.DataFrame = df_raw.copy()
+
+        # Normalizzazione nomi colonne
+        df.columns = [c.strip() for c in df.columns]
+
+        # Individuazione colonna token EVA
+        token_col: Optional[str] = None
+        for col_name in ["EVA_Token", "eva_token", "Token", "token"]:
+            if col_name in df.columns:
+                token_col = col_name
+                break
+
+        if not token_col:
+            raise KeyError("Impossibile individuare la colonna contenente i token EVA nel dataset.")
+
+        # Generazione o estrazione dinamica di Folio e Line_ID
+        if "Folio" in df.columns:
+            df["folio"] = df["Folio"].astype(str).str.lower().str.strip()
+        elif "folio" not in df.columns:
+            df["folio"] = "f1r"  # Fallback di sicurezza
+
+        if "Line_ID" in df.columns:
+            df["line_id"] = df["Line_ID"].astype(str).str.strip()
+        elif "line_id" not in df.columns:
+            if "Line" in df.columns:
+                df["line_id"] = df["folio"] + "_" + df["Line"].astype(str).str.strip()
+            elif "Record_ID" in df.columns:
+                # Ricostruzione line_id da Record_ID o raggruppamento
+                df["line_id"] = df["folio"] + "_l1"
+            else:
+                df["line_id"] = df["folio"] + "_l0"
+
+        # Mappatura deterministica degli stati
+        df["EVA_Token_Clean"] = df[token_col].apply(self.clean_eva_token)
+        df["assigned_state"] = df["EVA_Token_Clean"].apply(self.map_token_to_state)
+
+        return df
 
 
 if __name__ == "__main__":
-    print("=== TEST UNITARIO CORE_PARSER1 RELEASE v3.3 ===")
-    test_tokens = ["qokaiin", "cheedy", "dal", "chol", "daiin", "otaiin"]
-    for token_item in test_tokens:
-        assigned_state, applied_rule = EVAParser.parse_token(token_item)
-        print(f"Token: {token_item:10s} -> Stato: {assigned_state:5s} | Regola: {applied_rule}")
+    # Test unitario rapido di esecuzione isolata
+    parser = EVAParser()
+    test_tokens = ["qokaiin", "chodaiin", "otaiin", "chodin", "dy", "or", "shol"]
+    print("=== TEST UNITARIO CORE_PARSER1 ===")
+    for t in test_tokens:
+        st = parser.map_token_to_state(t)
+        print(f"Token EVA: '{t:10s}' -> Stato Assegnato: {st}")

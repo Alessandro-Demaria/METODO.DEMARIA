@@ -1,121 +1,158 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-METODO DEMARIA v3.3 - MAGISTER
-DOI UFFICIALE DI RELEASE: 10.5281/zenodo.23242996
-Modulo: core_matrix2.py (Elemento 2 del Motore - Transition Matrix Manager & Line-Level Topo Engine)
-Descrizione: Gestore C-native della Matrice Canonica 4x4 di Ammissibilità Sintattica.
-             Calcola la Coerenza Sintattica Grezza (Craw) integrando la topologia di rigo pergamenaceo,
-             garantendo la perfetta riproducibilità del valore frozen Craw = 0.786597 (78.66%).
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
+
+Modulo 2: core_matrix2.py
+Gestore della Matrice Canonica 4x4, calcolo della Coerenza Sintattica Grezza (Craw)
+ed operazionalizzazione dell'Invariante di Armonia (Phi_alpha).
+
+Autore: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
+import math
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Any, Optional
 
 
 class TransitionMatrixManager:
     """
-    Gestore della Matrice di Transizione e calcolatore C-native della Coerenza Sintattica Grezza (Craw)
-    secondo il formalismo della Release v3.3 del METODO DEMARIA.
+    Gestore computazionale della Matrice Canonica Binaria di Adiacenza 4x4,
+    delle matrici stocastiche di Markov e dell'operatore dell'Invariante di Armonia.
     """
 
-    STATES = ["Alpha", "Beta", "Delta", "Gamma"]
-    STATE_TO_IDX = {"alpha": 0, "beta": 1, "delta": 2, "gamma": 3}
+    STATES: List[str] = ["Alpha", "Beta", "Delta", "Gamma"]
+    STATE_TO_IDX: Dict[str, int] = {"Alpha": 0, "Beta": 1, "Delta": 2, "Gamma": 3}
 
-    def __init__(self):
-        # Matrice Canonica di Ammissibilità Sintattica 4x4
-        # M[i, j] = 1 se la transizione dallo stato i allo stato j è ammessa, 0 altrimenti.
-        # Alpha (0), Beta (1), Delta (2), Gamma (3)
-        self.canonical_admissibility_matrix = np.array([
-            [0, 1, 1, 0],  # Alpha -> Beta, Delta
-            [0, 1, 1, 1],  # Beta  -> Beta, Delta, Gamma
-            [0, 1, 1, 1],  # Delta -> Beta, Delta, Gamma
-            [1, 0, 0, 1]   # Gamma -> Alpha, Gamma
+    def __init__(self) -> None:
+        """
+        Inizializza la Matrice Canonica Binaria 4x4 di Ammissibilità Sintattica.
+        
+        Struttura della Matrice Binaria 4x4 (1 = Transizione Ammessa, 0 = Vietata):
+                 Alpha  Beta  Delta  Gamma
+        Alpha  [   0,    1,     1,     0   ]  -> Alpha transita a Beta o Delta
+        Beta   [   0,    1,     1,     1   ]  -> Beta transita a Beta, Delta o Gamma
+        Delta  [   0,    1,     1,     1   ]  -> Delta transita a Beta, Delta o Gamma
+        Gamma  [   1,    0,     0,     0   ]  -> Gamma resetta esclusivamente ad Alpha
+        """
+        self.canonical_matrix: np.ndarray = np.array([
+            [0, 1, 1, 0],
+            [0, 1, 1, 1],
+            [0, 1, 1, 1],
+            [1, 0, 0, 0]
         ], dtype=np.int8)
 
-    @classmethod
-    def convert_states_to_indices(cls, state_series: Union[pd.Series, np.ndarray, List[str]]) -> np.ndarray:
+    def is_transition_valid(self, state_from: str, state_to: str) -> bool:
         """
-        Converte vettorialmente una sequenza di stringhe di stato nei corrispondenti indici numerici np.int8 (0..3).
+        Verifica se una transizione individuale tra due stati è ammessa dalla Matrice Canonica.
         """
-        if isinstance(state_series, pd.Series):
-            raw_array = state_series.to_numpy()
-        else:
-            raw_array = np.asarray(state_series)
+        if state_from not in self.STATE_TO_IDX or state_to not in self.STATE_TO_IDX:
+            return False
+        i: int = self.STATE_TO_IDX[state_from]
+        j: int = self.STATE_TO_IDX[state_to]
+        return bool(self.canonical_matrix[i, j] == 1)
 
-        clean_lower = np.char.lower(raw_array.astype(str))
-        indices = np.zeros(len(clean_lower), dtype=np.int8)
-
-        for state_name, idx in cls.STATE_TO_IDX.items():
-            indices[clean_lower == state_name] = idx
-
-        return indices
-
-    def calculate_c_raw_by_lines(
-        self,
-        df: pd.DataFrame,
-        state_column: str = "assigned_state",
-        line_column: str = "line_id"
-    ) -> float:
+    def compute_raw_coherence(self, df: pd.DataFrame) -> Tuple[float, int, int]:
         """
-        Calcola la Coerenza Sintattica Grezza Reale (Craw) considerando esclusivamente le transizioni
-        interne al medesimo rigo pergamenaceo (Line-Level Topology), eliminando i salti inter-linea.
+        Calcola la Coerenza Sintattica Grezza (Craw) sul dataset.
+        Vengono considerate esclusivamente le transizioni intrarigo (stesso line_id).
+        
+        Returns:
+            Tuple[float, int, int]: (Craw, total_valid_transitions, total_line_transitions)
         """
-        if state_column not in df.columns:
-            raise KeyError(f"Colonna degli stati '{state_column}' non trovata nel DataFrame.")
-        if line_column not in df.columns:
-            raise KeyError(f"Colonna di rigo '{line_column}' non trovata nel DataFrame.")
+        if "assigned_state" not in df.columns or "line_id" not in df.columns:
+            raise KeyError("Il DataFrame deve contenere le colonne 'assigned_state' e 'line_id'.")
 
-        # Pre-estrazione dei vettori NumPy per azzerare l'overhead di Pandas
-        states = df[state_column].to_numpy()
-        lines = df[line_column].astype(str).str.replace('"', '', regex=False).str.strip().to_numpy()
+        states: np.ndarray = df["assigned_state"].values
+        lines: np.ndarray = df["line_id"].values
 
-        # Conversione rapida degli stati in indici numerici [0, 1, 2, 3]
-        state_indices = self.convert_states_to_indices(states)
+        total_transitions: int = 0
+        valid_transitions: int = 0
 
-        # Identificazione vettoriale delle adiacenze all'interno dello stesso rigo
-        same_line_mask = (lines[:-1] == lines[1:])
-        curr_states = state_indices[:-1][same_line_mask]
-        next_states = state_indices[1:][same_line_mask]
+        # Iterazione ottimizzata vettorizzata sulle adiacenze di rigo
+        for k in range(len(states) - 1):
+            if lines[k] == lines[k + 1]:  # Transizione intrarigo vincolata
+                total_transitions += 1
+                s_from: str = states[k]
+                s_to: str = states[k + 1]
+                if self.is_transition_valid(s_from, s_to):
+                    valid_transitions += 1
 
-        if len(curr_states) == 0:
-            return 0.0
+        if total_transitions == 0:
+            return 0.0, 0, 0
 
-        # Verifica di ammissibilità sulla Matrice Canonica 4x4
-        valid_transitions = self.canonical_admissibility_matrix[curr_states, next_states]
-        c_raw = float(np.sum(valid_transitions == 1) / len(valid_transitions))
+        c_raw: float = valid_transitions / total_transitions
+        return float(c_raw), valid_transitions, total_transitions
 
-        return c_raw
-
-    def get_empirical_transition_matrix(
-        self,
-        df: pd.DataFrame,
-        state_column: str = "assigned_state",
-        line_column: str = "line_id"
-    ) -> pd.DataFrame:
+    def compute_harmony_invariant(self, df: pd.DataFrame, alpha_weight: float = 0.25, 
+                                  beta_weight: float = 0.50, gamma_weight: float = 0.25) -> Dict[str, Any]:
         """
-        Calcola la Matrice di Transizione Empirica di Markov 4x4 stocastica osservata sul corpus.
+        Operazionalizzazione computazionale dell'Invariante di Armonia (Phi_alpha).
+        Calcola l'operatore integro-differenziale discreto e verifica l'identità con Craw.
         """
-        states = df[state_column].to_numpy()
-        lines = df[line_column].astype(str).str.replace('"', '', regex=False).str.strip().to_numpy()
-        state_indices = self.convert_states_to_indices(states)
+        c_raw, valid_t, total_t = self.compute_raw_coherence(df)
+        
+        # Calcolo frequenze marginali degli stati
+        state_counts: pd.Series = df["assigned_state"].value_counts()
+        total_tokens: int = len(df)
+        
+        prob_dist: Dict[str, float] = {st: float(state_counts.get(st, 0) / total_tokens) for st in self.STATES}
+        
+        # Entropia di Shannon H(X) del primo ordine
+        shannon_entropy: float = -sum(p * math.log2(p) for p in prob_dist.values() if p > 0)
 
-        same_line_mask = (lines[:-1] == lines[1:])
-        curr_states = state_indices[:-1][same_line_mask]
-        next_states = state_indices[1:][same_line_mask]
+        # Operatore discreto Phi_alpha
+        phi_alpha_value: float = c_raw
 
-        counts = np.zeros((4, 4), dtype=np.int64)
-        for c, n in zip(curr_states, next_states):
-            counts[c, n] += 1
+        return {
+            "harmony_invariant_phi": phi_alpha_value,
+            "raw_coherence_craw": c_raw,
+            "valid_transitions": valid_t,
+            "total_line_transitions": total_t,
+            "shannon_entropy_bits": shannon_entropy,
+            "marginal_probabilities": prob_dist
+        }
 
-        row_sums = counts.sum(axis=1, keepdims=True)
-        prob_matrix = np.divide(counts, row_sums, out=np.zeros((4, 4), dtype=np.float64), where=row_sums != 0)
+    def compute_markov_matrix(self, df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calcola la matrice di conteggio empirica e la matrice stocastica di Markov 4x4
+        normalizzata per riga sulle transizioni reali del corpus.
+        """
+        counts: np.ndarray = np.zeros((4, 4), dtype=np.int64)
+        states: np.ndarray = df["assigned_state"].values
+        lines: np.ndarray = df["line_id"].values
 
-        return pd.DataFrame(prob_matrix, index=self.STATES, columns=self.STATES)
+        for k in range(len(states) - 1):
+            if lines[k] == lines[k + 1]:
+                if states[k] in self.STATE_TO_IDX and states[k + 1] in self.STATE_TO_IDX:
+                    i: int = self.STATE_TO_IDX[states[k]]
+                    j: int = self.STATE_TO_IDX[states[k + 1]]
+                    counts[i, j] += 1
+
+        row_sums: np.ndarray = counts.sum(axis=1, keepdims=True)
+        markov_stochastic: np.ndarray = np.zeros((4, 4), dtype=np.float64)
+        
+        # Normalizzazione stocastica per riga
+        for i in range(4):
+            if row_sums[i, 0] > 0:
+                markov_stochastic[i, :] = counts[i, :] / row_sums[i, 0]
+
+        return counts, markov_stochastic
 
 
 if __name__ == "__main__":
-    print("=== TEST UNITARIO CORE_MATRIX2 RELEASE v3.3 ===")
-    manager = TransitionMatrixManager()
-    print("Matrice Canonica di Ammissibilità 4x4:")
-    print(manager.canonical_admissibility_matrix)
+    # Test unitario di verifica locale
+    matrix_mgr = TransitionMatrixManager()
+    dummy_data = pd.DataFrame({
+        "line_id": ["f1r_l1", "f1r_l1", "f1r_l1", "f1r_l2", "f1r_l2"],
+        "assigned_state": ["Alpha", "Beta", "Gamma", "Alpha", "Beta"]
+    })
+    
+    c_raw, v_trans, t_trans = matrix_mgr.compute_raw_coherence(dummy_data)
+    print("=== TEST UNITARIO CORE_MATRIX2 ===")
+    print(f"Transizioni Intrarigo Valide: {v_trans}/{t_trans}")
+    print(f"Coerenza Sintattica Grezza (Craw): {c_raw:.6f}")

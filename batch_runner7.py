@@ -1,201 +1,184 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-===============================================================================
-METODO DEMARIA® — Release v3.3 (Audit-Master Unificato)
-MODULE 7: MASTER BATCH RUNNER & CI/CD VALIDATION SUITE
-===============================================================================
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
-Privativa Industriale e Segreto Algoritmico: Art. 98 D.Lgs. 30/2005 (CPI)
-Marchio Registrato: METODO DEMARIA®
-===============================================================================
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
+
+Modulo 7: batch_runner7.py
+Orchestratore Master unificato per l'esecuzione dinamica end-to-end dell'intera suite
+di laboratorio, la riproducibilità popperiana sui dati reali e l'esportazione dei report CSV.
+
+Autore: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
 import sys
 import os
 import time
-import json
-import csv
-import hashlib
-import numpy as np
+import pandas as pd
+from typing import Dict, Any
 
-# Impronta crittografica ufficiale SHA-256 congelata per il Master Dataset v3.3
-EXPECTED_DATASET_HASH = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999"
+# Importazione dinamica dei moduli funzionali della suite
+from utils_preflight3 import PreFlightChecker
+from core_parser1 import EVAParser
+from core_matrix2 import TransitionMatrixManager
+from audit_nullmodels4 import HierarchicalNullModelsAudit
+from audit_doublerand5 import IsomorphicDoubleRandomizationAudit
+from audit_robustness6 import RobustnessStressTestAudit
 
-def verify_dataset_integrity(filepath):
-    """
-    Verifica l'integrità crittografica del dataset master tramite SHA-256.
-    """
-    if not os.path.exists(filepath):
-        print(f"[ERROR] Dataset file non trovato: {filepath}")
-        return False
-    
-    sha256_hash = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-            
-    calculated_hash = sha256_hash.hexdigest()
-    if calculated_hash.lower() == EXPECTED_DATASET_HASH.lower():
-        print(f"[OK] SHA-256 Dataset Verificato: {calculated_hash}")
-        return True
-    else:
-        print(f"[WARNING] Mismatch SHA-256. Calcolato: {calculated_hash} | Atteso: {EXPECTED_DATASET_HASH}")
-        # In modalità CI/CD consente il proseguimento se il dataset è aggiornato localmente
-        return True
 
-def run_preflight_checks():
+class MasterBatchRunner:
     """
-    Esegue i controlli preliminari di ambiente e coerenza file.
+    Orchestratore Master del METODO DEMARIA®. Esegue in sequenza e in tempo reale
+    l'intera pipeline computazionale sul dataset master senza fare uso di costanti hardcoded.
     """
-    print("=================================================================")
-    print(" METODO DEMARIA® Release v3.3 — PREFLIGHT AUDIT CHECKS")
-    print("=================================================================")
-    dataset_path = "voynich_eva_tokens_extended.csv"
-    integrity = verify_dataset_integrity(dataset_path)
-    return integrity
 
-def compute_raw_coherence_v33():
-    """
-    Simulazione deterministica C-native del calcolo di Coerenza Sintattica Grezza (Craw).
-    Baseline Release v3.3 Unificata = 0.786597 (78.66%).
-    """
-    c_raw = 0.786597
-    total_tokens = 35483
-    unique_folios = 227
-    return c_raw, total_tokens, unique_folios
+    DATASET_PATH: str = "voynich_eva_tokens_extended.csv"
+    SUMMARY_REPORT_PATH: str = "audit_master_summary_results.csv"
+    ROBUSTNESS_REPORT_PATH: str = "robustness_test_results.csv"
 
-def run_null_models_audit(n_simulations=10000, seed=42):
-    """
-    Esegue l'audit stocastico Monte Carlo per i tre modelli nulli gerarchici (Release v3.3).
-    """
-    np.random.seed(seed)
-    
-    # Model 1: Global Null Model
-    c_global_mean = 0.676538
-    z_global = 19.8404
-    p_global = 1.0e-15
-    
-    # Model 2: Intra-Folio Null Model
-    c_folio_mean = 0.682928
-    z_folio = 16.3961
-    p_folio = 1.0e-15
-    
-    # Model 3: Intra-Line Null Model (Smoking Gun)
-    c_line_mean = 0.676567
-    z_line = 14.5202
-    p_line = 1.0e-15
-    
-    results = {
-        "global_null_model": {"c_null_mean": c_global_mean, "z_score": z_global, "p_value": p_global},
-        "intra_folio_null_model": {"c_null_mean": c_folio_mean, "z_score": z_folio, "p_value": p_folio},
-        "intra_line_null_model": {"c_null_mean": c_line_mean, "z_score": z_line, "p_value": p_line}
-    }
-    return results
+    def __init__(self, iterations_null: int = 10000, iterations_robustness: int = 100, seed: int = 42) -> None:
+        """
+        Inizializza l'Orchestratore Master fissando i parametri stocastici di esecuzione.
+        """
+        self.iterations_null: int = iterations_null
+        self.iterations_robustness: int = iterations_robustness
+        self.seed: int = seed
 
-def run_double_randomization_test(n_simulations=10000, seed=42):
-    """
-    Esegue il test avversariale di doppia randomizzazione isomorfa.
-    """
-    double_null_mean = 0.711419
-    z_double = 1.5239
-    p_double = 0.032000
-    return {"double_null_mean": double_null_mean, "z_score": z_double, "p_value": p_double}
+    def execute_full_audit(self) -> None:
+        """
+        Esegue la pipeline di audit end-to-end dinamica sul dataset master.
+        """
+        start_time: float = time.time()
+        print("================================================================================")
+        print("         LABORATORIO SCIENTIFICO METODO DEMARIA® - RELEASE v3.3                 ")
+        print("                 AUDIT-MASTER UNIFICATO END-TO-END                              ")
+        print("================================================================================\n")
 
-def run_robustness_stress_test():
-    """
-    Esegue lo stress test di resilienza al rumore sintattico inoculato (0.0% -> 30.0%).
-    """
-    noise_levels = [0.0, 0.01, 0.05, 0.10, 0.20, 0.30]
-    retention_rates = [1.0000, 0.9946, 0.9737, 0.9735, 0.9030, 0.8620]
-    c_observed_noise = [0.786597, 0.782350, 0.765910, 0.765738, 0.710297, 0.678046]
-    
-    robustness_data = []
-    for level, ret, c_val in zip(noise_levels, retention_rates, c_observed_noise):
-        robustness_data.append({
-            "noise_level_pct": level * 100.0,
-            "c_raw_observed": c_val,
-            "retention_rate_pct": ret * 100.0
-        })
-    return robustness_data
+        # -----------------------------------------------------------------------------
+        # FASE 0: PRE-FLIGHT CHECK (INTEGRITÀ CRITTOGRAFICA SHA-256)
+        # -----------------------------------------------------------------------------
+        print("[FASE 0/6] Esecuzione Pre-Flight Check Crittografico SHA-256...")
+        try:
+            preflight_res: Dict[str, Any] = PreFlightChecker.run_preflight_check(
+                self.DATASET_PATH, enforce_hard_stop=True
+            )
+            print(f" -> STATO: {preflight_res['status']}")
+            print(f" -> HASH SHA-256: {preflight_res['calculated_hash']}")
+            print(f" -> TOKEN TOTALI: {preflight_res['token_count']}\n")
+        except Exception as e:
+            print(f"\n[CRITICAL ERROR] Interruzione della pipeline: {str(e)}")
+            sys.exit(1)
 
-def export_audit_reports(c_raw, null_results, double_rand_results, robustness_results):
-    """
-    Esporta i report di audit nei file CSV di benchmark congelati.
-    """
-    summary_csv = "audit_master_summary_results.csv"
-    robustness_csv = "robustness_test_results.csv"
-    
-    # Scrittura del Report Sintetico (Corretta chiusura sintattica del dizionario alla riga 189)
-    summary_rows = [
-        {"Metric_Name": "Observed_Raw_Coherence_Craw", "Value": c_raw},
-        {"Metric_Name": "Model_1_Global_Null_ZScore", "Value": null_results["global_null_model"]["z_score"]},
-        {"Metric_Name": "Model_1_Global_Null_PValue", "Value": null_results["global_null_model"]["p_value"]},
-        {"Metric_Name": "Model_2_Intra_Folio_Null_ZScore", "Value": null_results["intra_folio_null_model"]["z_score"]},
-        {"Metric_Name": "Model_2_Intra_Folio_Null_PValue", "Value": null_results["intra_folio_null_model"]["p_value"]},
-        {"Metric_Name": "Model_3_Intra_Line_Null_ZScore", "Value": null_results["intra_line_null_model"]["z_score"]},
-        {"Metric_Name": "Model_3_Intra_Line_Null_PValue", "Value": null_results["intra_line_null_model"]["p_value"]},
-        {"Metric_Name": "Double_Randomization_ZScore", "Value": double_rand_results["z_score"]},
-        {"Metric_Name": "Double_Randomization_PValue", "Value": double_rand_results["p_value"]}
-    ]
-    
-    with open(summary_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["Metric_Name", "Value"])
-        writer.writeheader()
-        for row in summary_rows:
-            writer.writerow(row)
-            
-    with open(robustness_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["noise_level_pct", "c_raw_observed", "retention_rate_pct"])
-        writer.writeheader()
-        for row in robustness_results:
-            writer.writerow(row)
-            
-    print(f"[OK] Report Sintetico Esportato: {summary_csv}")
-    print(f"[OK] Report di Robustezza Esportato: {robustness_csv}")
+        # -----------------------------------------------------------------------------
+        # FASE 1: PARSING E MAPPTATURA DEGLI STATI MINIMI
+        # -----------------------------------------------------------------------------
+        print("[FASE 1/6] Caricamento Dataset e Mappatura Vettoriale del Corpus (EVA -> 4 Stati)...")
+        df_raw: pd.DataFrame = pd.read_csv(self.DATASET_PATH)
+        parser: EVAParser = EVAParser()
+        df_parsed: pd.DataFrame = parser.parse_dataframe(df_raw)
+        print(" -> Mappatura completata con successo.")
+        print(f" -> Folii unici elaborati: {df_parsed['folio'].nunique()}")
+        print(f" -> Coordinate di rigo (line_id) create: {df_parsed['line_id'].nunique()}\n")
 
-def main():
-    """
-    Orchestratore Master per l'esecuzione unificata della suite di validazione.
-    """
-    start_time = time.time()
-    print("=================================================================")
-    print(" METODO DEMARIA® Release v3.3 (Audit-Master Unificato)")
-    print(" MASTER BATCH RUNNER SUITE EXECUTION")
-    print("=================================================================")
-    
-    preflight_ok = run_preflight_checks()
-    if not preflight_ok:
-        sys.exit(1)
+        # -----------------------------------------------------------------------------
+        # FASE 2: MATRICE CANONICA 4x4 E COERENZA GREZZA (Craw)
+        # -----------------------------------------------------------------------------
+        print("[FASE 2/6] Calcolo della Coerenza Sintattica Grezza (Craw) e dell'Invariante...")
+        matrix_mgr: TransitionMatrixManager = TransitionMatrixManager()
+        c_raw, valid_t, total_t = matrix_mgr.compute_raw_coherence(df_parsed)
+        harmony_res: Dict[str, Any] = matrix_mgr.compute_harmony_invariant(df_parsed)
         
-    c_raw, tokens, folios = compute_raw_coherence_v33()
-    print(f"[EXEC] Tokens Processati: {tokens} | Folii: {folios}")
-    print(f"[EXEC] Coerenza Sintattica Grezza Reale (Craw): {c_raw:.6f} ({c_raw*100:.2f}%)")
-    
-    print("\n[EXEC] Esecuzione Modelli Nulli Gerarchici Monte Carlo (N=10.000, Seed=42)...")
-    null_results = run_null_models_audit()
-    print(f"  -> Model 1 (Global): Z = +{null_results['global_null_model']['z_score']:.4f}")
-    print(f"  -> Model 2 (Intra-Folio): Z = +{null_results['intra_folio_null_model']['z_score']:.4f}")
-    print(f"  -> Model 3 (Intra-Line): Z = +{null_results['intra_line_null_model']['z_score']:.4f} (Smoking Gun)")
-    
-    print("\n[EXEC] Esecuzione Test Avversariale Doppia Randomizzazione...")
-    double_rand_results = run_double_randomization_test()
-    print(f"  -> Double Null Z-Score = +{double_rand_results['z_score']:.4f} | p = {double_rand_results['p_value']:.6f}")
-    
-    print("\n[EXEC] Esecuzione Stress Test di Sensibilità al Rumore Sintattico...")
-    robustness_results = run_robustness_stress_test()
-    ret_10 = [r['retention_rate_pct'] for r in robustness_results if r['noise_level_pct'] == 10.0][0]
-    print(f"  -> Ritenzione Segnale al 10.0% di Rumore: {ret_10:.2f}%")
-    
-    print("\n[EXEC] Esportazione Report di Audit...")
-    export_audit_reports(c_raw, null_results, double_rand_results, robustness_results)
-    
-    elapsed = time.time() - start_time
-    print("=================================================================")
-    print(f" VALIDAZIONE COMPLETATA CON SUCCESSO IN {elapsed:.2f} SECONDI")
-    print(" STATUS: SUITE PASSED (100% DETERMINISTIC REPRODUCIBILITY)")
-    print("=================================================================")
-    sys.exit(0)
+        print(f" -> Transizioni Intrarigo Valide: {valid_t} / {total_t}")
+        print(f" -> Coerenza Sintattica Grezza (Craw): {c_raw:.6f} ({c_raw * 100:.2f}%)")
+        print(f" -> Invariante di Armonia (Phi_alpha): {harmony_res['harmony_invariant_phi']:.6f}")
+        print(f" -> Entropia di Shannon H(X): {harmony_res['shannon_entropy_bits']:.4f} bit\n")
+
+        # -----------------------------------------------------------------------------
+        # FASE 3: MODELLI NULLI GERARCHICI MONTE CARLO
+        # -----------------------------------------------------------------------------
+        print(f"[FASE 3/6] Audit Stocastico Modelli Nulli Gerarchici (N={self.iterations_null}, Seed={self.seed})...")
+        null_audit: HierarchicalNullModelsAudit = HierarchicalNullModelsAudit(
+            iterations=self.iterations_null, seed=self.seed
+        )
+        null_results: Dict[str, Dict[str, Any]] = null_audit.run_full_hierarchical_audit(df_parsed)
+
+        for key, res in null_results.items():
+            print(f"  * {res['model_name']}:")
+            print(f"    - Media C_null: {res['null_mean']:.6f} | Dev.Std: {res['null_std']:.6f}")
+            print(f"    - Z-Score     : {res['z_score']:+.4f}")
+            print(f"    - p-value     : {res['p_value_empirical']:.6f} (Conteggio superamenti: {res['count_exceeding']})")
+        print()
+
+        # -----------------------------------------------------------------------------
+        # FASE 4: TEST AVVERSARIALE DI DOPPIA RANDOMIZZAZIONE ISOMORFA
+        # -----------------------------------------------------------------------------
+        print(f"[FASE 4/6] Audit Avversariale Doppia Randomizzazione Isomorfa (N={self.iterations_null}, Seed={self.seed})...")
+        double_audit: IsomorphicDoubleRandomizationAudit = IsomorphicDoubleRandomizationAudit(
+            iterations=self.iterations_null, seed=self.seed
+        )
+        double_res: Dict[str, Any] = double_audit.run_double_randomization_test(df_parsed)
+        
+        print(f" -> Media Doppio Nullo: {double_res['double_null_mean']:.6f} | Dev.Std: {double_res['double_null_std']:.6f}")
+        print(f" -> Double-Null Z-Score: {double_res['z_double_score']:+.4f}")
+        print(f" -> p-value empirico  : {double_res['p_value_empirical']:.6f}\n")
+
+        # -----------------------------------------------------------------------------
+        # FASE 5: STRESS TEST DI SENSIBILITÀ AL RUMORE SINTATTICO
+        # -----------------------------------------------------------------------------
+        print(f"[FASE 5/6] Stress Test di Sensibilità al Rumore Sintattico (0.0% -> 30.0%)...")
+        robustness_audit: RobustnessStressTestAudit = RobustnessStressTestAudit(
+            iterations_per_level=self.iterations_robustness, seed=self.seed
+        )
+        robustness_res: Dict[str, Any] = robustness_audit.run_robustness_test(df_parsed)
+
+        for lvl in robustness_res["levels_summary"]:
+            print(f"  * Rumore {lvl['noise_level_pct']:5.1f}% | Craw' Medio: {lvl['c_raw_mean']:.6f} "
+                  f"| Ritenzione: {lvl['retention_pct']:6.2f}% | Diagnosi: {lvl['diagnosis']}")
+        print()
+
+        # -----------------------------------------------------------------------------
+        # FASE 6: ESPORTAZIONE AUTOMATICA DEI REPORT CSV
+        # -----------------------------------------------------------------------------
+        print("[FASE 6/6] Esportazione dei Report CSV di Audit...")
+        
+        # 1. Report Sintetico Master
+        summary_data = [
+            {"Metric_Name": "Dataset_Tokens", "Value": preflight_res['token_count']},
+            {"Metric_Name": "Observed_Craw", "Value": c_raw},
+            {"Metric_Name": "Harmony_Invariant_Phi", "Value": harmony_res['harmony_invariant_phi']},
+            {"Metric_Name": "Shannon_Entropy_Bits", "Value": harmony_res['shannon_entropy_bits']},
+            {"Metric_Name": "Model1_Global_Null_Mean", "Value": null_results['global_null']['null_mean']},
+            {"Metric_Name": "Model1_Global_Z_Score", "Value": null_results['global_null']['z_score']},
+            {"Metric_Name": "Model1_Global_P_Value", "Value": null_results['global_null']['p_value_empirical']},
+            {"Metric_Name": "Model2_IntraFolio_Null_Mean", "Value": null_results['intra_folio_null']['null_mean']},
+            {"Metric_Name": "Model2_IntraFolio_Z_Score", "Value": null_results['intra_folio_null']['z_score']},
+            {"Metric_Name": "Model2_IntraFolio_P_Value", "Value": null_results['intra_folio_null']['p_value_empirical']},
+            {"Metric_Name": "Model3_IntraLine_Null_Mean", "Value": null_results['intra_line_null']['null_mean']},
+            {"Metric_Name": "Model3_IntraLine_Z_Score", "Value": null_results['intra_line_null']['z_score']},
+            {"Metric_Name": "Model3_IntraLine_P_Value", "Value": null_results['intra_line_null']['p_value_empirical']},
+            {"Metric_Name": "DoubleRandomization_Null_Mean", "Value": double_res['double_null_mean']},
+            {"Metric_Name": "DoubleRandomization_Z_Score", "Value": double_res['z_double_score']},
+            {"Metric_Name": "DoubleRandomization_P_Value", "Value": double_res['p_value_empirical']},
+        ]
+        df_summary = pd.DataFrame(summary_data)
+        df_summary.to_csv(self.SUMMARY_REPORT_PATH, index=False)
+        print(f" -> Salvato: '{self.SUMMARY_REPORT_PATH}'")
+
+        # 2. Report Stress Test Robustezza
+        df_robustness = pd.DataFrame(robustness_res["levels_summary"])
+        df_robustness.to_csv(self.ROBUSTNESS_REPORT_PATH, index=False)
+        print(f" -> Salvato: '{self.ROBUSTNESS_REPORT_PATH}'\n")
+
+        elapsed: float = time.time() - start_time
+        print("================================================================================")
+        print(f"AUDIT COMPUTAZIONALE COMPLETATO CON SUCCESSO IN {elapsed:.2f} SECONDI")
+        print("RISULTATI DINAMICI 100% RIPRODUCIBILI ED ESPOPORTATI SUL DISCO DI LABORATORIO.")
+        print("================================================================================\n")
+
 
 if __name__ == "__main__":
-    main()
+    # Esecuzione dell'Orchestratore Master
+    runner = MasterBatchRunner(iterations_null=10000, iterations_robustness=100, seed=42)
+    runner.execute_full_audit()

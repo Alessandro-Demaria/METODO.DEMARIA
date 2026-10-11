@@ -1,98 +1,133 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-METODO DEMARIA v3.3 - MAGISTER
-DOI UFFICIALE DI RELEASE: 10.5281/zenodo.23242996
-Modulo: audit_doublerand5.py (Elemento 5 del Motore - Isomorphic Double Randomization Audit Engine)
-Descrizione: Test avversariale di doppia randomizzazione isomorfa vettorizzato ad alte prestazioni (N=10.000, Seed 42).
-             Dimostra l'assenza di bias di sovra-ottimizzazione e l'esclusività dell'accoppiamento
-             tra la matrice canonica ed il manoscritto Voynich (Release v3.3: Z = +1.5239, p = 0.032000).
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
+
+Modulo 5: audit_doublerand5.py
+Test avversariale di Doppia Randomizzazione Isomorfa (N=10.000, Seed 42)
+per la verifica della specificità dell'accoppiamento Matrice-Corpus.
+
+Autore: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from core_matrix2 import TransitionMatrixManager
 
 
 class IsomorphicDoubleRandomizationAudit:
     """
-    Esegue il test di doppia randomizzazione isomorfa permutando contemporaneamente
-    la sequenza degli stati nel corpus e la topologia della matrice di ammissibilità,
-    sfruttando un'architettura vettoriale NumPy pure-array ad altissime prestazioni.
+    Esecutore stocastico per l'Audit Avversariale di Doppia Randomizzazione Isomorfa.
+    Permuta simultaneamente le sequenze sintattiche del corpus e la struttura
+    della Matrice Canonica 4x4 conservando la densità topologica degli archi.
     """
 
-    def __init__(
-        self,
-        df: pd.DataFrame,
-        matrix_manager: TransitionMatrixManager = None,
-        state_column: str = "assigned_state",
-        line_column: str = "line_id"
-    ):
-        self.df = df.copy()
-        self.matrix_manager = matrix_manager if matrix_manager is not None else TransitionMatrixManager()
-        self.state_column = state_column
-        self.line_column = line_column
-
-        # Pre-estrazione e sanificazione dei dati in vettori NumPy unidimensionali
-        raw_states = self.df[self.state_column].to_numpy()
-        self.raw_indices = self.matrix_manager.convert_states_to_indices(raw_states)
-        self.raw_lines = self.df[self.line_column].astype(str).str.replace('"', '', regex=False).str.strip().to_numpy()
-
-        # Pre-calcolo delle maschere di rigo (Zero Pandas in-loop)
-        same_line_mask = (self.raw_lines[:-1] == self.raw_lines[1:])
-        self.curr_indices_mask = np.where(same_line_mask)[0]
-        self.next_indices_mask = self.curr_indices_mask + 1
-
-    def _fast_c_raw(self, state_indices: np.ndarray, matrix: np.ndarray) -> float:
+    def __init__(self, iterations: int = 10000, seed: int = 42) -> None:
         """
-        Calcolo ad altissima velocità C-native della coerenza sintattica grezza su array densi.
+        Inizializza il modulo fissando il numero di simulazioni e il Seed deterministico.
         """
-        curr_s = state_indices[self.curr_indices_mask]
-        next_s = state_indices[self.next_indices_mask]
-        return float(np.sum(matrix[curr_s, next_s] == 1) / len(curr_s))
+        self.iterations: int = iterations
+        self.seed: int = seed
+        self.matrix_mgr: TransitionMatrixManager = TransitionMatrixManager()
 
-    def run_double_randomization_test(self, n_iterations: int = 10000, seed: int = 42) -> Dict[str, Any]:
+    def _compute_coherence_with_custom_matrix(self, states: np.ndarray, lines: np.ndarray, 
+                                              matrix: np.ndarray) -> float:
         """
-        Esegue il test stocastico a doppia permutazione isomorfa vettorizzato pure-array.
+        Calcola la coerenza sintattica grezza su array di stati e righe utilizzando
+        una matrice binaria 4x4 arbitraria o permutata.
         """
-        np.random.seed(seed)
-        base_canonical = self.matrix_manager.canonical_admissibility_matrix.flatten()
-        c_observed = self._fast_c_raw(self.raw_indices, self.matrix_manager.canonical_admissibility_matrix)
+        total_transitions: int = 0
+        valid_transitions: int = 0
+        state_map: Dict[str, int] = self.matrix_mgr.STATE_TO_IDX
 
-        double_null_coherences = []
-        indices_base = self.raw_indices.copy()
+        for k in range(len(states) - 1):
+            if lines[k] == lines[k + 1]:
+                total_transitions += 1
+                s_from = states[k]
+                s_to = states[k + 1]
+                if s_from in state_map and s_to in state_map:
+                    i = state_map[s_from]
+                    j = state_map[s_to]
+                    if matrix[i, j] == 1:
+                        valid_transitions += 1
 
-        for _ in range(n_iterations):
-            # 1. Permutazione Isomorfa del Corpus degli indici di stato
-            shuffled_indices = np.random.permutation(indices_base)
+        if total_transitions == 0:
+            return 0.0
 
-            # 2. Permutazione Isomorfa delle celle della Matrice Canonica di Ammissibilità (4x4)
-            shuffled_flat = np.random.permutation(base_canonical)
-            rand_matrix = shuffled_flat.reshape((4, 4))
+        return valid_transitions / total_transitions
 
-            # 3. Calcolo della Coerenza Sintattica Grezza Nulla
-            c_double_null = self._fast_c_raw(shuffled_indices, rand_matrix)
-            double_null_coherences.append(c_double_null)
+    def run_double_randomization_test(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Esegue l'Audit di Doppia Randomizzazione Isomorfa su N iterazioni.
+        
+        Algoritmo:
+        1. Estrae le sequenze reali di stati e line_id.
+        2. Calcola la coerenza osservata reale C_raw.
+        3. Per ciascuna iterazione:
+           a. Permuta globalmente la sequenza degli stati assegnati.
+           b. Permuta casualmente gli elementi della Matrice Canonica 4x4
+              mantenendo invariato il numero totale di 1 (densità di ammissibilità).
+           c. Calcola la coerenza sulla combinazione doppiamente permutata.
+        4. Estrae media nulla, deviazione standard, Double-Null Z-Score e p-value.
+        """
+        np.random.seed(self.seed)
 
-        null_arr = np.array(double_null_coherences, dtype=np.float64)
-        double_null_mean = float(np.mean(null_arr))
-        double_null_std = float(np.std(null_arr, ddof=1))
+        states_orig: np.ndarray = df["assigned_state"].values.copy()
+        lines_orig: np.ndarray = df["line_id"].values
+        canonical_matrix: np.ndarray = self.matrix_mgr.canonical_matrix.copy()
 
-        if double_null_std > 0:
-            z_score = float((c_observed - double_null_mean) / double_null_std)
-        else:
-            z_score = 0.0
+        # Coerenza osservata reale
+        c_real, _, _ = self.matrix_mgr.compute_raw_coherence(df)
 
-        p_value_empirical = float(np.sum(null_arr >= c_observed) / len(null_arr))
+        null_coherences: np.ndarray = np.zeros(self.iterations, dtype=np.float64)
+        flat_matrix: np.ndarray = canonical_matrix.flatten()
+
+        for it in range(self.iterations):
+            # Permutazione 1: Vettore degli stati
+            permuted_states: np.ndarray = np.random.permutation(states_orig)
+
+            # Permutazione 2: Celle della Matrice 4x4 (conservando la densità di 1)
+            permuted_flat_matrix: np.ndarray = np.random.permutation(flat_matrix)
+            permuted_matrix: np.ndarray = permuted_flat_matrix.reshape((4, 4))
+
+            # Calcolo coerenza su doppio nullo
+            null_coherences[it] = self._compute_coherence_with_custom_matrix(
+                permuted_states, lines_orig, permuted_matrix
+            )
+
+        mean_double_null: float = float(np.mean(null_coherences))
+        std_double_null: float = float(np.std(null_coherences, ddof=1))
+
+        # Calcolo Double-Null Z-Score
+        z_double_score: float = (
+            float((c_real - mean_double_null) / std_double_null)
+            if std_double_null > 0 else 0.0
+        )
+
+        # Calcolo corretto e conservativo del p-value Monte Carlo (Davison-Hinkley)
+        count_exceeding: int = int(np.sum(null_coherences >= c_real))
+        p_value_empirical: float = float((count_exceeding + 1) / (self.iterations + 1))
 
         return {
-            "c_observed": c_observed,
-            "double_null_mean": double_null_mean,
-            "double_null_std": double_null_std,
-            "z_score": z_score,
-            "p_value_empirical": p_value_empirical
+            "test_name": "Isomorphic Double Randomization Test",
+            "c_observed": c_real,
+            "double_null_mean": mean_double_null,
+            "double_null_std": std_double_null,
+            "z_double_score": z_double_score,
+            "p_value_empirical": p_value_empirical,
+            "count_exceeding": count_exceeding,
+            "iterations": self.iterations
         }
 
 
 if __name__ == "__main__":
-    print("=== TEST UNITARIO VETTORIALE AUDIT_DOUBLERAND5 RELEASE v3.3 ===")
+    # Test unitario rapido di isolamento locale
+    print("=== TEST UNITARIO AUDIT_DOUBLERAND5 ===")
+    dummy_df = pd.DataFrame({
+        "line_id": ["f1r_l1", "f1r_l1", "f1r_l1", "f1r_l2", "f1r_l2", "f1r_l2"],
+        "assigned_state": ["Alpha", "Beta", "Gamma", "Alpha", "Beta", "Gamma"]
+    })

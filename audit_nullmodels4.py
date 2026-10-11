@@ -1,166 +1,199 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-METODO DEMARIA v3.3 - MAGISTER
-DOI UFFICIALE DI RELEASE: 10.5281/zenodo.23242996
-Modulo: audit_nullmodels4.py (Elemento 4 del Motore - Hierarchical Null Models Audit Engine)
-Descrizione: Motore di audit stocastico Monte Carlo vettorizzato (N=10.000, Seed 42).
-             Esegue l'analisi stocastica sui tre livelli gerarchici (Release v3.3):
-             - Model 1: Global Null Model -> Z = +19.8404, p = 0.000000 (p < 10^-15)
-             - Model 2: Intra-Folio Null Model -> Z = +16.3961, p = 0.000000
-             - Model 3: Intra-Line Null Model (PROVA REGINA) -> Z = +14.5202, p = 0.000000
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
+
+Modulo 4: audit_nullmodels4.py
+Motore stocastico Monte Carlo per l'audit dei tre modelli nulli gerarchici
+(Global, Intra-Folio, Intra-Line) con calcolo corretto del p-value empirico.
+
+Autore: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
+Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, List, Tuple, Any, Optional
 from core_matrix2 import TransitionMatrixManager
 
 
 class HierarchicalNullModelsAudit:
     """
-    Esegue l'audit Monte Carlo vettorizzato C-native ad altissime prestazioni
-    sui tre livelli gerarchici di permutazione stocastica controllata (Global, Intra-Folio, Intra-Line).
+    Esecutore stocastico Monte Carlo dei tre modelli nulli gerarchici per la validazione
+    della significatività statistica e della forza vincolante della sintassi di rigo.
     """
 
-    def __init__(
-        self,
-        df: pd.DataFrame,
-        matrix_manager: TransitionMatrixManager = None,
-        state_column: str = "assigned_state",
-        folio_column: str = "folio",
-        line_column: str = "line_id"
-    ):
-        self.df = df.copy()
-        self.matrix_manager = matrix_manager if matrix_manager is not None else TransitionMatrixManager()
-        self.state_column = state_column
-        self.folio_column = folio_column
-        self.line_column = line_column
-
-        # Pre-estrazione e sanificazione dei dati in vettori NumPy unidimensionali
-        raw_states = self.df[self.state_column].to_numpy()
-        self.raw_indices = self.matrix_manager.convert_states_to_indices(raw_states)
-        self.raw_lines = self.df[self.line_column].astype(str).str.replace('"', '', regex=False).str.strip().to_numpy()
-
-        if self.folio_column in self.df.columns:
-            self.raw_folios = self.df[self.folio_column].astype(str).str.replace('"', '', regex=False).str.strip().to_numpy()
-        else:
-            self.raw_folios = np.array([s.split('_')[0].split('.')[0] for s in self.raw_lines])
-
-        # Pre-calcolo delle maschere di rigo (Zero Pandas in-loop)
-        same_line_mask = (self.raw_lines[:-1] == self.raw_lines[1:])
-        self.curr_indices_mask = np.where(same_line_mask)[0]
-        self.next_indices_mask = self.curr_indices_mask + 1
-
-        # Pre-calcolo degli indici di raggruppamento filtrati per dimensione > 1
-        self.folio_groups = [g for g in self._build_group_indices(self.raw_folios) if len(g) > 1]
-        self.line_groups = [g for g in self._build_group_indices(self.raw_lines) if len(g) > 1]
-
-    @staticmethod
-    def _build_group_indices(group_array: np.ndarray) -> List[np.ndarray]:
+    def __init__(self, iterations: int = 10000, seed: int = 42) -> None:
         """
-        Pre-calcola gli array di indici contigui per ciascun gruppo per velocizzare le permutazioni in-place.
+        Inizializza il motore stocastico fissando il numero di simulazioni e il Seed di sistema.
         """
-        _, group_idx = np.unique(group_array, return_inverse=True)
-        sort_order = np.argsort(group_idx)
-        sorted_groups = group_idx[sort_order]
+        self.iterations: int = iterations
+        self.seed: int = seed
+        self.matrix_mgr: TransitionMatrixManager = TransitionMatrixManager()
 
-        split_points = np.where(sorted_groups[:-1] != sorted_groups[1:])[0] + 1
-        return np.split(sort_order, split_points)
+    def _calculate_coherence_from_arrays(self, states: np.ndarray, lines: np.ndarray) -> float:
+        """
+        Funzione interna ad alte prestazioni per il calcolo della coerenza grezza
+        su array NumPy unidimensionali.
+        """
+        total_transitions: int = 0
+        valid_transitions: int = 0
 
-    def _fast_c_raw(self, state_indices: np.ndarray, matrix: np.ndarray) -> float:
-        """
-        Calcolo ad altissima velocità C-native della coerenza sintattica grezza su array densi.
-        """
-        curr_s = state_indices[self.curr_indices_mask]
-        next_s = state_indices[self.next_indices_mask]
-        return float(np.sum(matrix[curr_s, next_s] == 1) / len(curr_s))
+        # Iterazione vettorizzata/ottimizzata per coordinata di rigo
+        for k in range(len(states) - 1):
+            if lines[k] == lines[k + 1]:
+                total_transitions += 1
+                if self.matrix_mgr.is_transition_valid(states[k], states[k + 1]):
+                    valid_transitions += 1
 
-    def run_full_hierarchical_audit(self, n_iterations: int = 10000, seed: int = 42) -> Dict[str, Any]:
-        """
-        Esegue sequenzialmente l'audit sui tre modelli nulli gerarchici con ottimizzazione vettoriale pure-array.
-        """
-        matrix = self.matrix_manager.canonical_admissibility_matrix
-        c_observed = self._fast_c_raw(self.raw_indices, matrix)
+        if total_transitions == 0:
+            return 0.0
 
-        m1_res = self._audit_global_null(c_observed, matrix, n_iterations=n_iterations, seed=seed)
-        m2_res = self._audit_intra_folio_null(c_observed, matrix, n_iterations=n_iterations, seed=seed)
-        m3_res = self._audit_intra_line_null(c_observed, matrix, n_iterations=n_iterations, seed=seed)
+        return valid_transitions / total_transitions
+
+    def run_global_null_model(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Model 1: Global Null Model
+        Permuta casualmente l'intero vettore degli stati assegnati sull'intero corpus.
+        """
+        np.random.seed(self.seed)
+        states_orig: np.ndarray = df["assigned_state"].values.copy()
+        lines_orig: np.ndarray = df["line_id"].values
+
+        c_real, _, _ = self.matrix_mgr.compute_raw_coherence(df)
+        null_coherences: np.ndarray = np.zeros(self.iterations, dtype=np.float64)
+
+        for i in range(self.iterations):
+            permuted_states: np.ndarray = np.random.permutation(states_orig)
+            null_coherences[i] = self._calculate_coherence_from_arrays(permuted_states, lines_orig)
+
+        mean_null: float = float(np.mean(null_coherences))
+        std_null: float = float(np.std(null_coherences, ddof=1))
+        z_score: float = float((c_real - mean_null) / std_null) if std_null > 0 else 0.0
+
+        # Calcolo corretto e conservativo del p-value Monte Carlo (Davison-Hinkley)
+        count_exceeding: int = int(np.sum(null_coherences >= c_real))
+        p_value_empirical: float = float((count_exceeding + 1) / (self.iterations + 1))
 
         return {
-            "c_observed": c_observed,
-            "global_null_model": m1_res,
-            "intra_folio_null_model": m2_res,
-            "intra_line_null_model": m3_res
+            "model_name": "Model 1 (Global Null Model)",
+            "c_observed": c_real,
+            "null_mean": mean_null,
+            "null_std": std_null,
+            "z_score": z_score,
+            "p_value_empirical": p_value_empirical,
+            "count_exceeding": count_exceeding,
+            "iterations": self.iterations
         }
 
-    def _audit_global_null(self, c_observed: float, matrix: np.ndarray, n_iterations: int, seed: int) -> Dict[str, Any]:
+    def run_intra_folio_null_model(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Model 1: Permutazione globale uniforme dell'intero corpus degli indici di stato.
+        Model 2: Intra-Folio Null Model
+        Permuta casualmente gli stati esclusivamente all'interno dei confini di ciascun folio.
         """
-        np.random.seed(seed)
-        null_coherences = []
-        indices_base = self.raw_indices.copy()
+        np.random.seed(self.seed)
+        c_real, _, _ = self.matrix_mgr.compute_raw_coherence(df)
 
-        for _ in range(n_iterations):
-            shuffled_indices = np.random.permutation(indices_base)
-            c_null = self._fast_c_raw(shuffled_indices, matrix)
-            null_coherences.append(c_null)
+        folios: np.ndarray = df["folio"].values
+        unique_folios: np.ndarray = np.unique(folios)
+        folio_indices: Dict[Any, np.ndarray] = {f: np.where(folios == f)[0] for f in unique_folios}
 
-        return self._compute_statistics(c_observed, null_coherences)
+        states_base: np.ndarray = df["assigned_state"].values.copy()
+        lines_orig: np.ndarray = df["line_id"].values
+        null_coherences: np.ndarray = np.zeros(self.iterations, dtype=np.float64)
 
-    def _audit_intra_folio_null(self, c_observed: float, matrix: np.ndarray, n_iterations: int, seed: int) -> Dict[str, Any]:
-        """
-        Model 2: Permutazione stocastica vincolata all'interno di ciascun singolo Folio.
-        """
-        np.random.seed(seed)
-        null_coherences = []
+        for i in range(self.iterations):
+            permuted_states: np.ndarray = states_base.copy()
+            for f, idxs in folio_indices.items():
+                permuted_states[idxs] = np.random.permutation(permuted_states[idxs])
+            null_coherences[i] = self._calculate_coherence_from_arrays(permuted_states, lines_orig)
 
-        for _ in range(n_iterations):
-            shuffled_indices = self.raw_indices.copy()
-            for group_idx in self.folio_groups:
-                shuffled_indices[group_idx] = np.random.permutation(shuffled_indices[group_idx])
+        mean_null: float = float(np.mean(null_coherences))
+        std_null: float = float(np.std(null_coherences, ddof=1))
+        z_score: float = float((c_real - mean_null) / std_null) if std_null > 0 else 0.0
 
-            c_null = self._fast_c_raw(shuffled_indices, matrix)
-            null_coherences.append(c_null)
-
-        return self._compute_statistics(c_observed, null_coherences)
-
-    def _audit_intra_line_null(self, c_observed: float, matrix: np.ndarray, n_iterations: int, seed: int) -> Dict[str, Any]:
-        """
-        Model 3: Permutazione stocastica vincolata all'interno di ciascun singolo Rigo (PROVA REGINA).
-        """
-        np.random.seed(seed)
-        null_coherences = []
-
-        for _ in range(n_iterations):
-            shuffled_indices = self.raw_indices.copy()
-            for group_idx in self.line_groups:
-                shuffled_indices[group_idx] = np.random.permutation(shuffled_indices[group_idx])
-
-            c_null = self._fast_c_raw(shuffled_indices, matrix)
-            null_coherences.append(c_null)
-
-        return self._compute_statistics(c_observed, null_coherences)
-
-    @staticmethod
-    def _compute_statistics(c_observed: float, null_coherences: List[float]) -> Dict[str, Any]:
-        """
-        Calcola media, deviazione standard, Z-score e p-value empirico della distribuzione nulla.
-        """
-        null_arr = np.array(null_coherences, dtype=np.float64)
-        c_null_mean = float(np.mean(null_arr))
-        c_null_std = float(np.std(null_arr, ddof=1))
-
-        z_score = float((c_observed - c_null_mean) / c_null_std) if c_null_std > 0 else 0.0
-        p_value = float(np.sum(null_arr >= c_observed) / len(null_arr))
+        count_exceeding: int = int(np.sum(null_coherences >= c_real))
+        p_value_empirical: float = float((count_exceeding + 1) / (self.iterations + 1))
 
         return {
-            "c_null_mean": c_null_mean,
-            "c_null_std": c_null_std,
+            "model_name": "Model 2 (Intra-Folio Null Model)",
+            "c_observed": c_real,
+            "null_mean": mean_null,
+            "null_std": std_null,
             "z_score": z_score,
-            "p_value": p_value
+            "p_value_empirical": p_value_empirical,
+            "count_exceeding": count_exceeding,
+            "iterations": self.iterations
+        }
+
+    def run_intra_line_null_model(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Model 3: Intra-Line Null Model (Smoking Gun / Prova Regina)
+        Permuta casualmente gli stati esclusivamente all'interno dei confini del singolo rigo (line_id).
+        """
+        np.random.seed(self.seed)
+        c_real, _, _ = self.matrix_mgr.compute_raw_coherence(df)
+
+        lines_orig: np.ndarray = df["line_id"].values
+        unique_lines: np.ndarray = np.unique(lines_orig)
+        line_indices: Dict[Any, np.ndarray] = {l: np.where(lines_orig == l)[0] for l in unique_lines}
+
+        states_base: np.ndarray = df["assigned_state"].values.copy()
+        null_coherences: np.ndarray = np.zeros(self.iterations, dtype=np.float64)
+
+        for i in range(self.iterations):
+            permuted_states: np.ndarray = states_base.copy()
+            for l, idxs in line_indices.items():
+                if len(idxs) > 1:
+                    permuted_states[idxs] = np.random.permutation(permuted_states[idxs])
+            null_coherences[i] = self._calculate_coherence_from_arrays(permuted_states, lines_orig)
+
+        mean_null: float = float(np.mean(null_coherences))
+        std_null: float = float(np.std(null_coherences, ddof=1))
+        z_score: float = float((c_real - mean_null) / std_null) if std_null > 0 else 0.0
+
+        count_exceeding: int = int(np.sum(null_coherences >= c_real))
+        p_value_empirical: float = float((count_exceeding + 1) / (self.iterations + 1))
+
+        return {
+            "model_name": "Model 3 (Intra-Line Null Model)",
+            "c_observed": c_real,
+            "null_mean": mean_null,
+            "null_std": std_null,
+            "z_score": z_score,
+            "p_value_empirical": p_value_empirical,
+            "count_exceeding": count_exceeding,
+            "iterations": self.iterations
+        }
+
+    def run_full_hierarchical_audit(self, df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
+        """
+        Esegue la suite completa dei tre modelli nulli gerarchici.
+        """
+        res_global = self.run_global_null_model(df)
+        res_folio = self.run_intra_folio_null_model(df)
+        res_line = self.run_intra_line_null_model(df)
+
+        return {
+            "global_null": res_global,
+            "intra_folio_null": res_folio,
+            "intra_line_null": res_line
         }
 
 
 if __name__ == "__main__":
-    print("=== TEST UNITARIO VETTORIALE AUDIT_NULLMODELS4 RELEASE v3.3 ===")
+    # Test unitario rapido di isolamento locale
+    print("=== TEST UNITARIO AUDIT_NULLMODELS4 ===")
+    dummy_df = pd.DataFrame({
+        "folio": ["f1r", "f1r", "f1r", "f1r", "f1r", "f1r"],
+        "line_id": ["f1r_l1", "f1r_l1", "f1r_l1", "f1r_l2", "f1r_l2", "f1r_l2"],
+        "assigned_state": ["Alpha", "Beta", "Gamma", "Alpha", "Beta", "Gamma"]
+    })
+    audit_runner = HierarchicalNullModelsAudit(iterations=100, seed=42)
+    results = audit_runner.run_full_hierarchical_audit(dummy_df)
+    for k, v in results.items():
+        print(f"\n[{v['model_name']}]")
+        print(f"Craw Osservata: {v['c_observed']:.4f} | Media Nulla: {v['null_mean']:.4f}")
+        print(f"Z-Score: {v['z_score']:.4f} | p-value empirico: {v['p_value_empirical']:.6f}")
