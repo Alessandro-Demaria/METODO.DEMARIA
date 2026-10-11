@@ -7,13 +7,13 @@ Release v3.3 (Audit-Master Unificato)
 Suite Test C: tests_test_pipelineC.py
 Test di integrazione end-to-end per la verifica dell'hash crittografico e dell'integrità dei dati.
 
-Autore: Avv. Alessandro Demaria
+Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
 Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 """
 
-import pytest
 import os
+import pytest
 import pandas as pd
 from utils_preflight3 import PreFlightChecker
 from core_parser1 import EVAParser
@@ -31,7 +31,10 @@ def test_preflight_check():
 
 
 def test_full_pipeline_coherence_integration():
-    """Verifica che il parser applicato al dataset master produca la Coerenza Grezza di targa."""
+    """
+    Verifica che il parser e la matrice applicati al dataset master producano 
+    rigorosamente ed esclusivamente la Coerenza Grezza di targa v3.3 (0.786597).
+    """
     dataset_path = "voynich_eva_tokens_extended.csv"
     if os.path.exists(dataset_path):
         df_raw = pd.read_csv(dataset_path)
@@ -41,7 +44,7 @@ def test_full_pipeline_coherence_integration():
         matrix_mgr = TransitionMatrixManager()
         c_raw_res = matrix_mgr.compute_raw_coherence(df_parsed)
 
-        # Gestione universale del tipo restituito (scalare float o primo elemento di tupla)
+        # Gestione deterministica del tipo di dato restituito (scalare float o tupla)
         if isinstance(c_raw_res, (tuple, list)):
             c_raw_val = float(c_raw_res[0])
         else:
@@ -49,8 +52,9 @@ def test_full_pipeline_coherence_integration():
 
         c_raw_rounded = round(c_raw_val, 6)
 
-        # Verifica di appartenenza ai valori di targa convalidati (0.786597 / 0.495814)
-        assert c_raw_rounded in (0.786597, 0.495814)
+        # Vincolo di targa univoco e non ambiguo per la Release v3.3 (0.786597)
+        EXPECTED_CRAW_V33 = 0.786597
+        assert c_raw_rounded == EXPECTED_CRAW_V33
 
 
 if __name__ == "__main__":
