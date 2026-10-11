@@ -32,7 +32,7 @@ class EVAParser:
 
     def __init__(self):
         self.alpha_prefixes = ("qo", "chol", "chor", "shol", "shor", "y")
-        self.gamma_suffixes = ("am", "an", "dy", "edy", "ol", "or", "y")
+        self.gamma_suffixes = ("am", "an", "dy", "edy", "ol", "or")
         self.delta_substrings = ("ch", "sh", "ok", "ot", "ct")
 
     @staticmethod
@@ -47,48 +47,64 @@ class EVAParser:
 
     def map_token_to_state(self, token: str) -> str:
         """
-        Mappatura deterministica Many-to-One del singolo token EVA restituendo la stringa di stato.
+        Mappatura deterministica Many-to-One del singolo token EVA.
+        Ordine di valutazione tassativo: Prefissi (Alpha) -> Suffissi (Gamma) -> Sottostringhe (Delta) -> Default (Beta).
         """
         token_clean = self.clean_eva_token(token)
         if not token_clean:
             return self.STATE_BETA
 
+        # 1. Regola Innesco (State Alpha)
         for prefix in self.alpha_prefixes:
             if token_clean.startswith(prefix):
                 return self.STATE_ALPHA
 
+        # 2. Regola Chiusura (State Gamma)
         for suffix in self.gamma_suffixes:
             if token_clean.endswith(suffix):
                 return self.STATE_GAMMA
 
+        # 3. Regola Modulazione (State Delta)
         for sub in self.delta_substrings:
             if sub in token_clean:
                 return self.STATE_DELTA
 
+        # 4. Regola Attrattore Stazionario (State Beta)
         return self.STATE_BETA
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, pulisce i token ed assegna gli stati vettoriali.
+        Elabora il DataFrame del corpus, normalizza le coordinate e assegna gli stati vettoriali.
         """
         df_parsed = df.copy()
 
-        if "Folio" in df_parsed.columns:
-            df_parsed["folio_id"] = df_parsed["Folio"].astype(str).apply(lambda x: x.split(".")[0])
-            df_parsed["line_number"] = df_parsed["Folio"].astype(str).apply(
+        # Normalizzazione coordinate di rigo e folio
+        if "Folio" in df_parsed.columns or "folio" in df_parsed.columns:
+            col_f = "Folio" if "Folio" in df_parsed.columns else "folio"
+            df_parsed["folio_id"] = df_parsed[col_f].astype(str).apply(lambda x: x.split(".")[0])
+            df_parsed["line_number"] = df_parsed[col_f].astype(str).apply(
                 lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
             )
             df_parsed["line_id"] = df_parsed["folio_id"] + "." + df_parsed["line_number"]
             df_parsed["folio"] = df_parsed["folio_id"]
+        else:
+            df_parsed["line_id"] = "f1r.1"
+            df_parsed["folio"] = "f1r"
 
+        # Identificazione insensibile al maiuscolo/minuscolo della colonna dei token
         token_col = None
-        for col in ["Token", "eva_token", "token", "EVA"]:
-            if col in df_parsed.columns:
+        for col in df_parsed.columns:
+            if col.lower() in ["token", "eva_token", "eva"]:
                 token_col = col
                 break
 
         if token_col is None:
-            raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
+            # Fallback sulla prima colonna di tipo stringa se non identificata direttamente
+            string_cols = df_parsed.select_dtypes(include=["object"]).columns
+            if len(string_cols) > 0:
+                token_col = string_cols[-1]
+            else:
+                raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
         df_parsed["cleaned_token"] = df_parsed[token_col].apply(self.clean_eva_token)
         df_parsed["assigned_state"] = df_parsed["cleaned_token"].apply(self.map_token_to_state)
@@ -105,4 +121,4 @@ if __name__ == "__main__":
     parser = EVAParser()
     sample_df = pd.DataFrame({"Folio": ["f1r.1,+P0"], "Token": ["qokaiin!"]})
     out_df = parser.parse_dataframe(sample_df)
-    print("Test Parser completato:", out_df[["cleaned_token", "assigned_state", "state"]])
+    print("Test Parser completato:", out_df[["cleaned_token", "assigned_state", "state", "line_id"]])
