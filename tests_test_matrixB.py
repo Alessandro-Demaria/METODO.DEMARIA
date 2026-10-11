@@ -42,7 +42,7 @@ def test_entropy_real_corpus_attractor():
     Valore atteso congelato: H(X) = 1.6947 bit.
     """
     probs = np.array([0.1000, 0.5499, 0.1951, 0.1550])
-    h_corpus = -np.sum(probs * np.log2(probs))
+    h_corpus = float(-np.sum(probs * np.log2(probs)))
 
     EXPECTED_H_VOYNICH = 1.6947
     assert np.isclose(
