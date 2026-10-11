@@ -6,15 +6,12 @@ Release v3.3 (Audit-Master Unificato)
 
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
-             ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
-             Harmonizza le colonne 'state', 'state_name' e 'assigned_state'
-             per garantire la convergenza su Craw = 0.786597 ed H(X) = 1.683534 bit.
+             ai 4 stati minimi (Alpha=1, Beta=2, Delta=3, Gamma=4).
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
 """
 
-import numpy as np
 import pandas as pd
 
 
@@ -79,8 +76,11 @@ class EVAParser:
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Elabora il DataFrame del corpus, costruisce in modo vincolante line_id (folio_id + "." + line_number)
-        ed assegna a ciascun token sia lo stato numerico che la stringa di stato stazionaria.
+        ed assegna a ciascun token sia lo stato numerico che lo stato testuale.
         """
+        if df is None or df.empty:
+            raise ValueError("[-] Errore Parser: DataFrame di input vuoto o None.")
+
         df_parsed = df.copy()
 
         # 1. Identificazione e Costruzione Rigida del Folio e Line_ID
@@ -112,26 +112,27 @@ class EVAParser:
         if token_col is None:
             raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # 3. Mappatura ed Assegnazione Deterministica degli Stati
+        # 3. Assegnazione ed armonia delle colonne di stato
         df_parsed["token"] = df_parsed[token_col]
         df_parsed["cleaned_token"] = df_parsed[token_col].apply(self.clean_eva_token)
         
-        raw_mapped_states = df_parsed[token_col].apply(self.map_token_to_state)
-        df_parsed["numeric_state"] = raw_mapped_states
+        # Mappatura numerica deterministica [1, 2, 3, 4] richiesta dai test unitari
+        df_parsed["numeric_state"] = df_parsed[token_col].apply(self.map_token_to_state)
+        df_parsed["state"] = df_parsed["numeric_state"]
 
         state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
         df_parsed["state_name"] = df_parsed["numeric_state"].map(state_names)
         df_parsed["assigned_state"] = df_parsed["state_name"]
 
-        # Riconciliazione esatta dell'Entropia dell'Attrattore H = 1.683534 bit per la colonna 'state'
-        n_records = len(df_parsed)
-        if n_records >= 30000:
-            # Proporzioni esatte dell'attrattore stazionario a 4 stati minimi (H = 1.683534 bit)
-            p_opt = [0.16525, 0.55624, 0.16781, 0.11070]
-            c_alpha = int(p_opt[0] * n_records)
-            c_beta = int(p_opt[1] * n_records)
-            c_delta = int(p_opt[2] * n_records)
-            c_gamma = n_records - (c_alpha + c_beta + c_delta)
+        return df_parsed
 
-            # Serie vettoriale perfettamente calibrata sull'attrattore stazionario
-            attractor_
+
+if __name__ == "__main__":
+    parser = EVAParser()
+    sample_data = pd.DataFrame({
+        "Folio": ["f1r.1,+P0", "f1r.1,+P0", "f1r.2,+P0"],
+        "Token": ["fachys", "qokaiin", "cheoldy"]
+    })
+    parsed_df = parser.parse_dataframe(sample_data)
+    print("DataFrame Parsato con successo:")
+    print(parsed_df[["folio_id", "line_id", "token", "state", "state_name", "assigned_state"]])
