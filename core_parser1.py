@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-LABORATORIO SCIENTIFICO METODO DEMARIA™ - RELEASE v3.3 (AUDIT-MASTER UNIFICATO)
+LABORATORIO SCIENTIFICO METODO DEMARIA®
+Release v3.3 (Audit-Master Unificato)
 
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
              ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
-             Include la normalizzazione strutturale e la risoluzione P0.2 / P0.3.
+             Risoluzione flessibile ed immune a maiuscole/spazi per la risoluzione
+             delle colonne di input e compatibilità CI/CD.
+
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
+Licenza Codebase: MIT License
 """
 
 import pandas as pd
@@ -14,7 +19,7 @@ import pandas as pd
 
 class EVAParser:
     """
-    Parser vettoriale del METODO DEMARIA™.
+    Parser vettoriale del METODO DEMARIA®.
     Esegue il mapping deterministico dei token EVA sulla quadrupla degli stati minimi:
     - State Alpha (1): Innesco / Margine Sinistro
     - State Beta  (2): Regime / Azione / Attrattore Stazionario
@@ -61,37 +66,46 @@ class EVAParser:
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, normalizza le coordinate spaziali (P0.2/P0.3)
+        Elabora il DataFrame del corpus, normalizza le coordinate spaziali (P0.2 / P0.3)
         ed assegna a ciascun token il rispettivo stato vettoriale.
         """
         df_parsed = df.copy()
 
-        # Normalizzazione canonica identificativi (P0.2 / P0.3 Fix)
-        if "Folio" in df_parsed.columns:
-            df_parsed["folio_id"] = df_parsed["Folio"].astype(str).apply(lambda x: x.split(".")[0])
-            df_parsed["line_number"] = df_parsed["Folio"].astype(str).apply(
+        # 1. Identificazione Flessibile della colonna Folio (Case-Insensitive & Space-Insensitive)
+        folio_col_found = None
+        for col in df_parsed.columns:
+            if str(col).strip().lower() in ["folio", "folio_id"]:
+                folio_col_found = col
+                break
+
+        if folio_col_found is not None:
+            df_parsed["folio_id"] = df_parsed[folio_col_found].astype(str).apply(lambda x: x.split(".")[0])
+            df_parsed["line_number"] = df_parsed[folio_col_found].astype(str).apply(
                 lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
             )
             df_parsed["line_id"] = df_parsed["folio_id"] + "." + df_parsed["line_number"]
             df_parsed["folio"] = df_parsed["folio_id"]
-        elif "folio" not in df_parsed.columns:
+            df_parsed["Folio"] = df_parsed[folio_col_found]
+        else:
             raise KeyError("[-] Errore Parser: Colonna 'Folio' o 'folio' non trovata nel DataFrame.")
 
-        # Identificazione colonna del token
+        # 2. Identificazione Flessibile della colonna Token (Case-Insensitive & Space-Insensitive)
         token_col = None
-        for col in ["Token", "eva_token", "token", "EVA"]:
-            if col in df_parsed.columns:
+        for col in df_parsed.columns:
+            if str(col).strip().lower() in ["token", "eva_token", "eva", "cleaned_token"]:
                 token_col = col
                 break
 
         if token_col is None:
             raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # Assegnazione dello stato vettoriale numeric [1, 2, 3, 4] e della stringa di stato
+        # 3. Normalizzazione colonne e assegnazione degli stati topologici
+        df_parsed["token"] = df_parsed[token_col]
         df_parsed["state"] = df_parsed[token_col].apply(self.map_token_to_state)
 
         state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
         df_parsed["state_name"] = df_parsed["state"].map(state_names)
+        df_parsed["assigned_state"] = df_parsed["state_name"]
 
         return df_parsed
 
@@ -104,4 +118,4 @@ if __name__ == "__main__":
     })
     parsed_df = parser.parse_dataframe(sample_data)
     print("DataFrame Parsato di Test:")
-    print(parsed_df[["folio_id", "line_id", "folio", "Token", "state", "state_name"]])
+    print(parsed_df[["folio_id", "line_id", "folio", "token", "state", "state_name", "assigned_state"]])
