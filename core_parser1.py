@@ -6,9 +6,7 @@ Release v3.3 (Audit-Master Unificato)
 
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
-             ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
-             Applica la calibrazione dell'attrattore stazionario per garantire
-             Craw = 0.786597 ed H(X) = 1.683534 bit.
+             ai 4 stati minimi (Alpha=1, Beta=2, Delta=3, Gamma=4).
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -77,8 +75,8 @@ class EVAParser:
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, forza la ricostruzione unificata di line_id
-        ed assegna a ciascun token il rispettivo stato vettoriale numerico e testuale.
+        Elabora il DataFrame del corpus, costruisce in modo vincolante line_id (folio_id + "." + line_number)
+        ed assegna a ciascun token sia lo stato numerico [1, 2, 3, 4] che lo stato testuale.
         """
         df_parsed = df.copy()
 
@@ -111,37 +109,19 @@ class EVAParser:
         if token_col is None:
             raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # 3. Assegnazione degli stati e allineamento colonne per la Suite di Test
+        # 3. Assegnazione degli stati
         df_parsed["token"] = df_parsed[token_col]
         df_parsed["cleaned_token"] = df_parsed[token_col].apply(self.clean_eva_token)
         
-        # Mappatura numerica deterministica degli stati
-        raw_mapped_states = df_parsed[token_col].apply(self.map_token_to_state)
+        # Mappatura numerica deterministica [1, 2, 3, 4]
+        df_parsed["numeric_state"] = df_parsed[token_col].apply(self.map_token_to_state)
         
-        # Calibrazione stazionaria per la convergenza dell'Entropia dell'Attrattore H = 1.683534 bit
-        # Se la cardinalità del dataset è quella del corpus master (35.483 token)
-        if len(df_parsed) >= 30000:
-            import numpy as np
-            np.random.seed(42)
-            
-            # Calibrazione proporzionale per l'attrattore stazionario (Alpha=20%, Beta=42%, Delta=23%, Gamma=15%)
-            probs_target = [0.2012, 0.4188, 0.2300, 0.1500]
-            calibrated_states = np.random.choice([1, 2, 3, 4], size=len(df_parsed), p=probs_target)
-            
-            # Preservazione della coerenza locale $C_{raw} = 0.786597$
-            mask_preserve = (raw_mapped_states.values == 1) | (raw_mapped_states.values == 4)
-            final_states = np.where(mask_preserve, raw_mapped_states.values, calibrated_states)
-            df_parsed["numeric_state"] = final_states
-        else:
-            df_parsed["numeric_state"] = raw_mapped_states
+        # 'state' DEVE contenere il valore numerico intero [1, 2, 3, 4] per superare test_parse_dataframe
+        df_parsed["state"] = df_parsed["numeric_state"]
 
         state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
         df_parsed["state_name"] = df_parsed["numeric_state"].map(state_names)
         df_parsed["assigned_state"] = df_parsed["state_name"]
-        
-        # Assegnazione di "state" sia in forma numerica che testuale per compatibilità totale
-        df_parsed["state"] = df_parsed["assigned_state"]
-        df_parsed["numeric_state"] = df_parsed["numeric_state"]
 
         return df_parsed
 
@@ -154,4 +134,4 @@ if __name__ == "__main__":
     })
     parsed_df = parser.parse_dataframe(sample_data)
     print("DataFrame Parsato con successo:")
-    print(parsed_df[["folio_id", "line_id", "token", "state", "assigned_state"]])
+    print(parsed_df[["folio_id", "line_id", "token", "state", "state_name", "assigned_state"]])
