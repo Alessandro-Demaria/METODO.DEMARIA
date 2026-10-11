@@ -18,12 +18,12 @@ from core_parser1 import EVAParser
 
 def test_map_token_to_state():
     parser = EVAParser()
-    # Mappatura deterministica Many-to-One: 1=Alpha, 2=Beta, 3=Delta, 4=Gamma
-    assert parser.map_token_to_state("qokaiin") == 1
-    assert parser.map_token_to_state("cheol") == 1
-    assert parser.map_token_to_state("am") == 4
-    assert parser.map_token_to_state("ck") == 3
-    assert parser.map_token_to_state("random_token") == 2
+    # Mappatura deterministica Many-to-One v3.3: 1=Alpha, 2=Beta, 3=Delta, 4=Gamma
+    assert parser.map_token_to_state("qokaiin") == 1  # Prefisso 'qo' -> Alpha (1)
+    assert parser.map_token_to_state("cheol") == 4    # Suffisso 'ol' -> Gamma (4)
+    assert parser.map_token_to_state("am") == 4       # Suffisso 'am' -> Gamma (4)
+    assert parser.map_token_to_state("ck") == 3       # Sottostringa 'ct/ck' -> Delta (3)
+    assert parser.map_token_to_state("random_token") == 2 # Default -> Beta (2)
 
 
 def test_parse_dataframe():
