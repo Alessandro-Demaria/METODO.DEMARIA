@@ -32,7 +32,7 @@ class MatrixManager:
         self.state_to_idx: Dict[str, int] = {state: i for i, state in enumerate(self.STATES)}
         self.idx_to_state: Dict[int, str] = {i: state for i, state in enumerate(self.STATES)}
 
-        # Matrice Binaria Canonica 4x4 (Densità 12/16 = 75%)
+        # Matrice Binaria Canonica 4x4 (13 celle ammissibili su 16)
         self.admissibility_matrix: np.ndarray = np.array([
             [1, 1, 1, 0],
             [1, 1, 1, 1],
@@ -154,7 +154,6 @@ class MatrixManager:
     ) -> float:
         """
         Calcola l'entropia di Shannon di primo ordine H(X) in bit.
-        Accetta facoltativamente un terzo argomento posizionale per garantire la retrocompatibilità.
         """
         target_state_col = None
         for col in [state_column, "state", "assigned_state", "state_name"]:
