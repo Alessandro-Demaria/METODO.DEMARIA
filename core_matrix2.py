@@ -55,7 +55,7 @@ class BinaryAdmissibilityMatrix:
     def compute_corpus_coherence(self, df: pd.DataFrame, state_col: str = "assigned_state", line_col: str = "line_id") -> float:
         """Calcola la Coerenza Sintattica Grezza Reale (Craw)."""
         target_state_col = None
-        for col_name in [state_col, "assigned_state", "state", "state_name"]:
+        for col_name in ["assigned_state", "state_name", state_col, "state"]:
             if col_name in df.columns:
                 target_state_col = col_name
                 break
@@ -63,7 +63,6 @@ class BinaryAdmissibilityMatrix:
         if target_state_col is None:
             return 0.0
 
-        # Priorità vincolante sulla colonna "line_id" generata dal parser
         target_line_col = "line_id" if "line_id" in df.columns else (line_col if line_col in df.columns else "Folio")
 
         states = df[target_state_col].values
@@ -114,8 +113,8 @@ class BinaryAdmissibilityMatrix:
         return c_raw, valid_trans, total_trans
 
     def compute_shannon_entropy(self, df: pd.DataFrame, state_column: str = "assigned_state") -> float:
-        """Calcola l'entropia di Shannon H(X) della distribuzione degli stati."""
-        col = "assigned_state" if "assigned_state" in df.columns else ("state" if "state" in df.columns else state_column)
+        """Calcola l'entropia di Shannon H(X) della distribuzione degli stati minimi."""
+        col = "assigned_state" if "assigned_state" in df.columns else ("state_name" if "state_name" in df.columns else state_column)
 
         if col not in df.columns:
             return 0.0
@@ -148,4 +147,4 @@ VoynichMatrixManager = BinaryAdmissibilityMatrix
 
 if __name__ == "__main__":
     mm = BinaryAdmissibilityMatrix()
-    print("=== MODULO core_matrix2.py RE-UNIFICATO E CONVALIDATO ===")
+    print("=== MODULO core_matrix2.py UNIFICATO E CONVALIDATO ===")
