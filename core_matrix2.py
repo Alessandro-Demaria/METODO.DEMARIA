@@ -8,9 +8,6 @@ Modulo 2: core_matrix2.py
 Gestione vettoriale della Matrice Canonica 4x4, Coerenza Sintattica (C_raw)
 e calcolo esplicito dell'Invariante di Armonia (Phi_alpha) integro-differenziale.
 
-Integrazione v3.3: Esportazione formale degli alias di classe tra cui
-BinaryAdmissibilityMatrix per la piena compatibilità con la suite di test (PyTest).
-
 Sessione di Lavoro: BARVI
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
@@ -19,7 +16,7 @@ Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Optional
 
 
 class MatrixManager:
@@ -55,7 +52,6 @@ class MatrixManager:
         Verifica l'ammissibilità topologica della transizione tra due stati.
         Accetta sia nomi di stato (str) sia indici numerici/id di stato (int/str).
         """
-        # Conversione se gli stati sono espressi come interi [1, 2, 3, 4]
         state_map_numeric = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
         if isinstance(state_curr, (int, np.integer)) and state_curr in state_map_numeric:
             state_curr = state_map_numeric[state_curr]
@@ -76,9 +72,8 @@ class MatrixManager:
     ) -> float:
         """
         Calcola la Coerenza Sintattica Grezza Reale (C_raw) sul DataFrame del corpus.
-        Garantisce la risoluzione dei nomi di colonna per la massima interoperabilità.
+        Garantisce la risoluzione dinamica delle colonne.
         """
-        # Identificazione dinamica della colonna degli stati
         target_state_col = None
         for col in [state_column, "state", "assigned_state", "state_name"]:
             if col in df.columns:
@@ -88,7 +83,6 @@ class MatrixManager:
         if target_state_col is None:
             raise ValueError(f"Colonna degli stati non presente nel DataFrame. Colonne disponibili: {list(df.columns)}")
 
-        # Identificazione dinamica della colonna di rigo
         target_line_col = None
         for col in [line_column, "line_id", "Line"]:
             if col in df.columns:
@@ -110,7 +104,7 @@ class MatrixManager:
         return float(admiss_trans / total_trans) if total_trans > 0 else 0.0
 
     def compute_corpus_coherence(self, df: pd.DataFrame) -> float:
-        """Alias ad alte prestazioni per il calcolo della coerenza di corpus."""
+        """Alias per il calcolo della coerenza sul corpus completo."""
         return self.compute_c_raw(df)
 
     def compute_raw_coherence(
@@ -130,7 +124,7 @@ class MatrixManager:
                 break
 
         if target_state_col is None:
-            raise ValueError(f"Colonna degli stati non presente nel DataFrame.")
+            raise ValueError("Colonna degli stati non presente nel DataFrame.")
 
         target_line_col = None
         for col in [line_column, "line_id", "Line"]:
@@ -152,8 +146,16 @@ class MatrixManager:
 
         return c_raw, admiss_trans, total_trans
 
-    def compute_shannon_entropy(self, df: pd.DataFrame, state_column: str = "assigned_state") -> float:
-        """Calcola l'entropia di Shannon di primo ordine H(X) in bit."""
+    def compute_shannon_entropy(
+        self,
+        df: pd.DataFrame,
+        state_column: str = "assigned_state",
+        line_column: Optional[str] = None
+    ) -> float:
+        """
+        Calcola l'entropia di Shannon di primo ordine H(X) in bit.
+        Accetta facoltativamente un terzo argomento posizionale per garantire la retrocompatibilità.
+        """
         target_state_col = None
         for col in [state_column, "state", "assigned_state", "state_name"]:
             if col in df.columns:
@@ -178,8 +180,7 @@ class MatrixManager:
         gamma: float = 0.2
     ) -> Dict[str, Any]:
         """
-        Implementazione esplicita dell'Invariante di Armonia (Phi_alpha)
-        integro-differenziale calcolato lungo la sequenza degli N operatori.
+        Implementazione esplicita dell'Invariante di Armonia (Phi_alpha) integro-differenziale.
         """
         c_raw: float = self.compute_c_raw(df, state_column=state_column, line_column=line_column)
         shannon_entropy: float = self.compute_shannon_entropy(df, state_column=state_column)
@@ -241,5 +242,4 @@ BinaryAdmissibilityMatrix = MatrixManager
 if __name__ == "__main__":
     mm = MatrixManager()
     bam = BinaryAdmissibilityMatrix()
-    assert np.array_equal(mm.get_matrix(), bam.get_matrix()), "Errore di allineamento alias BinaryAdmissibilityMatrix"
-    print("=== MODULO core_matrix2.py (Release v3.3 - Alias BinaryAdmissibilityMatrix Integrato) VERIFICATO CON SUCCESSO ===")
+    assert np.array_equal(mm.get_matrix(), bam.
