@@ -8,7 +8,7 @@ Modulo 2: core_matrix2.py
 Gestione vettoriale della Matrice Canonica 4x4, Coerenza Sintattica (C_raw)
 e calcolo esplicito dell'Invariante di Armonia (Phi_alpha) integro-differenziale.
 
-Sessione di Lavoro: BARVI
+Sessione di Lavoro: BARVI / RELEASE v3.3
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
 Tutela Privativa e Marchio: Art. 98 D.Lgs. 30/2005 (CPI) / L. 633/1941
@@ -44,6 +44,7 @@ class MatrixManager:
         self.STATE_TO_IDX: Dict[str, int] = self.state_to_idx
 
     def is_transition_valid(self, state_curr: str, state_next: str) -> bool:
+        """Verifica se la transizione tra due stati consecutivi è ammissibile sulla Matrice Canonica."""
         if state_curr in self.state_to_idx and state_next in self.state_to_idx:
             r: int = self.state_to_idx[state_curr]
             c: int = self.state_to_idx[state_next]
@@ -56,6 +57,20 @@ class MatrixManager:
         state_column: str = "assigned_state",
         line_column: str = "line_id"
     ) -> float:
+        """Calcola la Coerenza Sintattica Grezza Reale (C_raw) vincolata al rigo pergamenaceo."""
+        # Fallback di risoluzione nomi colonne per massima compatibilità cross-suite
+        if state_column not in df.columns:
+            for alt_col in ["state", "assigned_state", "assigned_state_name"]:
+                if alt_col in df.columns:
+                    state_column = alt_col
+                    break
+
+        if line_column not in df.columns:
+            for alt_col in ["line_id", "Line", "line_number"]:
+                if alt_col in df.columns:
+                    line_column = alt_col
+                    break
+
         if state_column not in df.columns:
             raise ValueError(f"Colonna degli stati '{state_column}' non presente nel DataFrame.")
 
@@ -65,10 +80,20 @@ class MatrixManager:
         total_trans: int = 0
         admiss_trans: int = 0
 
+        # Normalizzazione dinamica del formato stati (interi [1..4] o stringhe)
+        state_mapping = {
+            1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma",
+            "State Alpha": "Alpha", "State Beta": "Beta", "State Delta": "Delta", "State Gamma": "Gamma",
+            "Alpha": "Alpha", "Beta": "Beta", "Delta": "Delta", "Gamma": "Gamma"
+        }
+
         for i in range(len(states) - 1):
             if lines[i] == lines[i + 1]:
-                st_curr: str = states[i]
-                st_next: str = states[i + 1]
+                st_curr_raw = states[i]
+                st_next_raw = states[i + 1]
+
+                st_curr = state_mapping.get(st_curr_raw, str(st_curr_raw))
+                st_next = state_mapping.get(st_next_raw, str(st_next_raw))
 
                 if st_curr in self.state_to_idx and st_next in self.state_to_idx:
                     r: int = self.state_to_idx[st_curr]
@@ -79,27 +104,63 @@ class MatrixManager:
 
         return float(admiss_trans / total_trans) if total_trans > 0 else 0.0
 
+    def compute_corpus_coherence(self, df: pd.DataFrame) -> float:
+        """Metodo unificato alias per la Master Suite v3.3."""
+        return self.compute_c_raw(df)
+
     def compute_raw_coherence(
         self,
         df: pd.DataFrame,
         state_column: str = "assigned_state",
         line_column: str = "line_id"
     ) -> Tuple[float, int, int]:
+        """Restituisce la tupla: (C_raw, transizioni_ammissibili, transizioni_totali)."""
         c_raw: float = self.compute_c_raw(df, state_column=state_column, line_column=line_column)
-        states: np.ndarray = df[state_column].values
-        lines: np.ndarray = df[line_column].values if line_column in df.columns else np.zeros(len(df))
         
+        if state_column not in df.columns:
+            for alt_col in ["state", "assigned_state"]:
+                if alt_col in df.columns:
+                    state_column = alt_col
+                    break
+
+        if line_column not in df.columns:
+            for alt_col in ["line_id", "Line"]:
+                if alt_col in df.columns:
+                    line_column = alt_col
+                    break
+
+        states: np.ndarray = df[state_column].values if state_column in df.columns else np.array([])
+        lines: np.ndarray = df[line_column].values if line_column in df.columns else np.zeros(len(df))
+
         total_trans: int = 0
         admiss_trans: int = 0
+
+        state_mapping = {
+            1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma",
+            "State Alpha": "Alpha", "State Beta": "Beta", "State Delta": "Delta", "State Gamma": "Gamma",
+            "Alpha": "Alpha", "Beta": "Beta", "Delta": "Delta", "Gamma": "Gamma"
+        }
+
         for i in range(len(states) - 1):
             if lines[i] == lines[i + 1]:
-                total_trans += 1
-                if self.is_transition_valid(states[i], states[i + 1]):
-                    admiss_trans += 1
+                st_curr = state_mapping.get(states[i], str(states[i]))
+                st_next = state_mapping.get(states[i + 1], str(states[i + 1]))
+
+                if st_curr in self.state_to_idx and st_next in self.state_to_idx:
+                    total_trans += 1
+                    if self.is_transition_valid(st_curr, st_next):
+                        admiss_trans += 1
 
         return c_raw, admiss_trans, total_trans
 
     def compute_shannon_entropy(self, df: pd.DataFrame, state_column: str = "assigned_state") -> float:
+        """Calcola l'entropia di Shannon di primo ordine in bit sugli stati topologici."""
+        if state_column not in df.columns:
+            for alt_col in ["state", "assigned_state"]:
+                if alt_col in df.columns:
+                    state_column = alt_col
+                    break
+
         if state_column not in df.columns or len(df) == 0:
             return 0.0
 
@@ -117,26 +178,20 @@ class MatrixManager:
         beta: float = 0.4,
         gamma: float = 0.2
     ) -> Dict[str, Any]:
-        """
-        PUNTO 2.1: Implementazione esplicita dell'Invariante di Armonia (Phi_alpha)
-        integro-differenziale calcolato lungo la sequenza degli N operatori.
-        """
+        """Implementazione dell'operatore dell'Invariante di Armonia (Phi_alpha) integro-differenziale."""
         c_raw: float = self.compute_c_raw(df, state_column=state_column, line_column=line_column)
         shannon_entropy: float = self.compute_shannon_entropy(df, state_column=state_column)
 
-        # Calcolo dei contributi dinamici se le colonne di carico Z_t e Clock_Phase sono presenti
         if "Z_t" in df.columns and "Clock_Phase" in df.columns:
             z_vals: np.ndarray = df["Z_t"].values.astype(float)
             clock_vals: np.ndarray = df["Clock_Phase"].values.astype(float)
 
             delta_z: np.ndarray = np.diff(z_vals, prepend=z_vals[0])
             delta_t: np.ndarray = np.diff(clock_vals, prepend=clock_vals[0])
-            delta_t[delta_t <= 0] = 1e-4  # Prevenzione divisione per zero
+            delta_t[delta_t <= 0] = 1e-4
 
-            # Tassonomia del tempo di stasi nello State Beta
             is_beta: np.ndarray = (df[state_column].values == "Beta").astype(float)
             
-            # Integrazione vettoriale dell'invariante
             term_kinetic: np.ndarray = alpha * np.abs(delta_z / delta_t)
             term_entropic: float = beta * shannon_entropy
             term_hold: np.ndarray = gamma * is_beta
@@ -168,14 +223,3 @@ class MatrixManager:
         state_column: str = "assigned_state",
         line_column: str = "line_id"
     ) -> Tuple[float, float]:
-        res: Dict[str, Any] = self.compute_harmony_invariant(df, state_column=state_column, line_column=line_column)
-        return float(res["harmony_invariant_phi"]), float(res["shannon_entropy_bits"])
-
-
-TransitionMatrixManager = MatrixManager
-VoynichMatrixManager = MatrixManager
-
-
-if __name__ == "__main__":
-    mm = MatrixManager()
-    print("=== MODULO core_matrix2.py (PUNTO 2.1 - Invariante di Armonia) PRONTO PER APPROVAZIONE ===")
