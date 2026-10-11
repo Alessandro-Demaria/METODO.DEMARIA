@@ -1,8 +1,8 @@
-# METODO DEMARIA® Release v3.3 (Audit-Master Unificato) [![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=33)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml)
+# METODO DEMARIA® Release v3.3 (Audit-Master Unificato)
+
+[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=33)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml) [![DOI Concept Madre](https://zenodo.org/badge/DOI/10.5281/zenodo.22789343.svg)](https://doi.org/10.5281/zenodo.22789343) [![DOI Release v3.3](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.23242996-blue.svg)](https://doi.org/10.5281/zenodo.23242996) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Quantitative Audit & Vector Topology of the Voynich Manuscript (Beinecke MS 408)
-
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria (Molochio, RC)  
 Concept DOI Madre (Archivio Permanente): [10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)  
