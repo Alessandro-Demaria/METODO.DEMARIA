@@ -63,6 +63,7 @@ class BinaryAdmissibilityMatrix:
         if target_state_col is None:
             return 0.0
 
+        # Priorità vincolante sulla colonna "line_id" generata dal parser
         target_line_col = "line_id" if "line_id" in df.columns else (line_col if line_col in df.columns else "Folio")
 
         states = df[target_state_col].values
