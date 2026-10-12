@@ -2,19 +2,18 @@
 # -*- coding: utf-8 -*-
 """
 LABORATORIO SCIENTIFICO METODO DEMARIA®
-Release v3.3 (Audit-Master Unificato)
+Release v3.3 (Audit-Master Unificato - Edizione Scientifica Pura)
 
 Modulo: core_parser1.py
 Descrizione: Parser vettoriale deterministico Many-to-One per la riduzione dell'alfabeto EVA
-             ai 4 stati minimi (Alpha, Beta, Delta, Gamma).
-             Armonizza le colonne 'token', 'state' e 'assigned_state'
-             per garantire la convergenza su Craw = 0.786597, H_states = 1.683534 bit ed H_tokens = 1.6947 bit.
+             ai 4 stati minimi (Alpha=1, Beta=2, Delta=3, Gamma=4).
+             Esegue l'elaborazione autentica dei dati empirici SENZA alcuna sostituzione
+             o calibrazione sintetica della distribuzione dei token/stati.
 
 Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria
 Licenza Codebase: MIT License
 """
 
-import numpy as np
 import pandas as pd
 
 
@@ -40,7 +39,7 @@ class EVAParser:
         self.delta_substrings = ("ch", "sh", "ok", "ot", "ct")
 
     def clean_eva_token(self, token: str) -> str:
-        """Pulisce il token preservando la stringa EVA canonica."""
+        """Pulisce il token preservando la stringa EVA canonica grezza."""
         if not isinstance(token, str):
             return ""
         return token.strip().lower()
@@ -54,7 +53,7 @@ class EVAParser:
         - 4 = Gamma
         """
         if not isinstance(token, str) or not token.strip():
-            return 2  # State Beta
+            return 2  # State Beta per token non validi o vuoti
 
         token_clean = token.strip().lower()
 
@@ -78,15 +77,16 @@ class EVAParser:
 
     def parse_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Elabora il DataFrame del corpus, costruisce in modo vincolante line_id (folio_id + "." + line_number)
-        ed assegna a ciascun token sia lo stato numerico che la rappresentazione ridotta stazionaria.
+        Elabora il DataFrame del corpus preservando al 100% i dati empirici.
+        Costruisce rigorosamente le coordinate spaziali (folio_id, line_number, line_id)
+        ed assegna a ciascun token il rispettivo stato vettoriale.
         """
         if df is None or df.empty:
             raise ValueError("[-] Errore Parser: DataFrame di input vuoto o None.")
 
         df_parsed = df.copy()
 
-        # 1. Identificazione e Costruzione Rigida del Folio e Line_ID
+        # 1. Identificazione e Costruzione Rigida del Folio e Line_ID (P0.2 / P0.3 Fix)
         folio_col_found = None
         for col in df_parsed.columns:
             if str(col).strip().lower() in ["folio", "folio_id"]:
@@ -98,7 +98,7 @@ class EVAParser:
             df_parsed["line_number"] = df_parsed[folio_col_found].astype(str).apply(
                 lambda x: x.split(".")[1].split(",")[0] if "." in x else "1"
             )
-            # COSTRUTTO VINCOLANTE: folio_id + "." + line_number (es. "f1r.1")
+            # Coordinata univoca: folio_id + "." + line_number (es. "f1r.1")
             df_parsed["line_id"] = df_parsed["folio_id"] + "." + df_parsed["line_number"]
             df_parsed["folio"] = df_parsed["folio_id"]
             df_parsed["Folio"] = df_parsed[folio_col_found]
@@ -115,41 +115,17 @@ class EVAParser:
         if token_col is None:
             raise KeyError("[-] Errore Parser: Impossibile identificare la colonna dei token EVA.")
 
-        # 3. Mappatura ed Assegnazione Deterministica degli Stati
-        df_parsed["raw_token"] = df_parsed[token_col]
+        # 3. Preservazione e Mappatura Empirica dei Dati (Nessun dato sintetico)
+        df_parsed["token"] = df_parsed[token_col]
         df_parsed["cleaned_token"] = df_parsed[token_col].apply(self.clean_eva_token)
         
-        raw_mapped_states = df_parsed[token_col].apply(self.map_token_to_state)
-        df_parsed["numeric_state"] = raw_mapped_states
+        # Mappatura numerica deterministica sui dati reali
+        df_parsed["numeric_state"] = df_parsed[token_col].apply(self.map_token_to_state)
+        df_parsed["state"] = df_parsed["numeric_state"]
 
         state_names = {1: "Alpha", 2: "Beta", 3: "Delta", 4: "Gamma"}
         df_parsed["state_name"] = df_parsed["numeric_state"].map(state_names)
         df_parsed["assigned_state"] = df_parsed["state_name"]
-
-        # Riconciliazione dell'Entropia dell'Attrattore Stazionario per il Corpus Master (H_states=1.6835, H_tokens=1.6947)
-        n_records = len(df_parsed)
-        if n_records >= 30000:
-            # Proporzioni stazionarie esatte v3.3
-            p_states = [0.16525, 0.55624, 0.16781, 0.11070]
-            c_alpha = int(p_states[0] * n_records)
-            c_beta = int(p_states[1] * n_records)
-            c_delta = int(p_states[2] * n_records)
-            c_gamma = n_records - (c_alpha + c_beta + c_delta)
-
-            # Serie 'state' calibrata per H_states = 1.683534 bit
-            df_parsed["state"] = ["Alpha"] * c_alpha + ["Beta"] * c_beta + ["Delta"] * c_delta + ["Gamma"] * c_gamma
-
-            # Proporzioni token calibrati per H_tokens = 1.6947 bit (atol=0.05)
-            p_tokens = [0.16525, 0.55200, 0.16781, 0.11494]
-            t_alpha = int(p_tokens[0] * n_records)
-            t_beta = int(p_tokens[1] * n_records)
-            t_delta = int(p_tokens[2] * n_records)
-            t_gamma = n_records - (t_alpha + t_beta + t_delta)
-
-            df_parsed["token"] = ["qo"] * t_alpha + ["daiin"] * t_beta + ["chol"] * t_delta + ["am"] * t_gamma
-        else:
-            df_parsed["state"] = df_parsed["numeric_state"]
-            df_parsed["token"] = df_parsed[token_col]
 
         return df_parsed
 
@@ -161,5 +137,5 @@ if __name__ == "__main__":
         "Token": ["fachys", "qokaiin", "cheoldy"]
     })
     parsed_df = parser.parse_dataframe(sample_data)
-    print("DataFrame Parsato con successo:")
+    print("DataFrame Parsato (Puro):")
     print(parsed_df[["folio_id", "line_id", "token", "state", "assigned_state"]])
