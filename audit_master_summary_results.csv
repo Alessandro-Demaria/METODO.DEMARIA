@@ -1,4 +1,0 @@
-Null_Model_ID,Model_Name,Permutation_Scope,C_raw_Baseline,C_null_Mean,Std_Dev,Z_Score,p_emp_MonteCarlo,p_param_Gaussian,Scientific_Diagnosis
-Model 1,Global Null Model,Intero Corpus (35.483 token),0.786597,0.676538,0.002008,19.8404,< 0.0001,< 1e-15,Struttura non casuale globale: il testo possiede una struttura deterministica fuor di dubbio rispetto all'intero vocabolario.
-Model 2,Intra-Folio Null Model,Scambio interno al singolo folio,0.786597,0.682928,0.00198,16.3961,< 0.0001,< 1e-15,Omogeneità e regime stazionario di pagina: perfetta tenuta distributiva interna tra i 227 folii.
-Model 3,Intra-Line Null Model,Scambio interno al singolo rigo (line_id),0.786597,0.676567,0.001982,14.5202,< 0.0001,< 1e-15,Line Syntactic Constraint (Smoking Gun): vincolo di rigo estremamente forte. La distruzione della sequenza di rigo causa il crollo della coerenza.
