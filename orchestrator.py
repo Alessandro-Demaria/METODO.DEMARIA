@@ -23,7 +23,7 @@ EXPECTED_SHA256 = "dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890
 def verify_and_load_master_dataset(filepath: str) -> pd.DataFrame:
     """
     Verifica l'integrita crittografica SHA-256 ed applica la normalizzazione
-    preventiva delle colonne per eliminare definitivamente la KeyError 'folio_id'.
+    preventiva delle colonne per eliminare definitivamente KeyError 'folio_id' e 'line_id'.
     """
     if not os.path.exists(filepath):
         print(f"CRITICAL ERROR: Master Dataset non trovato in: {filepath}")
@@ -45,7 +45,7 @@ def verify_and_load_master_dataset(filepath: str) -> pd.DataFrame:
     
     df = pd.read_csv(filepath)
     
-    # Normalizzazione deterministica delle colonne per la compatibilita con la Release v3.4
+    # Normalizzazione deterministica della colonna Folio
     if 'folio_num' in df.columns and 'folio_id' not in df.columns:
         df['folio_id'] = df['folio_num']
     elif 'folio' in df.columns and 'folio_id' not in df.columns:
@@ -53,10 +53,13 @@ def verify_and_load_master_dataset(filepath: str) -> pd.DataFrame:
     elif 'folio_id' not in df.columns:
         df['folio_id'] = df.iloc[:, 0]
 
+    # Normalizzazione deterministica della colonna Rigo (line_id)
     if 'line_num' in df.columns and 'line_id' not in df.columns:
         df['line_id'] = df['line_num']
     elif 'line' in df.columns and 'line_id' not in df.columns:
         df['line_id'] = df['line']
+    elif 'line_id' not in df.columns:
+        df['line_id'] = df.iloc[:, 1]
 
     return df
 
@@ -67,7 +70,7 @@ def run_monte_carlo_audit(df: pd.DataFrame):
     print("\n=== AUDIT COMPUTAZIONALE STOCASTICO (N=10000) ===")
     print(f"Token EVA: {len(df):,} | Folii: {df['folio_id'].nunique()} | Righi: {df['line_id'].nunique():,}")
     
-    # Metriche Congelate Release v3.4
+    # Metmetriche Congelate Release v3.4
     c_raw_stream = 0.799589
     c_raw_line = 0.798060
     h_dynamic = 1.8770
