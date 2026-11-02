@@ -44,25 +44,24 @@ Rigettando formalmente l'ipotesi linguistico-fonetica tradizionale (Symbol-to-So
 
 ---
 
-## 3. STRUTTURA DEL REPOSITORY DI LABORATORIO (12 FILE FROZEN)
+## 3. STRUTTURA DEL REPOSITORY DI LABORATORIO (FILE FROZEN RELEASE 3.4 OPTIMUM)
 
-Codebase Python Vettorizzata Pure-Array e Suite di Audit (9 Moduli Integrati)
+Codebase Vettorizzata Demaria Core Evo e Suite di Validazione Integrata
 
-1. demaria_eva_parser_v34.py: Parser deterministico dell'alfabeto EVA e trasduzione molti-a-uno sulle regole della quadrupla degli stati topologici minimi (Alpha: 20,5958%, Beta: 21,3285%, Delta: 14,8832%, Gamma: 43,1925% ancorati allo Stato Zero S0).
-2. demaria_core.py: Motore algebrico vettoriale R^d e gestore della Matrice Binaria di Ammissibilita Canonica 4x4 (12 celle ammesse, 4 proibite tassative, D = 75,00%) per il calcolo della Coerenza Sintattica (C_line = 0,807595) e dell'Invariante di Armonia Phi_alpha.
-3. audit_master_trepito.py: Modulo di verifica dell'integrita crittografica SHA-256 del master dataset e controllo dell'immutabilita della suite.
-4. monte_carlo_audit.py: Engine stocastico Monte Carlo per l'audit dei tre modelli nulli gerarchici (Global Z = +8,2677, Intra-Folio Z = +9,0275, Intra-Line Z_line = +9,7048, Cohen d = 9,4860) con N = 10.000 iterazioni reali, seed 42.
-5. stress_test_holdout.py: Modulo per la validazione Holdout Out-of-Sample 80/20 (C_train = 0,809662 vs C_test = 0,799906, scarto 1,20%) e lo stress test di resilienza al rumore sintattico inoculato (ritenzione netta 99,13% al 10% di rumore).
-6. cross_corpus_benchmark.py: Sensore matematico per il benchmarking esteso su 10 corpora storici ed extra-corpus (83.241 elementi) con validazione selettiva esclusiva sull'Automa del Voynich.
-7. triage_engine.py: Motore ad alta velocita per l'Invariante C (DICE) operante sulla baseline certificata di 15,75 milioni di vettori/secondo con latenza di 63,4 nanosecondi per il triage deterministico (Classe 0, Classe 1, Classe 2), scalabile su architettura Demaria Core Evo fino a oltre 215 MVS con latenza sub-nanosecondo.
-8. analisi_coerenza_pagina53.py: Modulo avanzato di analisi topologica e scomposizione di rigo.
-9. orchestrator.py: Orchestratore Master unificato per la riesecuzione automatica dell'intera suite di Clean Room Audit e l'esportazione dei report.
+1. demaria_parser.py: Parser vettoriale deterministico dell'alfabeto EVA e trasduzione molti-a-uno sulla quadrupla degli stati topologici minimi (Alpha: 20,5958%, Beta: 21,3285%, Delta: 14,8832%, Gamma: 43,1925% ancorati allo Stato Zero S0). Gestisce la Matrice Binaria di Ammissibilita Canonica 4x4 (12 celle ammesse, 4 transizioni proibite tassative, D = 75,00%).
+2. demaria_core.py: Motore algebrico vettoriale nello spazio euclideo R^d per il calcolo della Coerenza Sintattica Vincolata al Rigo (C_line = 0,807595) e dell'Invariante di Armonia Phi_alpha.
+3. demaria_validation.py: Modulo di convalida scientifica e presidio di integrita crittografica SHA-256 del Master Dataset (dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999) e del pacchetto codebase sigillato (7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636).
+4. demaria_montecarlo.py: Engine stocastico per l'audit dei tre modelli nulli gerarchici Monte Carlo (Global Z = +8,2677; Intra-Folio Z = +9,0275; Intra-Line Z_line = +9,7048, Z parametrico = +14,5202, Cohen d = 9,4860) con N = 10.000 iterazioni reali, seed 42.
+5. stress_test_holdout.py: Modulo per la validazione Holdout Out-of-Sample 80/20 su 227 folii (C_train = 0,809662 vs C_test = 0,799906, scarto 1,20%) e lo stress test di resilienza al rumore sintattico inoculato (ritenzione netta 99,13% al 10% di rumore stocastico).
+6. demaria_crossdomain.py: Motore cibernetico per il benchmarking comparativo esteso su 10 corpora storici ed extra-corpus (83.241 elementi totali) con validazione selettiva esclusiva sull'Automa del Voynich.
+7. demaria_triage_c.py: Demaria Invariant C Engine (DICE) ad altissima velocita per il triage deterministico SIMD (Classe 0, Classe 1, Classe 2) con baseline convalidata a 15,75 milioni di vettori/secondo (latenza 63,4 nanosecondi) e classificazione della Copertina al 100% in Classe 0 (Standby Neutro), scalabile su architettura Demaria Core Evo fino a oltre 215 MVS con latenza sub-nanosecondo.
+8. main_runner.py: Orchestratore Master principale per l'audit computazionale omni-disciplinare integrale esteso a 32 moduli scientifici ad anello chiuso.
 
-Dataset Master e Documentazione Ufficiale (3 File Core)
+Dataset Master e Documentazione Ufficiale
 
-- voynich_eva_tokens_extended.csv: Dataset Master di 35.483 EVA tokens (Impronta Crittografica SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999).
+- voynich_eva_tokens_extended.csv: Dataset Master di 35.483 EVA tokens autenticati (Impronta Crittografica SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999).
 - METODO_DEMARIA_3.4_Unified_Treatise_DOI_10.5281_zenodo.23836177.pdf: Trattato Unificato Canonico Bilingue (24 pagine: Italiano pp. 1-12 / Inglese pp. 13-24).
-- METODO_DEMARIA_3.4_APPENDICE_A_APPENDIX_A_DOI_10.5281_zenodo.23836177.pdf: Documento Autonomo Appendice A (102 pagine) contenente le Tavole Omni-Grafiche 600 DPI, l'analisi dei folii, le 6 sezioni, i 7 Comandi ed il Titolo Reale COMPUTUS MAGNUS - REGULA AQUARUM ET CALORIS CIRCULATIONIS.
+- METODO_DEMARIA_3.4_APPENDICE_A_APPENDIX_A_DOI_10.5281_zenodo.23836177.pdf: Documento Autonomo Appendice A (102 pagine) contenente le Tavole Omni-Grafiche a 600 DPI, l'analisi foglio per foglio dei 227 folii, le 6 sezioni, i 7 Comandi di Processo ed il Titolo Reale COMPUTUS MAGNUS - REGULA AQUARUM ET CALORIS CIRCULATIONIS.
 ---
 
 ## 4. ESECUZIONE RAPIDA (QUICK START)
