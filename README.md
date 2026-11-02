@@ -67,19 +67,28 @@ Dataset Master e Documentazione Ufficiale (3 File Core)
 
 ## 4. ESECUZIONE RAPIDA (QUICK START)
 
-Per rieseguire l'intero audit e verificare in modo deterministico la baseline di laboratorio (Seed 42):
+Per rieseguire l'intero audit computazionale e verificare in modo deterministico la baseline di laboratorio (Seed 42, N = 10.000 iterazioni reali, baseline C_line = 0,807595):
 
-```bash
-# Esecuzione dell'Orchestratore Master
-python orchestrator.py
-```
+# Esecuzione dell'Orchestratore Master Omni-Disciplinare (32 Moduli Integrati)
+python main_runner.py
 
----
+Metriche attese di validazione empirica deterministica:
+- Coerenza Sintattica Vincolata al Rigo C_line: 0,807595 (80,76%)
+- Intra-Line Null Model (Prova Regina N = 10.000): Z_line = +9,7048 (Z parametrico = +14,5202), p < 0,0001 (1/10.001), Effect Size d di Cohen = 9,4860
+- DICE Throughput Baseline SIMD: 15.758.504 vettori/secondo (Latenza: 63,4 nanosecondi; Standby Copertina S0: 100% in Classe 0)
 
-## 5. NOTE LEGALI, PATERNITÀ E SEGRETO INDUSTRIALE (ART. 98 CPI)
 
-1. **Diritto d'Autore (L. 633/1941)**: La struttura teorica del METODO DEMARIA®, i trattati scientifici, i dataset quantitativi, la codebase di laboratorio, il design del dispositivo analogico Volvelle e la formalizzazione dell'Invariante di Armonia costituiscono opera d'ingegno originale tutelata ai sensi della Legge 22 aprile 1941 n. 633 e delle Convenzioni Internazionali WIPO / Berna.
-2. **Marchio Registrato (D.Lgs. 30/2005)**: La denominazione, il logo e la metodologia METODO DEMARIA® costituiscono marchio registrato ai sensi del D.Lgs. 10 febbraio 2005, n. 30 (Codice della Proprietà Industriale).
-3. **Segreto Industriale (Art. 98 CPI)**: Gli algoritmi di simulazione avanzata, i motori commerciali backend, le matrici proprietarie dell'Invariante di Armonia (Phi_alpha) e la struttura analitica del motore di calcolo C* **rimangono coperti da Segreto Industriale ed esclusiva proprietà dell'Autore Avv. Alessandro Demaria (Art. 98 D.Lgs. 30/2005 - CPI)**. La messa a disposizione della presente suite risponde ai requisiti di trasparenza Open Science e riproducibilità popperiana, senza concedere alcuna licenza d'uso o di sfruttamento commerciale sulla codebase proprietaria e sul motore sottostante.
+## 5. NOTE LEGALI, PATERNITA E SEGRETO INDUSTRIALE (ART. 98 CPI)
 
-© METODO DEMARIA DEPOSITATO - Tutti i diritti riservati (L. 633/1941, D.Lgs. 30/2005, Art. 98 CPI).
+1. Diritto d'Autore (L. 633/1941): La struttura teorica del METODO DEMARIA, i trattati scientifici, i dataset quantitativi, la codebase di laboratorio a 32 moduli, la formulazione del Teorema M1 di Demaria, il design del dispositivo analogico Volvelle e la formalizzazione dell'Invariante di Armonia Phi_alpha costituiscono opera d'ingegno originale tutelata ai sensi della Legge 22 aprile 1941 n. 633 e delle Convenzioni Internazionali WIPO / Berna.
+2. Marchio Registrato (D.Lgs. 30/2005): La denominazione, il logo e la metodologia METODO DEMARIA costituiscono marchio registrato ai sensi del D.Lgs. 10 febbraio 2005, n. 30 (Codice della Proprieta Industriale) con registrazione ufficiale Marchio UIBM Numero 302026000161716.
+3. Segreto Industriale (Art. 98 CPI): Gli algoritmi di simulazione avanzata, i motori commerciali backend, le matrici proprietarie dell'Invariante di Armonia (Phi_alpha) e la struttura analitica del motore di calcolo C* (DICE) rimangono coperti da Segreto Industriale ed esclusiva proprieta dell'Autore Avv. Alessandro Demaria (Art. 98 D.Lgs. 30/2005 - CPI). La messa a disposizione della presente suite risponde ai requisiti di trasparenza Open Science e riproducibilita popperiana, senza concedere alcuna licenza d'uso o di sfruttamento commerciale sulla codebase proprietaria e sul motore sottostante.
+4. Isolamento Epistemologico del Trattato e Rinvio all'Appendice A: Il Trattato Unificato Canonico formalizza e dimostra l'architettura computazionale limitatamente ai Tiers A, B e C. Le applicazioni storiche di Tier D, l'analisi dei 227 folii, le 6 sezioni, i 7 Comandi ed il Titolo Reale COMPUTUS MAGNUS - REGULA AQUARUM ET CALORIS CIRCULATIONIS sono confinati nell'autonoma Appendice A (102 pagine, DOI: 10.5281/zenodo.23836177).
+
+(C) METODO DEMARIA DEPOSITATO - Tutti i diritti riservati (L. 633/1941, D.Lgs. 30/2005, Art. 98 CPI, Marchio UIBM N. 302026000161716).
+Concept DOI Madre: https://doi.org/10.5281/zenodo.22789343
+DOI Ufficiale Release 3.4 Optimum: https://doi.org/10.5281/zenodo.23836177
+Presidio SHA-256 Master Dataset: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999
+Presidio SHA-256 Codebase & Audit Sigillato: 7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636
+Nessun foglio Excel né relazione di chiusura emessi, nel rigoroso rispetto del divieto imposto.
+Pronto per il passo operativo successivo.
