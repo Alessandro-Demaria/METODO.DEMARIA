@@ -19,9 +19,9 @@ Contatti Ufficiali: metodo.demaria@gmail.com | avv.alessandrodemaria@pec.it
 
 ## 1. PREMESSA EPISTEMOLOGICA E CAMBIO DI PARADIGMA
 
-La presente Release v3.4 (Trattato Unificato Bilingue) del METODO DEMARIA® formalizza e consolida il cambio di paradigma epistemologico nello studio dei corpora simbolici storici non decifrati, con specifico riferimento al Manoscritto Voynich (Beinecke MS 408).
+La presente Release 3.4 OPTIMUM (Trattato Unificato Bilingue) del METODO DEMARIA formalizza e consolida il cambio di paradigma epistemologico nello studio dei corpora simbolici storici non decifrati, con specifico riferimento al Manoscritto Voynich (Beinecke MS 408).
 
-Rigettando l'ipotesi linguistico-fonetica tradizionale (Symbol-to-Sound / Symbol-to-Meaning), il METODO DEMARIA® formalizza il modello vettoriale e cibernetico (Symbol-to-Vector / Symbol-to-State): il corpus grafico costituisce un Instruction Set deterministico e calcolabile, concepito per la regolazione e il monitoraggio di uno spazio degli stati all'interno di un sistema temporizzato ad anello chiuso (Closed-Loop Timed Automaton).
+Rigettando formalmente l'ipotesi linguistico-fonetica tradizionale (Symbol-to-Sound / Symbol-to-Meaning), il METODO DEMARIA formalizza il modello vettoriale e cibernetico (Symbol-to-State): il corpus grafico costituisce un Instruction Set deterministico e calcolabile, concepito per la regolazione e il monitoraggio di uno spazio degli stati all'interno di un sistema temporizzato ad anello chiuso (Closed-Loop Timed Automaton).
 
 ---
 
