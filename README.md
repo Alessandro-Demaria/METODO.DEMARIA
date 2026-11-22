@@ -1,18 +1,19 @@
-# METODO DEMARIA® Release 3.4 OPTIMUM (Trattato Unificato Bilingue)
+# METODO DEMARIA® Release 3.5 (Edizione Scientifica Pura e Non Circolare)
 
-[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=34)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml) [![DOI Concept Madre](https://zenodo.org/badge/DOI/10.5281/zenodo.22789343.svg)](https://doi.org/10.5281/zenodo.22789343) [![DOI Release 3.4 Optimum](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.23836177-blue.svg)](https://doi.org/10.5281/zenodo.23836177) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Validation Suite - Metodo Demaria](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml/badge.svg?branch=main&cache_bust=35)](https://github.com/Alessandro-Demaria/METODO.DEMARIA/actions/workflows/validate.yml) [![DOI Concept Madre](https://zenodo.org/badge/DOI/10.5281/zenodo.22789343.svg)](https://doi.org/10.5281/zenodo.22789343) [![DOI Release 3.5](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24444677-blue.svg)](https://doi.org/10.5281/zenodo.24444677) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![IP: Art. 98 CPI](https://img.shields.io/badge/IP-Art.%2098%20CPI%20%7C%20UIBM%20302026000161716-red.svg)](https://doi.org/10.5281/zenodo.24444677)
 
-## Quantitative Audit & Vector Topology of the Voynich Manuscript (Beinecke MS 408)
+## Blind Mathematical, Information-Theoretic, and Stochastic Analysis of Line-Positional Polarization in the Voynich Manuscript (Beinecke MS 408)
 
-Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria (Molochio, RC)
-Concept DOI Madre (Archivio Permanente): [10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)
-DOI Ufficiale Release 3.4 Optimum: [10.5281/zenodo.23836177](https://doi.org/10.5281/zenodo.23836177)
-Impronta Crittografica Dataset Master (35.483 Token EVA SHA-256): dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999
-Impronta Crittografica Pacchetto Codebase e Audit Sigillato (SHA-256): 7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636
-Licenza del Trattato e dei Dati: Creative Commons Attribution 4.0 International (CC BY 4.0)
-Licenza Codebase Pubblica: MIT License
-Privativa Industriale e Segreto Algoritmi: Art. 98 D.Lgs. 30/2005 (Codice della Proprieta Industriale)
-Marchio Registrato e Metodologia: METODO DEMARIA® (Numero UIBM 302026000161716)
+Autore, Responsabile Scientifico e Inventore Unico: Avv. Alessandro Demaria (Molochio, RC)  
+Affiliazione: Laboratorio Scientifico Metodo Demaria  
+Concept DOI Madre (Archivio Permanente): [10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)  
+DOI Ufficiale Release 3.5: [10.5281/zenodo.24444677](https://doi.org/10.5281/zenodo.24444677)  
+Impronta Crittografica Dataset Master (35.483 Token EVA SHA-256): `dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999`  
+Impronta Crittografica Pacchetto Codebase e Audit Sigillato (SHA-256): `2ccfb2a24512d60e5d5383484c403a5260d01a7c4a7f97aee26d7db0fccdaf6d`  
+Licenza del Trattato e dei Dati: Creative Commons Attribution 4.0 International (CC BY 4.0)  
+Licenza Suite Dimostrativa Pubblica: Suite Dimostrativa Aperta Non Circolare (7 Moduli Python)  
+Privativa Industriale e Segreto Algoritmi: Art. 98 D.Lgs. 30/2005 (Codice della Proprieta Industriale)  
+Marchio Registrato e Metodologia: METODO DEMARIA® (Numero UIBM 302026000161716)  
 Contatti Ufficiali: metodo.demaria@gmail.com | avv.alessandrodemaria@pec.it
 
 ---
