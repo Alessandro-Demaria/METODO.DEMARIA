@@ -18,11 +18,16 @@ Contatti Ufficiali: metodo.demaria@gmail.com | avv.alessandrodemaria@pec.it
 
 ---
 
-## 1. PREMESSA EPISTEMOLOGICA E CAMBIO DI PARADIGMA
+## 1. PREMESSA EPISTEMOLOGICA E PERIMETRO NON CIRCOLARE (RELEASE 3.5)
 
-La presente Release 3.4 OPTIMUM (Trattato Unificato Bilingue) del METODO DEMARIA formalizza e consolida il cambio di paradigma epistemologico nello studio dei corpora simbolici storici non decifrati, con specifico riferimento al Manoscritto Voynich (Beinecke MS 408).
+La presente **Release 3.5 (Edizione Scientifica Pura e Non Circolare — Trattato Unificato Bilingue e Appendici A, B, C)** del METODO DEMARIA formalizza l'analisi matematica, topologica, informazionale e stocastica cieca dell'automa temporizzato discreto ad anello chiuso rilevato sul corpus traslitterato del Manoscritto Voynich (**Beinecke MS 408**, Yale University).
 
-Rigettando formalmente l'ipotesi linguistico-fonetica tradizionale (Symbol-to-Sound / Symbol-to-Meaning), il METODO DEMARIA formalizza il modello vettoriale e cibernetico (Symbol-to-State): il corpus grafico costituisce un Instruction Set deterministico e calcolabile, concepito per la regolazione e il monitoraggio di uno spazio degli stati all'interno di un sistema temporizzato ad anello chiuso (Closed-Loop Timed Automaton).
+Per eliminare alla radice ogni possibile obiezione di circolarità metodologica tra regole morfologiche prefissate e matrici di transizione, l'intera pipeline della Release 3.5 adotta esclusivamente l'operatore agnostico cieco `transduce_universal_agnostic` (implementato in `demaria_parser.py`), privo di qualunque dizionario o regola lessicale specifica sul Voynich. L'operatore estrae automaticamente dal flusso stesso i **4 prefissi bigrammatici più frequenti** e i **4 suffissi bigrammatici più frequenti** (su parole di lunghezza almeno 3 caratteri), ripartendo in modo deterministico i `35.483` token EVA nei quattro stati base ancorati allo Stato Zero `S0 = 0` (Alur & Dill, 1994):
+
+* **Stato 1 (Prefissi bigrammatici frequenti auto-estratti):** `6.726` token (`18,96%`)
+* **Stato 2 (Nucleo ordinario di regime interno):** `8.997` token (`25,36%`)
+* **Stato 3 (Forme lunghe a bassa frequenza, percentile >= 75 e occorrenze <= 3):** `2.059` token (`5,80%`)
+* **Stato 4 (Suffissi bigrammatici frequenti auto-estratti):** `17.701` token (`49,89%`)
 
 ---
 
