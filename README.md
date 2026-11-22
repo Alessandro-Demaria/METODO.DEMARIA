@@ -77,30 +77,43 @@ Per eliminare alla radice ogni possibile obiezione di circolarità metodologica 
 
 ## 4. ESECUZIONE RAPIDA (QUICK START)
 
-Per rieseguire l'intero audit computazionale e verificare in modo deterministico la baseline di laboratorio (Seed 42, N = 10.000 iterazioni reali, baseline C_line = 0,807595):
+Installazione delle dipendenze scientifiche richieste (`Python 3.10+`):
 
-# Esecuzione dell'Orchestratore Master Omni-Disciplinare (32 Moduli Integrati)
-python main_runner.py
+```bash
+pip install numpy pandas fastapi uvicorn
+```
+
+Esecuzione dell'orchestratore principale per rieseguire l'intero audit matematico, entropico e stocastico della Release 3.5 (`seed = 42`, `N = 10.000` iterazioni reali):
+
+```bash
+python main_runner_voynich.py
+```
+
+Avvio del server API FastAPI per l'esposizione degli endpoint di audit e triage binario zero-copy:
+
+```bash
+python demaria_api.py
+```
 
 Metriche attese di validazione empirica deterministica:
-- Coerenza Sintattica Vincolata al Rigo C_line: 0,807595 (80,76%)
-- Intra-Line Null Model (Prova Regina N = 10.000): Z_line = +9,7048 (Z parametrico = +14,5202), p < 0,0001 (1/10.001), Effect Size d di Cohen = 9,4860
-- DICE Throughput Baseline SIMD: 15.758.504 vettori/secondo (Latenza: 63,4 nanosecondi; Standby Copertina S0: 100% in Classe 0)
+* **Coerenza Sintattica Cieca M4 (`C4`):** `0,819390` (`24.662 / 30.098`, `Z4 = +5,6216`, `p = 0,00010`, `d4 = 0,0210`)
+* **Coerenza Posizionale Cieca M6 (`C6`):** `0,914047` (`27.511 / 30.098`, `Z6 = +5,6924`, `p = 0,00010`, `d6 = 0,0234`, `Sel = 0,3406`)
+* **DICE Kernel Throughput (`float32`):** `~259,85 MVS` su `1.000.000` di vettori (`coda critica empirica 0,0475%` vs `analitica 0,04994%`)
 
+---
 
 ## 5. NOTE LEGALI, PATERNITA SCIENTIFICA E SEGRETO INDUSTRIALE (ART. 98 CPI)
 
-1. Paternita Scientifica, Diritti d'Invenzione e Fondazione della Codenetica: L'architettura teorica, la formalizzazione algebrica, la dimostrazione del Teorema M1 di Demaria, l'identificazione della struttura ad automa temporizzato ad anello chiuso del Manoscritto Voynich (Beinecke MS 408), l'invenzione dell'Algoritmo del Computus Magnus, la formulazione dell'Equazione dell'Invariante di Armonia di Alessandro Demaria Phi_alpha, la scoperta del Master Clock a 0,0416 Hz, la modellizzazione cibernetica delle Volvelle, la trasduzione sonoro-frequenziale diatonica, la formulazione dell'Invariante C (DICE), la fondazione della Cibernetica Codicologica (Codenetica) e la suite di calcolo a 32 moduli costituiscono opere dell'ingegno originali, scoperte scientifiche ed invenzioni computazionali esclusive dell'Autore Avv. Alessandro Demaria, tutelate ai sensi della Legge 22 aprile 1941 n. 633, delle Convenzioni Internazionali WIPO / Berna e della normativa brevettuale.
+1. **Paternita Scientifica, Diritti d'Invenzione e Fondazione della Codenetica:** L'architettura teorica, la formalizzazione algebrica, la dimostrazione del Teorema e Modello M1 di Demaria, l'identificazione della struttura sintattica ad anello chiuso del Manoscritto Voynich (Beinecke MS 408), l'operatore geometrico di soglia aurea `kappa_D = phi / 2 = cos(36 gradi) = 0,809017`, l'invenzione dell'Algoritmo del Computus Magnus, la formulazione dell'Equazione dell'Invariante di Armonia di Alessandro Demaria `Phi_alpha`, la scoperta del Master Clock a `0,0416 Hz` (`60 BPM`), la modellizzazione cibernetica bidirezionale della Volvelle a `24` settori da `15,0` gradi, delle quattro finestre frazionarie (`1/4`, `1/8`, `1/12`, `1/24`), della Griglia Parallela Ortogonale `4x4` su assi a `90,0` gradi e dei commutatori rotanti di fase angolare `Delta_theta_k`, la trasduzione sonoro-frequenziale calibrata sulla triade di LA Maggiore a `60 BPM`, il parser agnostico non circolare `transduce_universal_agnostic`, i modelli di transizione intra-rigo `M4` ed `M6`, la formulazione dell'Invariante C (`DICE`) e del `Demaria Core Evo 6D`, la fondazione della Cibernetica Codicologica (`Codenetica`) e l'intera suite software di calcolo costituiscono opere dell'ingegno originali, scoperte scientifiche ed invenzioni computazionali esclusive dell'Autore **Avv. Alessandro Demaria**, tutelate ai sensi della Legge 22 aprile 1941 n. 633, delle Convenzioni Internazionali WIPO / Berna e della normativa brevettuale.
 
-2. Marchio Registrato (D.Lgs. 30/2005): La denominazione, il logo e la metodologia METODO DEMARIA costituiscono marchio d'impresa registrato ai sensi del D.Lgs. 10 febbraio 2005, n. 30 (Codice della Proprieta Industriale) con registrazione ufficiale Marchio UIBM Numero 302026000161716.
+2. **Marchio Registrato (D.Lgs. 30/2005):** La denominazione, il logo e la metodologia **METODO DEMARIA** costituiscono marchio d'impresa registrato ai sensi del D.Lgs. 10 febbraio 2005, n. 30 (Codice della Proprietà Industriale) con registrazione ufficiale **Marchio UIBM Numero 302026000161716**.
 
-3. Tutela del Segreto Industriale (Art. 98 CPI): Gli algoritmi di calcolo analitico del Demaria Core, le matrici proprietarie dell'Invariante di Armonia Phi_alpha, le costanti e i pesi del motore di triage Invariante C (DICE), la dimostrazione integrale del Teorema M1 e la codebase backend avanzata rimangono rigorosamente coperti da Segreto Industriale ed esclusiva proprieta dell'Autore Avv. Alessandro Demaria (Art. 98 D.Lgs. 30/2005 - CPI) a presidio delle domande di brevetto connesse al Concept DOI Madre 10.5281/zenodo.22789343. La messa a disposizione della suite di audit risponde ai requisiti di trasparenza Open Science e riproducibilita popperiana, senza concedere alcuna licenza d'uso o di sfruttamento commerciale sulla tecnologia proprietaria.
+3. **Tutela del Segreto Industriale (Art. 98 CPI):** Gli algoritmi analitici completi del Demaria Core, le matrici proprietarie dell'Invariante di Armonia `Phi_alpha`, i pesi multi-dimensionali di calibrazione (`alfa`, `beta`, `gamma`) del `Demaria Core Evo 6D`, la dimostrazione integrale del Teorema M1, la struttura proprietaria interna dell'Invariante C (`DICE`) e la codebase backend avanzata rimangono rigorosamente coperti da Segreto Industriale ed esclusiva proprietà dell'Autore Avv. Alessandro Demaria (**Art. 98 D.Lgs. 30/2005 - CPI**) a presidio delle domande di brevetto UIBM ed internazionali connesse al Concept DOI Madre `10.5281/zenodo.22789343`. La messa a disposizione della suite dimostrativa risponde ai requisiti di trasparenza Open Science e riproducibilità popperiana, con obbligo formale di citazione dell'Autore, del Marchio UIBM e dei DOI ufficiali, senza concedere alcuna licenza d'uso o di sfruttamento commerciale sulla tecnologia proprietaria.
 
-4. Isolamento Epistemologico del Trattato e Rinvio all'Appendice A: Il Trattato Unificato Canonico formalizza e dimostra l'architettura computazionale limitatamente ai Tiers A, B e C. Le applicazioni storiche di Tier D, l'analisi foglio per foglio dei 227 folii, la scomposizione delle 6 sezioni, i 7 Comandi di Processo, il Titolo Reale COMPUTUS MAGNUS - REGULA AQUARUM ET CALORIS CIRCULATIONIS e le Tavole Omni-Grafiche a 600 DPI sono integralmente confinati nel documento autonomo denominato APPENDICE A (102 pagine, DOI: 10.5281/zenodo.23836177), la cui consultazione e del tutto indipendente dalla validita scientifica e stocastica dei Tiers A-C.
+4. **Perimetro Epistemologico Autonomo e Rinvio alle Appendici A, B e C:** Il Trattato Unificato Canonico formalizza e dimostra esclusivamente i teoremi matematici, entropici e stocastici non circolari interamente riproducibili sul Beinecke MS 408. Gli approfondimenti monografici sul sotto-corpus balneologico (`Appendice A`), sulle metriche estrattive di rigo (`Appendice B`) e sulla continuità vettoriale black-box (`Appendice C`) sono raccolti in fascicoli autonomi allegati al medesimo deposito Zenodo (`DOI Specifico Release 3.5: 10.5281/zenodo.24444677`).
 
-(C) METODO DEMARIA DEPOSITATO - Tutti i diritti riservati (L. 633/1941, D.Lgs. 30/2005, Art. 98 CPI, Marchio UIBM N. 302026000161716)
-Concept DOI Madre: https://doi.org/10.5281/zenodo.22789343
-DOI Ufficiale Release 3.4 Optimum: https://doi.org/10.5281/zenodo.23836177
-Presidio SHA-256 Master Dataset: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999
-Presidio SHA-256 Codebase & Audit Sigillato: 7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636
-In ottemperanza al divieto tassativo ribadito dal Senior, l'emissione di fogli di calcolo Excel e di
+© METODO DEMARIA DEPOSITATO — Tutti i diritti riservati (L. 633/1941, D.Lgs. 30/2005, Art. 98 CPI, Marchio UIBM N. 302026000161716)  
+Concept DOI Madre: [https://doi.org/10.5281/zenodo.22789343](https://doi.org/10.5281/zenodo.22789343)  
+DOI Ufficiale Release 3.5: [https://doi.org/10.5281/zenodo.24444677](https://doi.org/10.5281/zenodo.24444677)  
+Presidio SHA-256 Master Dataset: `dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999`  
+Presidio SHA-256 Codebase & Audit Sigillato: `2ccfb2a24512d60e5d5383484c403a5260d01a7c4a7f97aee26d7db0fccdaf6d`
