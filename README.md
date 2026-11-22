@@ -56,24 +56,23 @@ Per eliminare alla radice ogni possibile obiezione di circolarità metodologica 
 
 ---
 
-## 3. STRUTTURA DEL REPOSITORY DI LABORATORIO (FILE FROZEN RELEASE 3.4 OPTIMUM)
+### Suite Dimostrativa Aperta Non Circolare (7 Moduli Python)
 
-Codebase Vettorizzata Demaria Core Evo e Suite di Validazione Integrata
+1. `main_runner_voynich.py`: Orchestratore principale di verifica end-to-end, controllo integrità crittografica SHA-256 del dataset master, esecuzione parallela Monte Carlo (`M4` e `M6`), benchmark kernel `DICE` e tabella di falsificabilità popperiana.
+2. `demaria_parser.py`: Parser vettoriale agnostico cieco (`transduce_universal_agnostic`), trasduttore posizionale `M6` (`6x6`), calcolo della coerenza sintattica, metriche entropiche di Shannon e Kullback-Leibler, selettività intrinseca di bordo rigo, distanza di editing di Levenshtein intra-rigo, test Chi-quadrato codicologico ed estrattore vettoriale `Demaria Core Evo 6D`.
+3. `demaria_montecarlo.py`: Motore stocastico gerarchico intra-rigo (`N = 10.000` permutazioni bloccate per rigo fisico, `seed = 42`) per `M4` e `M6` e calcolo dell'effect size bernoulliano `d` di Cohen.
+4. `demaria_triage_c.py`: Demaria Invariant C Engine (`DICE`) ad alte prestazioni in singola precisione `float32` per il triage deterministico (Classe 0, Classe 1, Classe 2), verifica dello Stato Zero Copertina (`S0`) e calcolo della coda critica analitica.
+5. `demaria_validation.py`: Suite di validazione scientifica out-of-sample (`Holdout Split 80/20` sui `227` folii), `Noise Stress Test` al `10%` di rumore uniforme casuale e doppia randomizzazione isomorfa.
+6. `demaria_cross_corpus.py`: Modulo comparativo per la generazione riproducibile (`seed = 42`) e valutazione sotto criterio congiunto dei tre controlli nulli matematici puri (`Controllo Nullo A` i.i.d., `Controllo Nullo B` Markov 1 ordine, `Controllo Nullo C` uniforme).
+7. `demaria_api.py`: Microservizio REST FastAPI ad alte prestazioni con endpoint di health-check (`/api/v1/health`), audit completo (`/api/v1/audit/full-run`) e triage binario zero-copy (`/api/v1/triage/binary`, `application/octet-stream`).
 
-1. demaria_parser.py: Parser vettoriale deterministico dell'alfabeto EVA e trasduzione molti-a-uno sulla quadrupla degli stati topologici minimi (Alpha: 20,5958%, Beta: 21,3285%, Delta: 14,8832%, Gamma: 43,1925% ancorati allo Stato Zero S0). Gestisce la Matrice Binaria di Ammissibilita Canonica 4x4 (12 celle ammesse, 4 transizioni proibite tassative, D = 75,00%).
-2. demaria_core.py: Motore algebrico vettoriale nello spazio euclideo R^d per il calcolo della Coerenza Sintattica Vincolata al Rigo (C_line = 0,807595) e dell'Invariante di Armonia Phi_alpha.
-3. demaria_validation.py: Modulo di convalida scientifica e presidio di integrita crittografica SHA-256 del Master Dataset (dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999) e del pacchetto codebase sigillato (7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636).
-4. demaria_montecarlo.py: Engine stocastico per l'audit dei tre modelli nulli gerarchici Monte Carlo (Global Z = +8,2677; Intra-Folio Z = +9,0275; Intra-Line Z_line = +9,7048, Z parametrico = +14,5202, Cohen d = 9,4860) con N = 10.000 iterazioni reali, seed 42.
-5. stress_test_holdout.py: Modulo per la validazione Holdout Out-of-Sample 80/20 su 227 folii (C_train = 0,809662 vs C_test = 0,799906, scarto 1,20%) e lo stress test di resilienza al rumore sintattico inoculato (ritenzione netta 99,13% al 10% di rumore stocastico).
-6. demaria_crossdomain.py: Motore cibernetico per il benchmarking comparativo esteso su 10 corpora storici ed extra-corpus (83.241 elementi totali) con validazione selettiva esclusiva sull'Automa del Voynich.
-7. demaria_triage_c.py: Demaria Invariant C Engine (DICE) ad altissima velocita per il triage deterministico SIMD (Classe 0, Classe 1, Classe 2) con baseline convalidata a 15,75 milioni di vettori/secondo (latenza 63,4 nanosecondi) e classificazione della Copertina al 100% in Classe 0 (Standby Neutro), scalabile su architettura Demaria Core Evo fino a oltre 215 MVS con latenza sub-nanosecondo.
-8. main_runner.py: Orchestratore Master principale per l'audit computazionale omni-disciplinare integrale esteso a 32 moduli scientifici ad anello chiuso.
+### Dataset Master e Documentazione Ufficiale (Fascicoli Bilingue Italiano / Inglese)
 
-Dataset Master e Documentazione Ufficiale
-
-- voynich_eva_tokens_extended.csv: Dataset Master di 35.483 EVA tokens autenticati (Impronta Crittografica SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999).
-- METODO_DEMARIA_3.4_Unified_Treatise_DOI_10.5281_zenodo.23836177.pdf: Trattato Unificato Canonico Bilingue (24 pagine: Italiano pp. 1-12 / Inglese pp. 13-24).
-- METODO_DEMARIA_3.4_APPENDICE_A_APPENDIX_A_DOI_10.5281_zenodo.23836177.pdf: Documento Autonomo Appendice A (102 pagine) contenente le Tavole Omni-Grafiche a 600 DPI, l'analisi foglio per foglio dei 227 folii, le 6 sezioni, i 7 Comandi di Processo ed il Titolo Reale COMPUTUS MAGNUS - REGULA AQUARUM ET CALORIS CIRCULATIONIS.
+* `voynich_eva_tokens_extended.csv`: Dataset Master di `35.483` token EVA autenticati (`Impronta Crittografica SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999`).
+* `METODO DEMARIA VERSIONE 3.5.pdf`: Trattato Unificato Canonico Bilingue — Edizione Scientifica Pura e Non Circolare (Italiano pp. 1–7 / Inglese pp. 8–15).
+* `METODO DEMARIA Versione 3.5 - Appendice A Bilingue.pdf`: Documento Autonomo Appendice A — Analisi Sezionale Capitolo 3 (Folii `f75r–f84v`).
+* `METODO DEMARIA Versione 3.5 - Appendice B Bilingue.pdf`: Documento Autonomo Appendice B — Metriche Estrattive su MS 408 e Mutazioni Unitarie `dL = 1`.
+* `METODO DEMARIA Versione 3.5 - Appendice C Bilingue.pdf`: Documento Autonomo Appendice C — Teorema C.1 di Continuità Vettoriale `C*_t` e Falsificazione Black-Box.
 ---
 
 ## 4. ESECUZIONE RAPIDA (QUICK START)
