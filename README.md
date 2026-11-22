@@ -31,22 +31,28 @@ Per eliminare alla radice ogni possibile obiezione di circolarità metodologica 
 
 ---
 
-## 2. RECAP BENCHMARK EMPIRICI FROZEN (RELEASE 3.4 OPTIMUM)
+## 2. RIEPILOGO DEI BENCHMARK EMPIRICI CONSOLIDATI (RELEASE 3.5)
 
-* Corpus Analizzato: 35.483 EVA tokens autenticati distribuiti su 227 folii fisici e 5.385 righi per complessive 30.098 transizioni intra-linea analizzate.
-* Coerenza Sintattica Grezza Flusso Continuo (C_stream): 0,809255 (80,93%).
-* Coerenza Sintattica Vincolata al Rigo (C_line): 0,807595 (80,76%).
-* Entropia Dinamica di Shannon H(X): 1,877092 bit (1,6947 bit sui 4 stati minimi proiettati).
-* Stato Zero Copertina Esterna (Ground State / Power-OFF Enclosure S0): Carico computazionale Z_cover = 0,0 kPa ed Entropia Dinamica H_cover = 0,0000 bit, formalizzando la chiusura topologica del dominio al 100% e smentendo definitivamente l'ipotesi secolare di mutilazione codicologica.
-* Modello Nullo 1 (Global Null Model - Monte Carlo N = 10.000, seed 42): Media C_null = 0,794040, Deviazione Standard = 0,001640, Z-Score = +8,2677, p-value < 0,0001 (1/10.001).
-* Modello Nullo 2 (Intra-Folio Null Model su 227 folii - Monte Carlo N = 10.000, seed 42): Media C_null = 0,793444, Deviazione Standard = 0,001568, Z-Score = +9,0275, p-value < 0,0001 (1/10.001).
-* Modello Nullo 3 (Intra-Line Null Model su 5.385 righi / Prova Regina - Monte Carlo N = 10.000, seed 42): Media C_null = 0,793121, Deviazione Standard = 0,001491, Z_line = +9,7048 (con Z parametrico = +14,5202), p-value empirico standard = 1/10.001 (p < 0,0001), Effect Size d di Cohen = 9,4860 (supera di oltre 11 volte la soglia di effetto grande d > 0,80).
-* Isomorphic Double Randomization Test (N = 10.000): Convalida la selettività esclusiva derivante dall'interazione tra le regole del parser vettoriale e la sintassi spaziale di rigo del manoscritto.
-* Stress Test di Resilienza al Rumore Sintattico: Con il 10% di rumore inoculato si registra una ritenzione netta del segnale topologico del 99,13% (ritenzione grezza = 80,05%) con decadimento strettamente lineare.
-* Holdout Stability Out-of-Sample (Split 80/20 su 227 Folii): Train Set C_train = 0,809662, Test Set C_test = 0,799906, con scarto relativo irrisorio dell'1,20%, escludendo qualsiasi fenomeno di sovra-ottimizzazione (overfitting).
-* Benchmarking Cross-Corpus su 10 Corpora Storici (N = 83.241 elementi): Rigetto categorico per tutti i 9 corpora di controllo ad anello aperto (tutti equivalenti alla baseline casuale C compreso tra 0,6614 e 0,7385) e validazione selettiva esclusiva sull'Automa ad Anello Chiuso del Voynich (Beinecke MS 408).
-* Motore Invariante C per Triage Deterministico (DICE): Baseline hardware convalidata a 15.758.504 vettori al secondo (15,75 MVS) con latenza media di 63,4 nanosecondi e catalogazione della Copertina al 100% in Classe 0 (Standby Neutro); prestazioni di picco su architettura Demaria Core Evo scalabili fino a oltre 215 Milioni di Vettori al secondo con latenza sub-nanosecondo.
-* Presidio Crittografico SHA-256 e Catena di Custodia: Master Dataset 35.483 Token EVA (Hash SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999); Pacchetto Codebase e Audit Sigillato (Hash SHA-256: 7d520930ff952e03427891c8d4f35aa29c8472b51ffd3ac958e736211f74e636).
+* **Corpus Analizzato:** `35.483` token EVA autenticati distribuiti su `227` folii fisici e `5.385` righi per complessive `30.098` transizioni intra-rigo analizzate (`SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999`).
+* **Matrice Canonica di Ammissibilita Direzionale M4 (4x4):** `12` celle ammesse e `4` transizioni proibite tassative (Densità strutturale esatta `D = 75,00%`), con divieto assoluto di ritorno dallo Stato Base (`Stato 2`) e dallo Stato Raro (`Stato 3`) allo Stato Prefisso (`Stato 1`).
+* **Teorema 1 — Coerenza Sintattica Cieca Modello M4 (`N = 10.000` permutazioni gerarchiche intra-rigo, `seed = 42`):** `C4 = 0,819390` (`24.662 / 30.098` transizioni ammesse contro media nulla `mu0 = 0,811326`, scarto `Delta C4 = +0,008064`, `Z4 = +5,6216`, `p = 0,00010`, effect size bernoulliano `d4 = 0,0210`).
+* **Teorema 1 Esteso — Modello Posizionale Esteso M6 (`6x6` stati):** `C6 = 0,914047` (`27.511 / 30.098` transizioni ammesse contro media nulla `mu0 = 0,907485`, scarto `Delta C6 = +0,006562`, `Z6 = +5,6924`, `p = 0,00010`, effect size bernoulliano `d6 = 0,0234`), con **Selettivita Intrinseca di Bordo Rigo** pari a `Sel = 0,3406` (`Pa = 0,1913` in apertura di rigo; `Pg = 0,4851` in chiusura di rigo).
+* **Teorema 2 — Regime Entropico Condizionato e Chiusura Ciclica:** Entropia dinamica di stato `H_state = 1,695579 bit`; divergenza ciclica di Kullback-Leibler tra i primi `5.000` e gli ultimi `5.000` token pari a `D_KL = 0,106761 bit`; entropia unigrammatica di carattere `H1_char = 3,897455 bit/carattere`; entropia condizionata del primo ordine `H(c_{t+1} | c_t) = 2,191530 bit/carattere`, sensibilmente inferiore al regime tipico delle lingue naturali europee (`2,80 - 3,40 bit/carattere`).
+* **Teorema 3 — Mutazioni Incrementali Adiacenti Intra-Rigo:** Su `30.098` coppie consecutive intra-rigo, `1.292` coppie (`4,29%`) presentano distanza di editing di Levenshtein `<= 1` carattere contro `1.181,47` attese dalla permutazione intra-rigo (`Z = +3,9908`, `p < 0,0001`).
+* **Teorema 4 — Segregazione Morfologica Non Parametrica tra Sezioni Codicologiche:** Tabella di contingenza `5x8` tra le `5` sezioni codicologiche principali (Folii `1-66`, `67-73`, `75-84`, `88-102`, `103-116`) e gli `8` bigrammi iniziali più frequenti con `Chi-quadrato = 1.451,64` su `28` gradi di libertà (`p < 10^-280`).
+* **Validazione Holdout Out-of-Sample (`Split 80/20` su `227` folii):** `C_train = 0,810525` vs `C_test = 0,849750` (`gap = 4,84%`), escludendo fenomeni di overfitting.
+* **Noise Stress Test (Iniezione del `10%` di rumore uniforme casuale):** Ritenzione netta del segnale pari al `98,8484%`.
+* **Falsificabilita Popperiana sui Tre Controlli Nulli Matematici Puri (`seed = 42`):** Sotto il criterio congiunto `(Z4 > 4,5 AND Z6 > 4,5 AND Sel > 0,30)`, il **Beinecke MS 408 Reale** è l'unica serie validata (`VALIDATO`), a fronte del rigetto integrale dei tre controlli nulli stocastici puri:
+  1. **Manoscritto Voynich (Beinecke MS 408 Reale):** `C4 = 0,819390` | `Z4 = +5,6216` | `C6 = 0,914047` | `Z6 = +5,6924` | `Sel = 0,3406` -> **VALIDATO**
+  2. **Controllo Nullo A (Flusso i.i.d. con Stessa Marginale `p`):** `C4 = 0,811017` | `Z4 = +0,3390` | `C6 = 0,908864` | `Z6 = -0,4019` | `Sel = 0,3489` -> **RIGETTATO**
+  3. **Controllo Nullo B (Catena di Markov Stazionaria 1 Ordine):** `C4 = 0,821749` | `Z4 = +6,1627` | `C6 = 0,914745` | `Z6 = +2,7219` | `Sel = 0,3528` -> **RIGETTATO (`Z6 < 4,5`)**
+  4. **Controllo Nullo C (Sequenza Uniforme Equidistribuita):** `C4 = 0,748222` | `Z4 = -1,8430` | `C6 = 0,820785` | `Z6 = -1,0505` | `Sel = 0,2492` -> **RIGETTATO**
+* **Motore Invariante C per Triage Deterministico (`DICE`):** Kernel vettorizzato in singola precisione `float32` (`c = 0,5824 * x1 + 0,4176 * x2`) con throughput validato a `259,85 MVS` su `1.000.000` di vettori uniformi e coda critica empirica (`0,0475%`) allineata alla probabilità analitica esatta `(1 - t2)^2 / (2 * w1 * w2) = 0,04994%`.
+* **Approfondimenti delle Appendici A, B e C:**
+  * *Appendice A (Sotto-corpus balneologico Capitolo 3, `1.135` token, `117` righi):* `C4 = 0,8381`, `Z = +2,8904`, `p = 0,0019`.
+  * *Appendice B (Metriche estrattive su MS 408):* `5.385` righi, lunghezza media `6,59` token/rigo, mutazioni unitarie `dL = 1` pari a `4,29%` (`1.292` coppie intra-rigo), `Delta H_rigo = -0,000039 bit` (stazionarietà informazionale intra-rigo), `Delta H_first = +0,166089 bit` (incremento entropico al primo token di rigo) e `52,05%` dei righi terminanti in Stato 4 (`Suffix`).
+  * *Appendice C (Continuità vettoriale black-box `C*_t`):* `R^2 = 0,928571`, `Z = +4,0825`, `p < 0,0001`.
+* **Presidio Crittografico SHA-256 e Catena di Custodia:** Master Dataset `35.483` Token EVA (`Hash SHA-256: dec87e784290ad5b404bd5ed0110349a2f379c7fb386adb0bca2d7a4b1890999`); Pacchetto Codebase e Audit Sigillato (`Hash SHA-256: 2ccfb2a24512d60e5d5383484c403a5260d01a7c4a7f97aee26d7db0fccdaf6d`).
 
 ---
 
